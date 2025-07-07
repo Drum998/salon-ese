@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+
+{% block title %}Contact{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="text-center mb-5">Contact Us</h1>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-6 mb-5">
+        <h3>Get in Touch</h3>
+        <p class="lead">We'd love to hear from you! Contact us for appointments, questions, or feedback.</p>
+        
+        <div class="row">
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <i class="fas fa-map-marker-alt fa-2x text-primary mb-3"></i>
+                        <h5 class="card-title">Address</h5>
+                        <p class="card-text">
+                            123 Salon Street<br>
+                            Beauty District<br>
+                            City, State 12345
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <i class="fas fa-phone fa-2x text-primary mb-3"></i>
+                        <h5 class="card-title">Phone</h5>
+                        <p class="card-text">
+                            (555) 123-4567<br>
+                            (555) 123-4568
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <i class="fas fa-envelope fa-2x text-primary mb-3"></i>
+                        <h5 class="card-title">Email</h5>
+                        <p class="card-text">
+                            info@salon-ese.com<br>
+                            appointments@salon-ese.com
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <i class="fas fa-clock fa-2x text-primary mb-3"></i>
+                        <h5 class="card-title">Hours</h5>
+                        <p class="card-text">
+                            Mon-Fri: 9:00 AM - 8:00 PM<br>
+                            Sat: 9:00 AM - 6:00 PM<br>
+                            Sun: 10:00 AM - 4:00 PM
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h4>Send us a Message</h4>
+            </div>
+            <div class="card-body">
+                <form>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="firstName" class="form-label">First Name</label>
+                            <input type="text" class="form-control" id="firstName" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="lastName" class="form-label">Last Name</label>
+                            <input type="text" class="form-control" id="lastName" required>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="email" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="phone" class="form-label">Phone</label>
+                        <input type="tel" class="form-control" id="phone">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="subject" class="form-label">Subject</label>
+                        <select class="form-select" id="subject" required>
+                            <option value="">Choose a subject</option>
+                            <option value="appointment">Appointment Booking</option>
+                            <option value="question">General Question</option>
+                            <option value="feedback">Feedback</option>
+                            <option value="complaint">Complaint</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="message" class="form-label">Message</label>
+                        <textarea class="form-control" id="message" rows="5" required></textarea>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-paper-plane"></i> Send Message
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-5">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <h4 class="text-center mb-4">Find Us</h4>
+                <div class="row">
+                    <div class="col-md-8 mx-auto">
+                        <div class="bg-light p-4 rounded text-center">
+                            <i class="fas fa-map fa-3x text-primary mb-3"></i>
+                            <h5>Location</h5>
+                            <p class="mb-3">We're conveniently located in the heart of the city, with easy access to public transportation and parking.</p>
+                            <a href="#" class="btn btn-outline-primary">
+                                <i class="fas fa-directions"></i> Get Directions
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-5">
+    <div class="col-12 text-center">
+        <h3>Ready to Book Your Appointment?</h3>
+        <p class="lead">Don't wait! Book your appointment online or call us today.</p>
+        {% if current_user.is_authenticated %}
+            <a href="{{ url_for('main.dashboard') }}" class="btn btn-primary btn-lg me-3">
+                <i class="fas fa-calendar-plus"></i> Book Online
+            </a>
+        {% else %}
+            <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-lg me-3">
+                <i class="fas fa-user-plus"></i> Create Account
+            </a>
+        {% endif %}
+        <a href="tel:555-123-4567" class="btn btn-outline-secondary btn-lg">
+            <i class="fas fa-phone"></i> Call Now
+        </a>
+    </div>
+</div>
+{% endblock %} 

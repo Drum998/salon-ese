@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+
+{% block title %}My Profile{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>My Profile</h1>
+            <a href="{{ url_for('profile.edit_profile') }}" class="btn btn-primary">
+                <i class="fas fa-edit"></i> Edit Profile
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-4 mb-4">
+        <div class="card">
+            <div class="card-body text-center">
+                {% if current_user.profile and current_user.profile.profile_image %}
+                    <img src="{{ url_for('static', filename='uploads/' + current_user.profile.profile_image) }}" 
+                         class="rounded-circle mb-3" style="width: 150px; height: 150px; object-fit: cover;">
+                {% else %}
+                    <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center mb-3" 
+                         style="width: 150px; height: 150px;">
+                        <i class="fas fa-user fa-4x text-muted"></i>
+                    </div>
+                {% endif %}
+                <h4>{{ current_user.first_name }} {{ current_user.last_name }}</h4>
+                <p class="text-muted">{{ current_user.username }}</p>
+                {% for role in current_user.roles %}
+                    <span class="badge bg-primary">{{ role.name.title() }}</span>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-8 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-info-circle"></i> Personal Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <strong>First Name:</strong>
+                        <p>{{ current_user.first_name }}</p>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <strong>Last Name:</strong>
+                        <p>{{ current_user.last_name }}</p>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <strong>Email:</strong>
+                        <p>{{ current_user.email }}</p>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <strong>Phone:</strong>
+                        <p>{{ current_user.phone or 'Not provided' }}</p>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <strong>Member Since:</strong>
+                        <p>{{ current_user.created_at.strftime('%B %d, %Y') }}</p>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <strong>Last Login:</strong>
+                        <p>{{ current_user.last_login.strftime('%B %d, %Y at %I:%M %p') if current_user.last_login else 'Never' }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if current_user.profile %}
+<div class="row">
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-user"></i> Profile Details</h5>
+            </div>
+            <div class="card-body">
+                {% if current_user.profile.bio %}
+                    <div class="mb-3">
+                        <strong>Bio:</strong>
+                        <p>{{ current_user.profile.bio }}</p>
+                    </div>
+                {% endif %}
+                
+                {% if current_user.profile.date_of_birth %}
+                    <div class="mb-3">
+                        <strong>Date of Birth:</strong>
+                        <p>{{ current_user.profile.date_of_birth.strftime('%B %d, %Y') }}</p>
+                    </div>
+                {% endif %}
+                
+                {% if current_user.profile.address %}
+                    <div class="mb-3">
+                        <strong>Address:</strong>
+                        <p>{{ current_user.profile.address }}</p>
+                    </div>
+                {% endif %}
+                
+                {% if current_user.profile.emergency_contact %}
+                    <div class="mb-3">
+                        <strong>Emergency Contact:</strong>
+                        <p>{{ current_user.profile.emergency_contact }}</p>
+                    </div>
+                {% endif %}
+                
+                {% if current_user.profile.emergency_phone %}
+                    <div class="mb-3">
+                        <strong>Emergency Phone:</strong>
+                        <p>{{ current_user.profile.emergency_phone }}</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-cog"></i> Role-Specific Information</h5>
+            </div>
+            <div class="card-body">
+                {% if current_user.has_role('stylist') %}
+                    {% if current_user.profile.specialties %}
+                        <div class="mb-3">
+                            <strong>Specialties:</strong>
+                            <p>{{ current_user.profile.specialties }}</p>
+                        </div>
+                    {% endif %}
+                    
+                    {% if current_user.profile.experience_years %}
+                        <div class="mb-3">
+                            <strong>Years of Experience:</strong>
+                            <p>{{ current_user.profile.experience_years }} years</p>
+                        </div>
+                    {% endif %}
+                    
+                    {% if current_user.profile.certifications %}
+                        <div class="mb-3">
+                            <strong>Certifications:</strong>
+                            <p>{{ current_user.profile.certifications }}</p>
+                        </div>
+                    {% endif %}
+                {% endif %}
+                
+                {% if current_user.has_role('customer') %}
+                    {% if current_user.profile.hair_type %}
+                        <div class="mb-3">
+                            <strong>Hair Type:</strong>
+                            <p>{{ current_user.profile.hair_type.title() }}</p>
+                        </div>
+                    {% endif %}
+                    
+                    {% if current_user.profile.allergies %}
+                        <div class="mb-3">
+                            <strong>Allergies:</strong>
+                            <p>{{ current_user.profile.allergies }}</p>
+                        </div>
+                    {% endif %}
+                    
+                    {% if current_user.profile.notes %}
+                        <div class="mb-3">
+                            <strong>Notes:</strong>
+                            <p>{{ current_user.profile.notes }}</p>
+                        </div>
+                    {% endif %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-shield-alt"></i> Account Security</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <a href="{{ url_for('profile.change_password') }}" class="btn btn-outline-primary">
+                            <i class="fas fa-key"></i> Change Password
+                        </a>
+                    </div>
+                    <div class="col-md-6 text-md-end">
+                        <small class="text-muted">
+                            <i class="fas fa-clock"></i> 
+                            Profile last updated: {{ current_user.profile.updated_at.strftime('%B %d, %Y at %I:%M %p') if current_user.profile and current_user.profile.updated_at else 'Never' }}
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

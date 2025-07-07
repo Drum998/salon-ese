@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block title %}Welcome{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="row align-items-center mb-5">
+    <div class="col-lg-6">
+        <h1 class="display-4 fw-bold text-primary mb-4">
+            Welcome to Salon ESE
+        </h1>
+        <p class="lead mb-4">
+            Experience professional hair styling and beauty services in a relaxing, modern environment. 
+            Our expert stylists are dedicated to making you look and feel your best.
+        </p>
+        {% if not current_user.is_authenticated %}
+            <div class="d-grid gap-2 d-md-flex justify-content-md-start">
+                <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-lg px-4 me-md-2">
+                    <i class="fas fa-user-plus"></i> Get Started
+                </a>
+                <a href="{{ url_for('main.services') }}" class="btn btn-outline-secondary btn-lg px-4">
+                    <i class="fas fa-list"></i> Our Services
+                </a>
+            </div>
+        {% else %}
+            <div class="d-grid gap-2 d-md-flex justify-content-md-start">
+                <a href="{{ url_for('main.dashboard') }}" class="btn btn-primary btn-lg px-4 me-md-2">
+                    <i class="fas fa-tachometer-alt"></i> Go to Dashboard
+                </a>
+                <a href="{{ url_for('main.services') }}" class="btn btn-outline-secondary btn-lg px-4">
+                    <i class="fas fa-list"></i> View Services
+                </a>
+            </div>
+        {% endif %}
+    </div>
+    <div class="col-lg-6 text-center">
+        <div class="bg-light p-5 rounded">
+            <i class="fas fa-cut fa-5x text-primary mb-3"></i>
+            <h3>Professional Hair Styling</h3>
+            <p class="text-muted">Expert stylists, premium products, and exceptional service</p>
+        </div>
+    </div>
+</div>
+
+<!-- Features Section -->
+<div class="row mb-5">
+    <div class="col-12">
+        <h2 class="text-center mb-5">Why Choose Salon ESE?</h2>
+    </div>
+    <div class="col-md-4 mb-4">
+        <div class="card h-100 text-center">
+            <div class="card-body">
+                <i class="fas fa-star fa-3x text-warning mb-3"></i>
+                <h5 class="card-title">Expert Stylists</h5>
+                <p class="card-text">Our team of certified professionals brings years of experience and creativity to every appointment.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-4">
+        <div class="card h-100 text-center">
+            <div class="card-body">
+                <i class="fas fa-spa fa-3x text-success mb-3"></i>
+                <h5 class="card-title">Premium Products</h5>
+                <p class="card-text">We use only the highest quality hair care products to ensure the best results for your hair.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-4">
+        <div class="card h-100 text-center">
+            <div class="card-body">
+                <i class="fas fa-clock fa-3x text-info mb-3"></i>
+                <h5 class="card-title">Convenient Booking</h5>
+                <p class="card-text">Easy online booking system that fits your schedule. Book appointments anytime, anywhere.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Services Preview -->
+<div class="row mb-5">
+    <div class="col-12">
+        <h2 class="text-center mb-5">Our Services</h2>
+    </div>
+    <div class="col-md-6 col-lg-3 mb-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-cut fa-2x text-primary mb-3"></i>
+                <h6 class="card-title">Haircuts</h6>
+                <p class="card-text small">Professional cuts for all hair types</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 col-lg-3 mb-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-palette fa-2x text-primary mb-3"></i>
+                <h6 class="card-title">Hair Coloring</h6>
+                <p class="card-text small">Full color, highlights, and balayage</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 col-lg-3 mb-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-magic fa-2x text-primary mb-3"></i>
+                <h6 class="card-title">Styling</h6>
+                <p class="card-text small">Special occasion and everyday styling</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 col-lg-3 mb-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-leaf fa-2x text-primary mb-3"></i>
+                <h6 class="card-title">Treatments</h6>
+                <p class="card-text small">Deep conditioning and repair treatments</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Call to Action -->
+<div class="row">
+    <div class="col-12">
+        <div class="bg-primary text-white p-5 rounded text-center">
+            <h3>Ready to Transform Your Look?</h3>
+            <p class="lead mb-4">Book your appointment today and experience the Salon ESE difference.</p>
+            {% if not current_user.is_authenticated %}
+                <a href="{{ url_for('auth.register') }}" class="btn btn-light btn-lg">
+                    <i class="fas fa-user-plus"></i> Create Account
+                </a>
+            {% else %}
+                <a href="{{ url_for('main.dashboard') }}" class="btn btn-light btn-lg">
+                    <i class="fas fa-calendar-plus"></i> Book Appointment
+                </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %} 

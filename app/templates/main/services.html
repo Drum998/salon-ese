@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block title %}Services{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="text-center mb-5">Our Services</h1>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6 col-lg-4 mb-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-cut fa-3x text-primary mb-3"></i>
+                <h5 class="card-title">Haircuts</h5>
+                <p class="card-text">Professional cuts for all hair types and styles. From classic cuts to modern trends.</p>
+                <ul class="list-unstyled">
+                    <li>Men's Cuts</li>
+                    <li>Women's Cuts</li>
+                    <li>Children's Cuts</li>
+                    <li>Senior Cuts</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6 col-lg-4 mb-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-palette fa-3x text-primary mb-3"></i>
+                <h5 class="card-title">Hair Coloring</h5>
+                <p class="card-text">Full color, highlights, lowlights, and balayage services using premium products.</p>
+                <ul class="list-unstyled">
+                    <li>Full Color</li>
+                    <li>Highlights & Lowlights</li>
+                    <li>Balayage</li>
+                    <li>Color Correction</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6 col-lg-4 mb-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-magic fa-3x text-primary mb-3"></i>
+                <h5 class="card-title">Styling</h5>
+                <p class="card-text">Special occasion styling, blowouts, and everyday styling for any event.</p>
+                <ul class="list-unstyled">
+                    <li>Blowouts</li>
+                    <li>Updos</li>
+                    <li>Wedding Styling</li>
+                    <li>Special Occasions</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6 col-lg-4 mb-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-leaf fa-3x text-primary mb-3"></i>
+                <h5 class="card-title">Treatments</h5>
+                <p class="card-text">Deep conditioning, repair treatments, and scalp treatments for healthy hair.</p>
+                <ul class="list-unstyled">
+                    <li>Deep Conditioning</li>
+                    <li>Hair Repair</li>
+                    <li>Scalp Treatments</li>
+                    <li>Keratin Treatments</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6 col-lg-4 mb-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-spa fa-3x text-primary mb-3"></i>
+                <h5 class="card-title">Extensions</h5>
+                <p class="card-text">Professional hair extensions for length, volume, and style transformation.</p>
+                <ul class="list-unstyled">
+                    <li>Clip-in Extensions</li>
+                    <li>Tape-in Extensions</li>
+                    <li>Fusion Extensions</li>
+                    <li>Maintenance</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6 col-lg-4 mb-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-gift fa-3x text-primary mb-3"></i>
+                <h5 class="card-title">Packages</h5>
+                <p class="card-text">Special packages combining multiple services for the best value and results.</p>
+                <ul class="list-unstyled">
+                    <li>Cut & Color</li>
+                    <li>Style & Treatment</li>
+                    <li>Wedding Packages</li>
+                    <li>Student Discounts</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-5">
+    <div class="col-12 text-center">
+        <h3>Ready to Book Your Appointment?</h3>
+        <p class="lead">Contact us to schedule your next visit or book online if you have an account.</p>
+        {% if current_user.is_authenticated %}
+            <a href="{{ url_for('main.dashboard') }}" class="btn btn-primary btn-lg">
+                <i class="fas fa-calendar-plus"></i> Book Appointment
+            </a>
+        {% else %}
+            <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-lg me-3">
+                <i class="fas fa-user-plus"></i> Create Account
+            </a>
+            <a href="{{ url_for('main.contact') }}" class="btn btn-outline-secondary btn-lg">
+                <i class="fas fa-phone"></i> Contact Us
+            </a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %} 

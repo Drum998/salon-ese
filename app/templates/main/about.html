@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block title %}About{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="text-center mb-5">About Salon ESE</h1>
+    </div>
+</div>
+
+<div class="row mb-5">
+    <div class="col-lg-6">
+        <h3>Our Story</h3>
+        <p class="lead">Salon ESE has been providing exceptional hair styling and beauty services since 2010. We are passionate about making our clients look and feel their best.</p>
+        <p>Founded with a vision to create a welcoming, professional environment where clients can relax and transform their look, Salon ESE has grown into one of the most trusted names in hair styling and beauty services.</p>
+        <p>Our team of certified professionals brings years of experience and creativity to every appointment, ensuring that each client receives personalized attention and exceptional results.</p>
+    </div>
+    <div class="col-lg-6">
+        <div class="bg-light p-4 rounded">
+            <h4>Why Choose Us?</h4>
+            <ul class="list-unstyled">
+                <li><i class="fas fa-check text-success me-2"></i>Experienced, certified stylists</li>
+                <li><i class="fas fa-check text-success me-2"></i>Premium quality products</li>
+                <li><i class="fas fa-check text-success me-2"></i>Relaxing, modern environment</li>
+                <li><i class="fas fa-check text-success me-2"></i>Personalized service</li>
+                <li><i class="fas fa-check text-success me-2"></i>Competitive pricing</li>
+                <li><i class="fas fa-check text-success me-2"></i>Convenient online booking</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-5">
+    <div class="col-12">
+        <h3 class="text-center mb-4">Our Mission</h3>
+        <div class="row">
+            <div class="col-md-4 text-center mb-4">
+                <i class="fas fa-heart fa-3x text-primary mb-3"></i>
+                <h5>Passion</h5>
+                <p>We are passionate about hair styling and committed to staying current with the latest trends and techniques.</p>
+            </div>
+            <div class="col-md-4 text-center mb-4">
+                <i class="fas fa-star fa-3x text-primary mb-3"></i>
+                <h5>Excellence</h5>
+                <p>We strive for excellence in every service we provide, ensuring the highest quality results for our clients.</p>
+            </div>
+            <div class="col-md-4 text-center mb-4">
+                <i class="fas fa-users fa-3x text-primary mb-3"></i>
+                <h5>Community</h5>
+                <p>We value our community and are committed to building lasting relationships with our clients.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-5">
+    <div class="col-12">
+        <h3 class="text-center mb-4">Our Values</h3>
+        <div class="row">
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="fas fa-shield-alt text-primary me-2"></i>Quality</h5>
+                        <p class="card-text">We use only the highest quality products and maintain the highest standards in all our services.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="fas fa-clock text-primary me-2"></i>Reliability</h5>
+                        <p class="card-text">We respect your time and always strive to provide prompt, reliable service.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="fas fa-smile text-primary me-2"></i>Customer Satisfaction</h5>
+                        <p class="card-text">Your satisfaction is our top priority. We work to exceed your expectations every time.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="fas fa-graduation-cap text-primary me-2"></i>Continuous Learning</h5>
+                        <p class="card-text">Our team continuously learns and updates their skills to provide the best service possible.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12 text-center">
+        <h3>Ready to Experience Salon ESE?</h3>
+        <p class="lead">Book your appointment today and discover why our clients love us!</p>
+        {% if current_user.is_authenticated %}
+            <a href="{{ url_for('main.dashboard') }}" class="btn btn-primary btn-lg">
+                <i class="fas fa-calendar-plus"></i> Book Appointment
+            </a>
+        {% else %}
+            <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-lg me-3">
+                <i class="fas fa-user-plus"></i> Create Account
+            </a>
+            <a href="{{ url_for('main.contact') }}" class="btn btn-outline-secondary btn-lg">
+                <i class="fas fa-phone"></i> Contact Us
+            </a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %} 

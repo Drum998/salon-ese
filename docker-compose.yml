@@ -1,0 +1,38 @@
+services:
+  web:
+    build: .
+    ports:
+      - "5010:5010"
+    environment:
+      - FLASK_APP=run.py
+      - FLASK_ENV=development
+      - FLASK_DEBUG=1
+      - DOCKER_ENV=true
+      - DATABASE_URL=postgresql://salon_user:salon_password@db:5432/salon_ese
+    volumes:
+      - .:/app
+      - ./instance:/app/instance
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    image: postgres:13
+    environment:
+      - POSTGRES_DB=salon_ese
+      - POSTGRES_USER=salon_user
+      - POSTGRES_PASSWORD=salon_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U salon_user -d salon_ese"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data: 
