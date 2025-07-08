@@ -1,0 +1,239 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1><i class="fas fa-cog"></i> System Settings</h1>
+                <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-primary">
+                    <i class="fas fa-arrow-left"></i> Back to Dashboard
+                </a>
+            </div>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <div class="row">
+                <!-- System Information -->
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-info-circle"></i> System Information</h5>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td><strong>Application:</strong></td>
+                                    <td>Salon ESE</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Version:</strong></td>
+                                    <td>1.0.0</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Environment:</strong></td>
+                                    <td>
+                                        {% if config.DEBUG %}
+                                            <span class="badge bg-warning">Development</span>
+                                        {% else %}
+                                            <span class="badge bg-success">Production</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Database:</strong></td>
+                                    <td>
+                                        {% if config.DATABASE_URL and 'postgresql' in config.DATABASE_URL %}
+                                            <span class="badge bg-info">PostgreSQL</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">SQLite</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Timezone:</strong></td>
+                                    <td>UK (BST/GMT)</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Current Time:</strong></td>
+                                    <td>{{ uk_now().strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Security Settings -->
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-shield-alt"></i> Security Settings</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <h6>Session Management</h6>
+                                <p class="text-muted">Session timeout and security settings</p>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="sessionTimeout" checked disabled>
+                                    <label class="form-check-label" for="sessionTimeout">
+                                        Enable session timeout
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="secureCookies" checked disabled>
+                                    <label class="form-check-label" for="secureCookies">
+                                        Secure cookies (HTTPS only)
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <h6>Password Policy</h6>
+                                <p class="text-muted">Minimum password requirements</p>
+                                <ul class="list-unstyled">
+                                    <li><i class="fas fa-check text-success"></i> Minimum 8 characters</li>
+                                    <li><i class="fas fa-check text-success"></i> Password hashing (bcrypt)</li>
+                                    <li><i class="fas fa-check text-success"></i> CSRF protection enabled</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Database Information -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-database"></i> Database Information</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6>Tables</h6>
+                                    <ul class="list-group list-group-flush">
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            Users
+                                            <span class="badge bg-primary rounded-pill">{{ User.query.count() }}</span>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            Roles
+                                            <span class="badge bg-success rounded-pill">{{ Role.query.count() }}</span>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            User Profiles
+                                            <span class="badge bg-info rounded-pill">{{ UserProfile.query.count() }}</span>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            Login Attempts
+                                            <span class="badge bg-warning rounded-pill">{{ LoginAttempt.query.count() }}</span>
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6>Database Connection</h6>
+                                    <table class="table table-sm">
+                                        <tr>
+                                            <td><strong>Status:</strong></td>
+                                            <td><span class="badge bg-success">Connected</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Type:</strong></td>
+                                            <td>
+                                                {% if config.DATABASE_URL and 'postgresql' in config.DATABASE_URL %}
+                                                    PostgreSQL
+                                                {% else %}
+                                                    SQLite
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>URL:</strong></td>
+                                            <td>
+                                                {% if config.DATABASE_URL %}
+                                                    <code class="small">{{ config.DATABASE_URL.split('@')[0] }}@***</code>
+                                                {% else %}
+                                                    <code class="small">sqlite:///instance/salon_ese.db</code>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Maintenance Actions -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-tools"></i> Maintenance Actions</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="card border-warning">
+                                        <div class="card-body text-center">
+                                            <i class="fas fa-database fa-2x text-warning mb-2"></i>
+                                            <h6>Database Backup</h6>
+                                            <p class="text-muted small">Create a backup of the database</p>
+                                            <button class="btn btn-outline-warning btn-sm" disabled>
+                                                <i class="fas fa-download"></i> Backup Database
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card border-info">
+                                        <div class="card-body text-center">
+                                            <i class="fas fa-sync fa-2x text-info mb-2"></i>
+                                            <h6>Clear Cache</h6>
+                                            <p class="text-muted small">Clear application cache</p>
+                                            <button class="btn btn-outline-info btn-sm" disabled>
+                                                <i class="fas fa-broom"></i> Clear Cache
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card border-danger">
+                                        <div class="card-body text-center">
+                                            <i class="fas fa-exclamation-triangle fa-2x text-danger mb-2"></i>
+                                            <h6>System Reset</h6>
+                                            <p class="text-muted small">Reset system to defaults</p>
+                                            <button class="btn btn-outline-danger btn-sm" disabled>
+                                                <i class="fas fa-redo"></i> Reset System
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mt-3">
+                                <small class="text-muted">
+                                    <i class="fas fa-info-circle"></i> 
+                                    Maintenance actions are currently disabled. These features will be implemented in future versions.
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

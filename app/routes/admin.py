@@ -4,6 +4,7 @@ from app.models import User, Role, UserProfile
 from app.forms import AdminUserForm, RoleAssignmentForm
 from app.extensions import db
 from app.routes.main import role_required
+from app.utils import uk_now
 import json
 
 bp = Blueprint('admin', __name__)
@@ -27,7 +28,8 @@ def dashboard():
                          active_users=active_users,
                          customers=customers,
                          stylists=stylists,
-                         recent_users=recent_users)
+                         recent_users=recent_users,
+                         uk_now=uk_now)
 
 @bp.route('/admin/users')
 @login_required
@@ -59,7 +61,7 @@ def edit_user(user_id):
         new_role_name = form.roles.data
         new_role = Role.query.filter_by(name=new_role_name).first()
         
-        if new_role and new_role not in user.roles:
+        if new_role:
             # Remove existing roles and add new one
             user.roles.clear()
             user.roles.append(new_role)
@@ -132,4 +134,11 @@ def manage_roles():
 @login_required
 @role_required('owner')
 def system_settings():
-    return render_template('admin/system_settings.html', title='System Settings') 
+    from app.models import User, Role, UserProfile, LoginAttempt
+    return render_template('admin/system_settings.html', 
+                         title='System Settings',
+                         User=User,
+                         Role=Role,
+                         UserProfile=UserProfile,
+                         LoginAttempt=LoginAttempt,
+                         uk_now=uk_now) 

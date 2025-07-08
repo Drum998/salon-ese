@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1><i class="fas fa-user-tag"></i> Role Management</h1>
+                <a href="{{ url_for('admin.users') }}" class="btn btn-outline-primary">
+                    <i class="fas fa-users"></i> Back to Users
+                </a>
+            </div>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <div class="row">
+                <!-- Role Assignment Form -->
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-plus"></i> Assign Role to User</h5>
+                        </div>
+                        <div class="card-body">
+                            <form method="POST">
+                                {{ form.hidden_tag() }}
+                                
+                                <div class="mb-3">
+                                    {{ form.user_id.label(class="form-label") }}
+                                    {{ form.user_id(class="form-select" + (" is-invalid" if form.user_id.errors else "")) }}
+                                    {% if form.user_id.errors %}
+                                        <div class="invalid-feedback">
+                                            {% for error in form.user_id.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="mb-3">
+                                    {{ form.role_name.label(class="form-label") }}
+                                    {{ form.role_name(class="form-select" + (" is-invalid" if form.role_name.errors else "")) }}
+                                    {% if form.role_name.errors %}
+                                        <div class="invalid-feedback">
+                                            {% for error in form.role_name.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                    <div class="form-text">
+                                        <strong>Role Hierarchy:</strong><br>
+                                        <span class="badge bg-primary">Owner</span> > 
+                                        <span class="badge bg-success">Manager</span> > 
+                                        <span class="badge bg-info">Stylist</span> > 
+                                        <span class="badge bg-warning">Customer</span> > 
+                                        <span class="badge bg-secondary">Guest</span>
+                                    </div>
+                                </div>
+
+                                {{ form.submit(class="btn btn-primary") }}
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Role Statistics -->
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-chart-bar"></i> Role Statistics</h5>
+                        </div>
+                        <div class="card-body">
+                            {% if roles %}
+                                <div class="row">
+                                    {% for role in roles %}
+                                    <div class="col-6 mb-3">
+                                        <div class="card text-center">
+                                            <div class="card-body">
+                                                <h4 class="card-title text-{{ 'primary' if role.name == 'owner' else 'success' if role.name == 'manager' else 'info' if role.name == 'stylist' else 'warning' if role.name == 'customer' else 'secondary' }}">
+                                                    {{ role_stats.get(role.name, 0) }}
+                                                </h4>
+                                                <p class="card-text">
+                                                    <span class="badge bg-{{ 'primary' if role.name == 'owner' else 'success' if role.name == 'manager' else 'info' if role.name == 'stylist' else 'warning' if role.name == 'customer' else 'secondary' }}">
+                                                        {{ role.name.title() }}
+                                                    </span>
+                                                </p>
+                                                <small class="text-muted">{{ role.description }}</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="text-center py-4">
+                                    <i class="fas fa-user-tag fa-3x text-muted mb-3"></i>
+                                    <h5 class="text-muted">No roles found</h5>
+                                    <p class="text-muted">No roles have been created yet.</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Role Details -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-info-circle"></i> Role Details</h5>
+                        </div>
+                        <div class="card-body">
+                            {% if roles %}
+                                <div class="table-responsive">
+                                    <table class="table table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th>Role</th>
+                                                <th>Description</th>
+                                                <th>Users</th>
+                                                <th>Permissions</th>
+                                                <th>Created</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for role in roles %}
+                                            <tr>
+                                                <td>
+                                                    <span class="badge bg-{{ 'primary' if role.name == 'owner' else 'success' if role.name == 'manager' else 'info' if role.name == 'stylist' else 'warning' if role.name == 'customer' else 'secondary' }} fs-6">
+                                                        {{ role.name.title() }}
+                                                    </span>
+                                                </td>
+                                                <td>{{ role.description }}</td>
+                                                <td>
+                                                    <span class="badge bg-dark">{{ role_stats.get(role.name, 0) }} users</span>
+                                                </td>
+                                                <td>
+                                                    {% if role.permissions %}
+                                                        {% set permissions = role.permissions|from_json %}
+                                                        {% for permission in permissions %}
+                                                            <span class="badge bg-light text-dark">{{ permission }}</span>
+                                                        {% endfor %}
+                                                    {% else %}
+                                                        <span class="text-muted">No specific permissions</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>{{ role.created_at|uk_strftime('%Y-%m-%d') }}</td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}
+                                <div class="text-center py-4">
+                                    <i class="fas fa-user-tag fa-3x text-muted mb-3"></i>
+                                    <h5 class="text-muted">No roles found</h5>
+                                    <p class="text-muted">No roles have been created yet.</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Role Permissions Guide -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-key"></i> Role Permissions Guide</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <h6><span class="badge bg-primary">Owner</span></h6>
+                                    <ul class="list-unstyled">
+                                        <li><i class="fas fa-check text-success"></i> Full system access</li>
+                                        <li><i class="fas fa-check text-success"></i> User management</li>
+                                        <li><i class="fas fa-check text-success"></i> Role management</li>
+                                        <li><i class="fas fa-check text-success"></i> System settings</li>
+                                        <li><i class="fas fa-check text-success"></i> Delete users</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-4">
+                                    <h6><span class="badge bg-success">Manager</span></h6>
+                                    <ul class="list-unstyled">
+                                        <li><i class="fas fa-check text-success"></i> User management</li>
+                                        <li><i class="fas fa-check text-success"></i> Role assignment</li>
+                                        <li><i class="fas fa-check text-success"></i> Business reports</li>
+                                        <li><i class="fas fa-check text-success"></i> Staff management</li>
+                                        <li><i class="fas fa-times text-danger"></i> Cannot delete users</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-4">
+                                    <h6><span class="badge bg-info">Stylist</span></h6>
+                                    <ul class="list-unstyled">
+                                        <li><i class="fas fa-check text-success"></i> Appointment management</li>
+                                        <li><i class="fas fa-check text-success"></i> Customer profiles</li>
+                                        <li><i class="fas fa-check text-success"></i> Service records</li>
+                                        <li><i class="fas fa-times text-danger"></i> No user management</li>
+                                        <li><i class="fas fa-times text-danger"></i> No role management</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

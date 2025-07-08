@@ -1,5 +1,6 @@
 from datetime import datetime
 import pytz
+import json
 
 def uk_now():
     """
@@ -42,4 +43,16 @@ def uk_timezone_strftime(dt, format_str):
         return 'Never'
     
     uk_time = to_uk_timezone(dt)
-    return uk_time.strftime(format_str) 
+    return uk_time.strftime(format_str)
+
+def from_json(value):
+    """
+    Parse a JSON string and return the parsed object.
+    This is a template filter for displaying JSON data.
+    """
+    if not value:
+        return []
+    try:
+        return json.loads(value)
+    except (json.JSONDecodeError, TypeError):
+        return [] 
