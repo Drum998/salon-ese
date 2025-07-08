@@ -11,6 +11,7 @@ A comprehensive, role-based authentication and management system for hair salons
 - **Forms**: Flask-WTF with CSRF protection
 - **Containerization**: Docker with docker-compose
 - **Testing**: pytest with coverage reporting
+- **Timezone**: pytz for UK timezone support (BST/GMT)
 
 ### System Architecture
 ```
@@ -18,6 +19,7 @@ salon-ese/
 ├── app/                    # Main application package
 │   ├── models.py          # Database models (User, Role, UserProfile, LoginAttempt)
 │   ├── forms.py           # WTForms for user input validation
+│   ├── utils.py           # Utility functions including timezone handling
 │   ├── routes/            # Blueprint-based route handlers
 │   │   ├── auth.py        # Authentication routes (login, register, logout)
 │   │   ├── main.py        # Main application routes
@@ -30,6 +32,7 @@ salon-ese/
 ├── requirements.txt       # Python dependencies
 ├── Dockerfile            # Docker container configuration
 ├── docker-compose.yml    # Multi-container orchestration
+├── test_timezone.py      # Timezone testing script
 └── tests/                # Unit tests
 ```
 
@@ -118,6 +121,26 @@ For local development without Docker:
 - Security tracking for login attempts
 - IP address and user agent logging
 - Success/failure monitoring
+
+## 🕐 Timezone Support
+
+### UK Timezone Handling
+The application uses UK timezone (Europe/London) for all datetime operations:
+- **BST (British Summer Time)**: GMT+1 from March to October
+- **GMT (Greenwich Mean Time)**: Standard time from October to March
+- Automatic daylight saving time transitions
+- All timestamps stored in UTC but calculated from UK time
+
+### Timezone Functions
+- `uk_now()`: Returns current time in UK timezone
+- `uk_utcnow()`: Returns current UK time converted to UTC for database storage
+- Used throughout the application for consistent time handling
+
+### Testing Timezone
+```bash
+# Test timezone functionality
+python test_timezone.py
+```
 
 ## 🔐 Security Features
 

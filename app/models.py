@@ -2,14 +2,14 @@ from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
 from app.extensions import db
+from app.utils import uk_utcnow
 from config import Config
 
 # Association table for many-to-many relationship between users and roles
 user_roles = db.Table('user_roles',
     db.Column('user_id', db.Integer, db.ForeignKey('user.id'), primary_key=True),
     db.Column('role_id', db.Integer, db.ForeignKey('role.id'), primary_key=True),
-    db.Column('assigned_by', db.Integer, db.ForeignKey('user.id')),
-    db.Column('assigned_at', db.DateTime, default=datetime.utcnow)
+    db.Column('assigned_at', db.DateTime, default=uk_utcnow)
 )
 
 class Role(db.Model):
@@ -17,7 +17,7 @@ class Role(db.Model):
     name = db.Column(db.String(50), unique=True, nullable=False)
     description = db.Column(db.String(200))
     permissions = db.Column(db.Text)  # JSON string of permissions
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=uk_utcnow)
     
     def __repr__(self):
         return f'<Role {self.name}>'
@@ -32,14 +32,12 @@ class User(UserMixin, db.Model):
     phone = db.Column(db.String(20))
     is_active = db.Column(db.Boolean, default=True)
     email_verified = db.Column(db.Boolean, default=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=uk_utcnow)
     last_login = db.Column(db.DateTime)
     
     # Relationships
     roles = db.relationship('Role', 
                           secondary=user_roles,
-                          primaryjoin="User.id == user_roles.c.user_id",
-                          secondaryjoin="Role.id == user_roles.c.role_id",
                           backref=db.backref('users', lazy='dynamic'))
     profile = db.relationship('UserProfile', backref='user', uselist=False, cascade='all, delete-orphan')
     
@@ -93,8 +91,8 @@ class UserProfile(db.Model):
     allergies = db.Column(db.Text)  # JSON string of allergies
     notes = db.Column(db.Text)
     
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=uk_utcnow)
+    updated_at = db.Column(db.DateTime, default=uk_utcnow, onupdate=uk_utcnow)
     
     def __repr__(self):
         return f'<UserProfile {self.user_id}>'
@@ -105,7 +103,7 @@ class LoginAttempt(db.Model):
     ip_address = db.Column(db.String(45))
     user_agent = db.Column(db.String(255))
     success = db.Column(db.Boolean, default=False)
-    attempted_at = db.Column(db.DateTime, default=datetime.utcnow)
+    attempted_at = db.Column(db.DateTime, default=uk_utcnow)
     
     def __repr__(self):
         return f'<LoginAttempt {self.user_id} - {"Success" if self.success else "Failed"}>' 

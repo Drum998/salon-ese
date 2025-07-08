@@ -3,7 +3,7 @@ from flask_login import login_user, logout_user, login_required, current_user
 from app.models import User, Role, LoginAttempt
 from app.forms import LoginForm, RegistrationForm
 from app.extensions import db
-from datetime import datetime
+from app.utils import uk_utcnow
 import json
 
 bp = Blueprint('auth', __name__)
@@ -27,7 +27,7 @@ def login():
         
         if user and user.check_password(form.password.data) and user.is_active:
             login_user(user, remember=form.remember_me.data)
-            user.last_login = datetime.utcnow()
+            user.last_login = uk_utcnow()
             login_attempt.success = True
             db.session.add(login_attempt)
             db.session.commit()

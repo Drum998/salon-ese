@@ -34,15 +34,16 @@ def test_models():
         user_roles_rel = User.__mapper__.relationships['roles']
         print(f"✓ User.roles relationship: {user_roles_rel}")
         
+        # Assert that the relationship exists
+        assert 'roles' in User.__mapper__.relationships, "User should have roles relationship"
+        
         print("✓ All tests passed!")
-        return True
         
     except Exception as e:
         print(f"✗ Test failed: {e}")
         import traceback
         traceback.print_exc()
-        return False
+        raise
 
 if __name__ == '__main__':
-    success = test_models()
-    sys.exit(0 if success else 1) 
+    test_models() 

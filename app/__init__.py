@@ -2,6 +2,7 @@ from flask import Flask
 from flask_migrate import Migrate
 from config import config
 from app.extensions import db, login_manager, migrate
+from app.utils import to_uk_timezone, uk_timezone_strftime
 import os
 import time
 
@@ -20,6 +21,10 @@ def create_app(config_name='default'):
     login_manager.login_view = 'auth.login'
     login_manager.login_message = 'Please log in to access this page.'
     login_manager.login_message_category = 'info'
+    
+    # Register template filters
+    app.template_filter('uk_timezone')(to_uk_timezone)
+    app.template_filter('uk_strftime')(uk_timezone_strftime)
     
     # Register blueprints
     from app.routes.main import bp as main_bp

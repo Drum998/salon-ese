@@ -61,11 +61,11 @@
                     </div>
                     <div class="col-md-6 mb-3">
                         <strong>Member Since:</strong>
-                        <p>{{ current_user.created_at.strftime('%B %d, %Y') }}</p>
+                        <p>{{ current_user.created_at | uk_strftime('%B %d, %Y') }}</p>
                     </div>
                     <div class="col-md-6 mb-3">
                         <strong>Last Login:</strong>
-                        <p>{{ current_user.last_login.strftime('%B %d, %Y at %I:%M %p') if current_user.last_login else 'Never' }}</p>
+                        <p>{{ current_user.last_login | uk_strftime('%B %d, %Y at %I:%M %p') }}</p>
                     </div>
                 </div>
             </div>
@@ -192,7 +192,7 @@
                     <div class="col-md-6 text-md-end">
                         <small class="text-muted">
                             <i class="fas fa-clock"></i> 
-                            Profile last updated: {{ current_user.profile.updated_at.strftime('%B %d, %Y at %I:%M %p') if current_user.profile and current_user.profile.updated_at else 'Never' }}
+                            Profile last updated: {{ current_user.profile.updated_at | uk_strftime('%B %d, %Y at %I:%M %p') if current_user.profile else 'Never' }}
                         </small>
                     </div>
                 </div>

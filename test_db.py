@@ -62,6 +62,12 @@ def test_database_connection():
         print(f"✓ Found user: {user.username}")
         print(f"✓ Found role: {role.name}")
         
+        # Assert that we found the expected data
+        assert user is not None, "User should be found"
+        assert role is not None, "Role should be found"
+        assert user.username == 'testuser', "Username should match"
+        assert role.name == 'test_role', "Role name should match"
+        
         # Clean up
         session.delete(user)
         session.delete(role)
@@ -70,14 +76,12 @@ def test_database_connection():
         
         session.close()
         print("✓ All tests passed!")
-        return True
         
     except Exception as e:
         print(f"✗ Test failed: {e}")
         import traceback
         traceback.print_exc()
-        return False
+        raise
 
 if __name__ == '__main__':
-    success = test_database_connection()
-    sys.exit(0 if success else 1) 
+    test_database_connection() 
