@@ -45,13 +45,245 @@ The system implements a hierarchical role-based access control system:
 | **Guest** | 0 | View public pages, basic information |
 | **Customer** | 1 | Book appointments, view personal profile |
 | **Stylist** | 2 | Manage appointments, view customer profiles |
-| **Manager** | 3 | Staff management, business reports |
-| **Owner** | 4 | Full system access, user management |
+| **Manager** | 3 | Staff management, business reports, admin panel access |
+| **Owner** | 4 | Full system access, user management, system settings |
 
 ### Role Hierarchy
 - Each role inherits permissions from lower levels
 - Access control is enforced at both route and template levels
 - First registered user automatically becomes Owner
+
+## 🛠️ Admin Panel
+
+The admin panel provides comprehensive user and system management capabilities for managers and owners.
+
+### Access Control
+- **Managers**: Can access user management and role assignment
+- **Owners**: Full admin access including user deletion and system settings
+- **Other Roles**: No admin access
+
+### Admin Dashboard (`/admin`)
+
+The main admin dashboard provides an overview of system statistics and quick access to management functions.
+
+#### Features:
+- **Statistics Cards**: Real-time counts of total users, active users, customers, and stylists
+- **Quick Actions**: Direct links to user management, role management, and system settings
+- **Recent Users**: Table showing the 5 most recently registered users with their details
+- **System Information**: Current user details, system time, database type, and timezone
+
+#### Dashboard Statistics:
+```python
+# Example dashboard data
+{
+    'total_users': 25,
+    'active_users': 23,
+    'customers': 15,
+    'stylists': 5,
+    'recent_users': [User objects...]
+}
+```
+
+### User Management (`/admin/users`)
+
+Comprehensive user management interface with pagination and filtering.
+
+#### Features:
+- **User List**: Paginated table showing all registered users
+- **User Details**: Username, full name, email, phone, roles, status, creation date
+- **Status Indicators**: Visual badges for active/inactive status and email verification
+- **Role Badges**: Color-coded role identification
+- **Actions**: Edit and delete users (delete restricted to owners)
+- **Search & Filter**: Find users quickly (future enhancement)
+
+#### User Table Columns:
+| Column | Description |
+|--------|-------------|
+| ID | Unique user identifier |
+| Username | Login username with verification status |
+| Name | First and last name |
+| Email | User's email address |
+| Phone | Contact number (if provided) |
+| Roles | Assigned roles with color-coded badges |
+| Status | Active/Inactive account status |
+| Created | Registration date and time |
+| Actions | Edit/Delete buttons |
+
+#### User Actions:
+- **Edit User**: Modify user details, roles, and status
+- **Delete User**: Remove user account (owner only, with safety checks)
+- **View Profile**: Access detailed user information
+
+### User Editing (`/admin/users/<id>`)
+
+Detailed user editing interface with comprehensive form validation.
+
+#### Editable Fields:
+- **Basic Information**: Username, email, first name, last name, phone
+- **Account Status**: Active/inactive toggle, email verification status
+- **Role Assignment**: Change user's primary role with role hierarchy display
+- **System Information**: User ID, creation date, last login time
+
+#### Role Assignment:
+```python
+# Available roles in hierarchy
+roles = [
+    ('guest', 'Guest'),
+    ('customer', 'Customer'), 
+    ('stylist', 'Stylist'),
+    ('manager', 'Manager'),
+    ('owner', 'Owner')
+]
+```
+
+#### Safety Features:
+- **Self-Protection**: Cannot delete your own account
+- **Owner Protection**: Cannot delete the last owner account
+- **Validation**: Form validation for unique usernames and emails
+- **Audit Trail**: All changes are logged (future enhancement)
+
+### Role Management (`/admin/roles`)
+
+Comprehensive role management and assignment interface.
+
+#### Features:
+- **Role Assignment Form**: Assign roles to users with dropdown selection
+- **Role Statistics**: Visual cards showing user count per role
+- **Role Details Table**: Complete role information with permissions
+- **Role Hierarchy Guide**: Visual guide showing role permissions and hierarchy
+- **Permission Breakdown**: Detailed list of what each role can do
+
+#### Role Statistics:
+```python
+# Example role statistics
+{
+    'owner': 1,
+    'manager': 2, 
+    'stylist': 5,
+    'customer': 15,
+    'guest': 2
+}
+```
+
+#### Role Hierarchy Display:
+```
+Owner > Manager > Stylist > Customer > Guest
+```
+
+#### Permission Guide:
+| Role | Permissions | Restrictions |
+|------|-------------|--------------|
+| **Owner** | Full system access, user management, role management, system settings, delete users | None |
+| **Manager** | User management, role assignment, business reports, staff management | Cannot delete users |
+| **Stylist** | Appointment management, customer profiles, service records | No user management |
+| **Customer** | Book appointments, view personal profile | Limited access |
+| **Guest** | View public pages | No authenticated features |
+
+### System Settings (`/admin/system`)
+
+System information and configuration interface (owner access only).
+
+#### Features:
+- **System Information**: Application version, environment, database type, timezone
+- **Security Settings**: Session management, password policy, CSRF protection status
+- **Database Information**: Table counts, connection status, database type
+- **Maintenance Actions**: Placeholder for future maintenance features
+
+#### System Information Display:
+```python
+{
+    'application': 'Salon ESE',
+    'version': '1.0.0',
+    'environment': 'Development/Production',
+    'database': 'PostgreSQL/SQLite',
+    'timezone': 'UK (BST/GMT)',
+    'current_time': '2025-01-27 14:30:00'
+}
+```
+
+#### Database Statistics:
+- User count by table
+- Connection status and type
+- Database URL (masked for security)
+
+### Security Features
+
+#### Access Control:
+- **Route Protection**: All admin routes require appropriate role permissions
+- **Template Protection**: Admin links only visible to authorized users
+- **Form Protection**: CSRF tokens on all admin forms
+- **Session Security**: Secure session management
+
+#### Data Protection:
+- **Input Validation**: All form inputs validated and sanitized
+- **SQL Injection Prevention**: SQLAlchemy ORM prevents injection attacks
+- **XSS Protection**: Jinja2 auto-escaping protects against XSS
+- **CSRF Protection**: All forms include CSRF token validation
+
+#### Audit Features:
+- **Login Tracking**: All login attempts logged with IP and user agent
+- **Action Logging**: User management actions tracked (future enhancement)
+- **Error Logging**: System errors and security events logged
+
+### UI/UX Features
+
+#### Responsive Design:
+- **Mobile-Friendly**: Admin panel works on all device sizes
+- **Bootstrap Styling**: Modern, clean interface using Bootstrap 5
+- **Font Awesome Icons**: Visual indicators throughout the interface
+
+#### User Experience:
+- **Flash Messages**: Success/error notifications for all actions
+- **Confirmation Modals**: Safe deletion with confirmation dialogs
+- **Color-Coded Badges**: Easy role and status identification
+- **Loading States**: Visual feedback during operations
+
+#### Navigation:
+- **Breadcrumb Navigation**: Clear navigation hierarchy
+- **Quick Actions**: Fast access to common tasks
+- **Contextual Menus**: Role-appropriate action menus
+
+### Testing Admin Functionality
+
+#### Admin Test Script:
+```bash
+# Test admin functionality
+docker-compose exec web python test_admin.py
+```
+
+#### Test Coverage:
+- Form validation and field testing
+- Role assignment functionality
+- Database connectivity
+- Template rendering
+- Route access control
+
+#### Manual Testing:
+```bash
+# Access admin panel
+http://localhost:5010/admin
+
+# Test user management
+http://localhost:5010/admin/users
+
+# Test role management  
+http://localhost:5010/admin/roles
+
+# Test system settings (owner only)
+http://localhost:5010/admin/system
+```
+
+### Future Enhancements
+
+#### Planned Features:
+- **Advanced Search**: Search and filter users by various criteria
+- **Bulk Operations**: Select multiple users for bulk actions
+- **Audit Logging**: Detailed logs of all admin actions
+- **Email Notifications**: Notify users of role changes
+- **Data Export**: Export user data to CSV/Excel
+- **Advanced Permissions**: Granular permission system
+- **User Activity Tracking**: Monitor user login patterns
+- **System Monitoring**: Real-time system health monitoring
 
 ## 🚀 Quick Start
 
@@ -219,18 +451,24 @@ salon-ese/
 │   ├── models.py          # Database models
 │   ├── forms.py           # Form definitions
 │   ├── extensions.py      # Flask extensions
+│   ├── utils.py           # Utility functions (timezone, JSON parsing)
 │   ├── routes/            # Route blueprints
 │   │   ├── __init__.py
 │   │   ├── auth.py        # Authentication routes
 │   │   ├── main.py        # Main routes
 │   │   ├── profile.py     # Profile management
-│   │   └── admin.py       # Admin panel
+│   │   └── admin.py       # Admin panel routes
 │   └── templates/         # HTML templates
 │       ├── base.html      # Base template
 │       ├── auth/          # Authentication templates
 │       ├── main/          # Main page templates
 │       ├── profile/       # Profile templates
-│       └── admin/         # Admin templates
+│       └── admin/         # Admin panel templates
+│           ├── dashboard.html      # Admin dashboard
+│           ├── users.html          # User management
+│           ├── edit_user.html      # User editing
+│           ├── manage_roles.html   # Role management
+│           └── system_settings.html # System settings
 ├── config.py              # Configuration classes
 ├── run.py                 # Application entry point
 ├── requirements.txt       # Dependencies
@@ -240,6 +478,8 @@ salon-ese/
 ├── pytest.ini          # Test configuration
 ├── test_db.py          # Database test script
 ├── test_models.py      # Model test script
+├── test_timezone.py    # Timezone test script
+├── test_admin.py       # Admin functionality test script
 └── README.md           # This file
 ```
 
@@ -286,6 +526,16 @@ For support and questions:
   - Admin panel for user management
   - Docker containerization
   - Comprehensive test suite
+
+- **v1.1.0**: Admin Panel Enhancement
+  - **Admin Dashboard**: System statistics and quick actions
+  - **User Management**: Comprehensive user listing and editing
+  - **Role Management**: Role assignment and statistics
+  - **System Settings**: System information and configuration
+  - **Security Features**: Enhanced access control and data protection
+  - **UI/UX Improvements**: Responsive design with Bootstrap 5
+  - **Timezone Support**: UK timezone handling throughout admin panel
+  - **Testing**: Admin functionality test suite
 
 ---
 
