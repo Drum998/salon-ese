@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h3 class="card-title mb-0">Appointment Details</h3>
+                <span class="badge bg-{{ 'success' if appointment.status == 'confirmed' else 'secondary' if appointment.status == 'completed' else 'danger' if appointment.status == 'cancelled' else 'warning' }} fs-6">
+                    {{ appointment.status.title() }}
+                </span>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5>Appointment Information</h5>
+                        <table class="table table-borderless">
+                            <tr>
+                                <td><strong>Date:</strong></td>
+                                <td>{{ appointment.appointment_date.strftime('%A, %B %d, %Y') }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Time:</strong></td>
+                                <td>{{ appointment.start_time.strftime('%I:%M %p') }} - {{ appointment.end_time.strftime('%I:%M %p') }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Duration:</strong></td>
+                                <td>{{ appointment.duration_minutes }} minutes</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Service:</strong></td>
+                                <td>{{ appointment.service.name }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Price:</strong></td>
+                                <td>£{{ "%.2f"|format(appointment.service.price) }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <h5>Customer Information</h5>
+                        <table class="table table-borderless">
+                            <tr>
+                                <td><strong>Name:</strong></td>
+                                <td>{{ appointment.customer.first_name }} {{ appointment.customer.last_name }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Email:</strong></td>
+                                <td>{{ appointment.customer_email or appointment.customer.email }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Phone:</strong></td>
+                                <td>{{ appointment.customer_phone or appointment.customer.phone or 'Not provided' }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="row mt-4">
+                    <div class="col-md-6">
+                        <h5>Stylist Information</h5>
+                        <table class="table table-borderless">
+                            <tr>
+                                <td><strong>Name:</strong></td>
+                                <td>{{ appointment.stylist.first_name }} {{ appointment.stylist.last_name }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Email:</strong></td>
+                                <td>{{ appointment.stylist.email }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <h5>Appointment Details</h5>
+                        <table class="table table-borderless">
+                            <tr>
+                                <td><strong>Created:</strong></td>
+                                <td>{{ appointment.created_at.strftime('%B %d, %Y at %I:%M %p') }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Last Updated:</strong></td>
+                                <td>{{ appointment.updated_at.strftime('%B %d, %Y at %I:%M %p') }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Status:</strong></td>
+                                <td>
+                                    <span class="badge bg-{{ 'success' if appointment.status == 'confirmed' else 'secondary' if appointment.status == 'completed' else 'danger' if appointment.status == 'cancelled' else 'warning' }}">
+                                        {{ appointment.status.title() }}
+                                    </span>
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+                
+                {% if appointment.notes %}
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <h5>Notes</h5>
+                        <div class="alert alert-info">
+                            {{ appointment.notes }}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Status History -->
+                {% if appointment.status_history %}
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <h5>Status History</h5>
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Date & Time</th>
+                                        <th>Status</th>
+                                        <th>Changed By</th>
+                                        <th>Notes</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for status in appointment.status_history|sort(attribute='changed_at', reverse=true) %}
+                                    <tr>
+                                        <td>{{ status.changed_at.strftime('%B %d, %Y at %I:%M %p') }}</td>
+                                        <td>
+                                            <span class="badge bg-{{ 'success' if status.status == 'confirmed' else 'secondary' if status.status == 'completed' else 'danger' if status.status == 'cancelled' else 'warning' }}">
+                                                {{ status.status.title() }}
+                                            </span>
+                                        </td>
+                                        <td>{{ status.changed_by.first_name }} {{ status.changed_by.last_name }}</td>
+                                        <td>{{ status.notes or '-' }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            <div class="card-footer">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <a href="{{ url_for('main.dashboard') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Back to Dashboard
+                        </a>
+                        {% if current_user.has_role('customer') %}
+                            <a href="{{ url_for('appointments.my_appointments') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-calendar"></i> My Appointments
+                            </a>
+                        {% elif current_user.has_role('stylist') %}
+                            <a href="{{ url_for('appointments.stylist_appointments') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-calendar"></i> My Schedule
+                            </a>
+                        {% elif current_user.has_role('manager') or current_user.has_role('owner') %}
+                            <a href="{{ url_for('appointments.admin_appointments') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-calendar"></i> All Appointments
+                            </a>
+                        {% endif %}
+                    </div>
+                    <div>
+                        {% if current_user.has_role('manager') or current_user.has_role('owner') or appointment.stylist_id == current_user.id %}
+                            <a href="{{ url_for('appointments.edit_appointment', appointment_id=appointment.id) }}" 
+                               class="btn btn-warning">
+                                <i class="fas fa-edit"></i> Edit Appointment
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

@@ -30,9 +30,48 @@ def dashboard():
     elif current_user.has_role('manager'):
         return redirect(url_for('admin.dashboard'))
     elif current_user.has_role('stylist'):
-        return render_template('main/stylist_dashboard.html', title='Stylist Dashboard')
+        # Get stylist's upcoming appointments
+        from app.models import Appointment
+        from datetime import date, timedelta
+        
+        today = date.today()
+        upcoming_appointments = Appointment.query.filter(
+            Appointment.stylist_id == current_user.id,
+            Appointment.appointment_date >= today,
+            Appointment.status.in_(['confirmed', 'completed'])
+        ).order_by(Appointment.appointment_date, Appointment.start_time).limit(5).all()
+        
+        today_appointments = Appointment.query.filter(
+            Appointment.stylist_id == current_user.id,
+            Appointment.appointment_date == today,
+            Appointment.status == 'confirmed'
+        ).order_by(Appointment.start_time).all()
+        
+        return render_template('main/stylist_dashboard.html', 
+                             title='Stylist Dashboard',
+                             upcoming_appointments=upcoming_appointments,
+                             today_appointments=today_appointments)
     elif current_user.has_role('customer'):
-        return render_template('main/customer_dashboard.html', title='Customer Dashboard')
+        # Get customer's appointments
+        from app.models import Appointment
+        from datetime import date
+        
+        today = date.today()
+        upcoming_appointments = Appointment.query.filter(
+            Appointment.customer_id == current_user.id,
+            Appointment.appointment_date >= today,
+            Appointment.status.in_(['confirmed', 'completed'])
+        ).order_by(Appointment.appointment_date, Appointment.start_time).limit(5).all()
+        
+        past_appointments = Appointment.query.filter(
+            Appointment.customer_id == current_user.id,
+            Appointment.appointment_date < today
+        ).order_by(Appointment.appointment_date.desc(), Appointment.start_time.desc()).limit(3).all()
+        
+        return render_template('main/customer_dashboard.html', 
+                             title='Customer Dashboard',
+                             upcoming_appointments=upcoming_appointments,
+                             past_appointments=past_appointments)
     else:
         return render_template('main/guest_dashboard.html', title='Guest Dashboard')
 

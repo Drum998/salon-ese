@@ -32,11 +32,13 @@ def create_app(config_name='default'):
     from app.routes.auth import bp as auth_bp
     from app.routes.profile import bp as profile_bp
     from app.routes.admin import bp as admin_bp
+    from app.routes.appointments import bp as appointments_bp
     
     app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(profile_bp, url_prefix='/profile')
     app.register_blueprint(admin_bp, url_prefix='/admin')
+    app.register_blueprint(appointments_bp, url_prefix='/appointments')
     
     # Create database tables and initialize roles
     with app.app_context():

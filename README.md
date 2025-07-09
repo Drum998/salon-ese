@@ -47,6 +47,132 @@ location /static/ {
 
 ---
 
+## 📅 Appointment Booking & Management System
+
+The salon management system includes a comprehensive appointment booking and management feature that allows customers to book appointments with their preferred stylists and enables staff to manage schedules efficiently.
+
+### Features
+
+#### For Customers
+- **Book Appointments**: Choose from available stylists and services
+- **View Appointments**: See upcoming and past appointments
+- **Contact Information**: Provide phone/email for notifications
+- **Service Selection**: Browse available services with pricing
+- **Time Slot Selection**: Choose from available 30-minute time slots (9 AM - 6 PM)
+
+#### For Stylists
+- **Calendar View**: Week and month calendar views of appointments
+- **Schedule Management**: View upcoming appointments and today's schedule
+- **Appointment Details**: Access customer information and service details
+- **Status Updates**: Mark appointments as completed, cancelled, or no-show
+
+#### For Managers/Owners
+- **All Appointments View**: See appointments across all stylists
+- **Filtering Options**: Filter by stylist, status, and date range
+- **Statistics Dashboard**: View appointment statistics and trends
+- **Service Management**: Add, edit, and manage salon services
+- **Status Management**: Update appointment statuses with notes
+
+### Database Models
+
+#### Service
+- `name`: Service name (e.g., "Haircut & Style")
+- `description`: Detailed service description
+- `duration`: Duration in minutes
+- `price`: Service price in GBP
+- `is_active`: Whether the service is available for booking
+
+#### Appointment
+- `customer_id`: Reference to the customer
+- `stylist_id`: Reference to the stylist
+- `service_id`: Reference to the service
+- `appointment_date`: Date of the appointment
+- `start_time` / `end_time`: Appointment time slot
+- `customer_phone` / `customer_email`: Contact information for notifications
+- `notes`: Additional notes about the appointment
+- `status`: Appointment status (confirmed, completed, cancelled, no-show)
+
+#### AppointmentStatus
+- Tracks the history of status changes
+- Records who made the change and when
+- Includes notes for each status change
+
+### User Roles & Permissions
+
+| Role | Appointment Permissions |
+|------|------------------------|
+| **Customer** | Book appointments, view own appointments, modify upcoming appointments |
+| **Stylist** | View own schedule, update appointment status, view customer details |
+| **Manager** | View all appointments, manage services, update any appointment status |
+| **Owner** | Full access to all appointment features |
+
+### Setup Instructions
+
+1. **Database Migration**: The appointment tables are created automatically when the app starts
+2. **Initialize Services**: Run the service initialization script:
+   ```bash
+   python init_services.py
+   ```
+3. **Create Stylist Users**: Use the admin panel to create users with the 'stylist' role
+4. **Create Customer Users**: Users can register as customers or be created via admin panel
+
+### API Endpoints
+
+#### Customer Endpoints
+- `GET/POST /appointments/book` - Book a new appointment
+- `GET /appointments/my-appointments` - View customer's appointments
+
+#### Stylist Endpoints
+- `GET /appointments/stylist-appointments` - View stylist's calendar
+- `GET /appointments/appointment/<id>` - View appointment details
+- `GET/POST /appointments/appointment/<id>/edit` - Edit appointment
+
+#### Admin Endpoints
+- `GET /appointments/admin-appointments` - View all appointments
+- `GET /appointments/services` - Manage services
+- `GET/POST /appointments/services/new` - Add new service
+- `GET/POST /appointments/services/<id>/edit` - Edit service
+
+#### API Endpoints
+- `GET /appointments/api/appointments` - JSON API for calendar data
+
+### Calendar Views
+
+#### Week View
+- Shows appointments in a weekly grid format
+- Time slots from 9 AM to 6 PM in 30-minute intervals
+- Color-coded appointment status
+- Click to view appointment details
+
+#### Month View
+- Monthly calendar overview
+- Shows appointment counts per day
+- Quick navigation between months
+- Filtering by stylist and status
+
+### Conflict Prevention
+
+The system automatically prevents double-booking by:
+- Checking for time conflicts when booking appointments
+- Validating stylist availability
+- Ensuring appointments don't overlap
+- Providing clear error messages for conflicts
+
+### Status Management
+
+Appointments can have the following statuses:
+- **Confirmed**: Appointment is scheduled and confirmed
+- **Completed**: Service has been provided
+- **Cancelled**: Appointment was cancelled
+- **No Show**: Customer didn't attend
+
+Each status change is tracked with:
+- Timestamp of the change
+- User who made the change
+- Optional notes explaining the change
+
+---
+
 ### System Architecture
 ```
 salon-ese/
@@ -441,136 +567,3 @@ docker-compose exec web python -m pytest --cov=app
 # Run specific test file
 docker-compose exec web python -m pytest tests/test_auth.py
 ```
-
-### Test Structure
-- Unit tests for models and forms
-- Integration tests for authentication flows
-- Coverage reporting for code quality
-
-## 🐳 Docker Configuration
-
-### Services
-- **web**: Flask application (port 5010)
-- **db**: PostgreSQL database (port 5432)
-
-### Environment Variables
-- `FLASK_ENV`: Application environment
-- `DOCKER_ENV`: Docker environment flag
-- `DATABASE_URL`: Database connection string
-
-### Health Checks
-- Database health monitoring
-- Automatic retry logic for database initialization
-- Graceful startup handling
-
-## 🔧 Configuration
-
-### Environment-Specific Settings
-- **Development**: SQLite database, debug mode enabled
-- **Production**: PostgreSQL database, security optimizations
-- **Testing**: In-memory database, CSRF disabled
-
-### Key Configuration Options
-- Database connection strings
-- Session lifetime settings
-- File upload limits
-- Email configuration (for future features)
-
-## 📁 Project Structure
-
-```
-salon-ese/
-├── app/                    # Application package
-│   ├── __init__.py        # Application factory
-│   ├── models.py          # Database models
-│   ├── forms.py           # Form definitions
-│   ├── extensions.py      # Flask extensions
-│   ├── utils.py           # Utility functions (timezone, JSON parsing)
-│   ├── routes/            # Route blueprints
-│   │   ├── __init__.py
-│   │   ├── auth.py        # Authentication routes
-│   │   ├── main.py        # Main routes
-│   │   ├── profile.py     # Profile management
-│   │   └── admin.py       # Admin panel routes
-│   └── templates/         # HTML templates
-│       ├── base.html      # Base template
-│       ├── auth/          # Authentication templates
-│       ├── main/          # Main page templates
-│       ├── profile/       # Profile templates
-│       └── admin/         # Admin panel templates
-│           ├── dashboard.html      # Admin dashboard
-│           ├── users.html          # User management
-│           ├── edit_user.html      # User editing
-│           ├── manage_roles.html   # Role management
-│           └── system_settings.html # System settings
-├── config.py              # Configuration classes
-├── run.py                 # Application entry point
-├── requirements.txt       # Dependencies
-├── Dockerfile            # Container configuration
-├── docker-compose.yml    # Service orchestration
-├── .gitignore           # Git ignore rules
-├── pytest.ini          # Test configuration
-├── test_db.py          # Database test script
-├── test_models.py      # Model test script
-├── test_timezone.py    # Timezone test script
-├── test_admin.py       # Admin functionality test script
-└── README.md           # This file
-```
-
-## 🚀 Deployment
-
-### Production Deployment
-1. Set production environment variables
-2. Configure PostgreSQL database
-3. Set up reverse proxy (nginx)
-4. Configure SSL certificates
-5. Set up monitoring and logging
-
-### Environment Variables
-```bash
-FLASK_ENV=production
-SECRET_KEY=your-secure-secret-key
-DATABASE_URL=postgresql://user:pass@host:port/db
-```
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests for new functionality
-5. Submit a pull request
-
-## 📝 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## 🆘 Support
-
-For support and questions:
-- Create an issue on GitHub
-- Check the documentation
-- Review the test files for usage examples
-
-## 🔄 Version History
-
-- **v1.0.0**: Initial release with role-based authentication system
-  - User registration and login
-  - Role-based access control
-  - Admin panel for user management
-  - Docker containerization
-  - Comprehensive test suite
-
-- **v1.1.0**: Admin Panel Enhancement
-  - **Admin Dashboard**: System statistics and quick actions
-  - **User Management**: Comprehensive user listing and editing
-  - **Role Management**: Role assignment and statistics
-  - **System Settings**: System information and configuration
-  - **Security Features**: Enhanced access control and data protection
-  - **UI/UX Improvements**: Responsive design with Bootstrap 5
-  - **Timezone Support**: UK timezone handling throughout admin panel
-  - **Testing**: Admin functionality test suite
-
----
-
-**Built with ❤️ for the salon management community** 

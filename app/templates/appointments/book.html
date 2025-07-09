@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title mb-0">Book an Appointment</h3>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                {{ form.stylist_id.label(class="form-label") }}
+                                {{ form.stylist_id(class="form-select") }}
+                                {% if form.stylist_id.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.stylist_id.errors %}
+                                            <small>{{ error }}</small>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                {{ form.service_id.label(class="form-label") }}
+                                {{ form.service_id(class="form-select") }}
+                                {% if form.service_id.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.service_id.errors %}
+                                            <small>{{ error }}</small>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                {{ form.appointment_date.label(class="form-label") }}
+                                {{ form.appointment_date(class="form-control", type="date") }}
+                                {% if form.appointment_date.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.appointment_date.errors %}
+                                            <small>{{ error }}</small>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                {{ form.start_time.label(class="form-label") }}
+                                {{ form.start_time(class="form-select") }}
+                                {% if form.start_time.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.start_time.errors %}
+                                            <small>{{ error }}</small>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                {{ form.customer_phone.label(class="form-label") }}
+                                {{ form.customer_phone(class="form-control", placeholder="Optional - for notifications") }}
+                                {% if form.customer_phone.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.customer_phone.errors %}
+                                            <small>{{ error }}</small>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                {{ form.customer_email.label(class="form-label") }}
+                                {{ form.customer_email(class="form-control", placeholder="Optional - for notifications") }}
+                                {% if form.customer_email.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.customer_email.errors %}
+                                            <small>{{ error }}</small>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.notes.label(class="form-label") }}
+                        {{ form.notes(class="form-control", rows="3", placeholder="Any special requests or notes...") }}
+                        {% if form.notes.errors %}
+                            <div class="text-danger">
+                                {% for error in form.notes.errors %}
+                                    <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="d-grid">
+                        {{ form.submit(class="btn btn-primary") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Booking Information</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled mb-0">
+                    <li><i class="fas fa-clock text-primary"></i> Appointments are available from 9:00 AM to 6:00 PM</li>
+                    <li><i class="fas fa-calendar text-primary"></i> You can book appointments up to 30 days in advance</li>
+                    <li><i class="fas fa-phone text-primary"></i> You'll receive confirmation via email or phone</li>
+                    <li><i class="fas fa-exclamation-triangle text-warning"></i> Please arrive 10 minutes before your appointment time</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Set minimum date to today
+document.addEventListener('DOMContentLoaded', function() {
+    const dateInput = document.querySelector('input[type="date"]');
+    const today = new Date().toISOString().split('T')[0];
+    dateInput.setAttribute('min', today);
+});
+</script>
+{% endblock %} 

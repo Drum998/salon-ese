@@ -56,6 +56,27 @@
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('main.services') }}">Services</a>
                     </li>
+                    {% if current_user.is_authenticated %}
+                        {% if current_user.has_role('customer') %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('appointments.book_appointment') }}">Book Appointment</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('appointments.my_appointments') }}">My Appointments</a>
+                            </li>
+                        {% elif current_user.has_role('stylist') %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('appointments.stylist_appointments') }}">My Schedule</a>
+                            </li>
+                        {% elif current_user.has_role('manager') or current_user.has_role('owner') %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('appointments.admin_appointments') }}">All Appointments</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('appointments.manage_services') }}">Services</a>
+                            </li>
+                        {% endif %}
+                    {% endif %}
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('main.about') }}">About</a>
                     </li>

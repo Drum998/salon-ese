@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>Manage Services</h2>
+            <a href="{{ url_for('appointments.new_service') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Add New Service
+            </a>
+        </div>
+        
+        {% if services %}
+            <div class="row">
+                {% for service in services %}
+                    <div class="col-md-6 col-lg-4 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5 class="card-title mb-0">{{ service.name }}</h5>
+                                <span class="badge bg-{{ 'success' if service.is_active else 'secondary' }}">
+                                    {{ 'Active' if service.is_active else 'Inactive' }}
+                                </span>
+                            </div>
+                            <div class="card-body">
+                                {% if service.description %}
+                                    <p class="card-text">{{ service.description }}</p>
+                                {% endif %}
+                                <div class="row">
+                                    <div class="col-6">
+                                        <strong>Duration:</strong><br>
+                                        <span class="text-muted">{{ service.duration }} minutes</span>
+                                    </div>
+                                    <div class="col-6">
+                                        <strong>Price:</strong><br>
+                                        <span class="text-muted">£{{ "%.2f"|format(service.price) }}</span>
+                                    </div>
+                                </div>
+                                <div class="mt-3">
+                                    <small class="text-muted">
+                                        Created: {{ service.created_at.strftime('%B %d, %Y') }}
+                                    </small>
+                                </div>
+                            </div>
+                            <div class="card-footer">
+                                <div class="d-flex justify-content-between">
+                                    <a href="{{ url_for('appointments.edit_service', service_id=service.id) }}" 
+                                       class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </a>
+                                    <span class="text-muted">
+                                        {{ service.appointments.count() }} appointments
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-cut fa-3x text-muted mb-3"></i>
+                <h4 class="text-muted">No Services Found</h4>
+                <p class="text-muted">You haven't created any services yet.</p>
+                <a href="{{ url_for('appointments.new_service') }}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Add Your First Service
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.card {
+    transition: transform 0.2s;
+}
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+</style>
+{% endblock %} 
