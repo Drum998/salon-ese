@@ -25,4 +25,4 @@ RUN echo '#!/bin/sh\npython -m pytest "$@"' > /usr/local/bin/run-tests && \
 EXPOSE 5010
 
 # Run the application
-CMD ["gunicorn", "--bind", "0.0.0.0:5010", "run:app"] 
+CMD ["python", "run.py"] 

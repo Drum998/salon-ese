@@ -13,6 +13,40 @@ A comprehensive, role-based authentication and management system for hair salons
 - **Testing**: pytest with coverage reporting
 - **Timezone**: pytz for UK timezone support (BST/GMT)
 
+---
+
+## ⚠️ Static File Serving: Development vs. Production
+
+### Development
+- The Dockerfile is configured to use Flask's built-in development server (`python run.py`).
+- This allows Flask to serve static files (such as images, CSS, and JS) directly from the `static/` directory.
+- You can access static files at URLs like `/static/images/your_image.png`.
+- **Troubleshooting:**
+    - If static files are not being served (404 errors), explicitly set the static folder and URL path in `run.py`:
+    ```python
+    import os
+    static_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static')
+    app = create_app()
+    app.static_folder = static_folder
+    app.static_url_path = '/static'
+    ```
+    - This is necessary if `run.py` and `static/` are siblings in the project root, to ensure Flask serves static files correctly.
+
+### Production
+- In production, it is recommended to use Gunicorn (or another WSGI server) to serve the Flask app.
+- **Gunicorn does not serve static files by default.**
+- You must use a web server such as **Nginx** or **Apache** to serve static files from the `static/` directory.
+- Example Nginx configuration:
+
+```nginx
+location /static/ {
+    alias /app/static/;
+}
+```
+- This ensures efficient serving of static assets and better performance/security.
+
+---
+
 ### System Architecture
 ```
 salon-ese/
