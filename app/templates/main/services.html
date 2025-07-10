@@ -112,9 +112,15 @@
         <h3>Ready to Book Your Appointment?</h3>
         <p class="lead">Contact us to schedule your next visit or book online if you have an account.</p>
         {% if current_user.is_authenticated %}
-            <a href="{{ url_for('main.dashboard') }}" class="btn btn-primary btn-lg">
-                <i class="fas fa-calendar-plus"></i> Book Appointment
-            </a>
+            {% if current_user.has_role('customer') %}
+                <a href="{{ url_for('appointments.book_appointment') }}" class="btn btn-primary btn-lg">
+                    <i class="fas fa-calendar-plus"></i> Book Appointment
+                </a>
+            {% else %}
+                <a href="{{ url_for('main.dashboard') }}" class="btn btn-primary btn-lg">
+                    <i class="fas fa-tachometer-alt"></i> Go to Dashboard
+                </a>
+            {% endif %}
         {% else %}
             <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-lg me-3">
                 <i class="fas fa-user-plus"></i> Create Account

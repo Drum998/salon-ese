@@ -76,8 +76,7 @@
                                             </td>
                                             {% for i in range(7) %}
                                                 {% set current_date = start_date + timedelta(days=i) %}
-                                                {% set current_time = "%02d:%02d"|format(hour, minute) %}
-                                                {% set slot_appointments = appointments|selectattr("appointment_date", "equalto", current_date)|selectattr("start_time", "equalto", current_time)|list %}
+                                                {% set slot_appointments = get_appointments_for_slot(appointments, current_date, hour, minute) %}
                                                 <td class="position-relative" style="height: 80px; min-width: 120px;">
                                                     {% for appointment in slot_appointments %}
                                                         <div class="appointment-slot p-2 h-100">

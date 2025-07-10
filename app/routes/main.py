@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, redirect, url_for, flash
+from flask import Blueprint, render_template, redirect, url_for, flash, current_app
 from flask_login import current_user, login_required
 from app.models import User, Role
 from functools import wraps
@@ -68,10 +68,19 @@ def dashboard():
             Appointment.appointment_date < today
         ).order_by(Appointment.appointment_date.desc(), Appointment.start_time.desc()).limit(3).all()
         
+        # Log debug information
+        current_app.logger.info(f"Customer {current_user.id} ({current_user.first_name} {current_user.last_name}) dashboard:")
+        current_app.logger.info(f"  Today: {today}")
+        current_app.logger.info(f"  Upcoming appointments: {len(upcoming_appointments)}")
+        current_app.logger.info(f"  Past appointments: {len(past_appointments)}")
+        for apt in upcoming_appointments:
+            current_app.logger.info(f"    - Upcoming: {apt.appointment_date} at {apt.start_time}: {apt.service.name} with {apt.stylist.first_name} {apt.stylist.last_name}")
+        
         return render_template('main/customer_dashboard.html', 
                              title='Customer Dashboard',
                              upcoming_appointments=upcoming_appointments,
-                             past_appointments=past_appointments)
+                             past_appointments=past_appointments,
+                             date=date)
     else:
         return render_template('main/guest_dashboard.html', title='Guest Dashboard')
 

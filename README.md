@@ -51,6 +51,191 @@ location /static/ {
 
 The salon management system includes a comprehensive appointment booking and management feature that allows customers to book appointments with their preferred stylists and enables staff to manage schedules efficiently.
 
+### 🆕 Recent Updates (Latest Development Session)
+
+This section documents the comprehensive improvements made to the appointment booking and management system during the latest development session.
+
+#### ✅ **Critical Bug Fixes**
+
+1. **Database Transaction Bug in Appointment Booking**
+   - **Issue**: `appointment_id` was referenced before the appointment was committed to the database
+   - **Fix**: Added `db.session.flush()` to get the ID without committing
+   - **Location**: `app/routes/appointments.py` line 75
+   - **Impact**: Prevents database errors during appointment creation
+
+2. **Missing Dashboard Templates**
+   - **Issue**: `stylist_dashboard.html` and `guest_dashboard.html` were referenced but didn't exist
+   - **Fix**: Created both templates with proper functionality
+   - **Files Created**: 
+     - `app/templates/main/stylist_dashboard.html`
+     - `app/templates/main/guest_dashboard.html`
+   - **Impact**: Eliminates 404 errors when accessing dashboards
+
+3. **Missing Role Assignment Logic**
+   - **Issue**: New users weren't assigned a default role during registration
+   - **Fix**: Added automatic assignment of 'customer' role to new users
+   - **Location**: `app/routes/auth.py`
+   - **Impact**: Ensures all users have appropriate permissions
+
+#### 🔧 **Navigation and Routing Fixes**
+
+1. **Broken Booking Buttons**
+   - **Fixed**: Main index page "Book Appointment" button now correctly points to booking page for customers
+   - **Fixed**: Services page "Book Appointment" button now correctly points to booking page for customers  
+   - **Fixed**: Customer dashboard "Book Now" and "Book Appointment" buttons now have proper URLs
+   - **Fixed**: Customer dashboard "View History" button now points to appointments page
+   - **Files Modified**: 
+     - `app/templates/main/index.html`
+     - `app/templates/main/services.html`
+     - `app/templates/main/customer_dashboard.html`
+
+2. **Stylist Dashboard "View Schedule" Error**
+   - **Issue**: Template was trying to compare time objects incorrectly using Jinja2 filters
+   - **Fix**: Created helper function `get_appointments_for_slot()` for proper time comparison
+   - **Files Modified**: `app/routes/appointments.py`, `app/templates/appointments/stylist_calendar.html`
+   - **Impact**: Stylists can now view their calendar without errors
+
+#### 🎨 **User Interface Improvements**
+
+1. **Customer Dashboard Enhancement**
+   - **Added**: Dynamic display of upcoming appointments in a table format
+   - **Added**: Appointment details including date, time, service, stylist, and status
+   - **Added**: Action buttons to view appointment details
+   - **Added**: Proper handling of empty appointment states
+   - **File Modified**: `app/templates/main/customer_dashboard.html`
+
+2. **Stylist Calendar Week View**
+   - **Fixed**: Time slot filtering to properly display appointments in calendar grid
+   - **Enhanced**: Visual styling for appointment slots with customer information
+   - **Added**: Status badges and proper time formatting
+   - **File Modified**: `app/templates/appointments/stylist_calendar.html`
+
+#### 🚀 **New Features Added**
+
+1. **Appointment Cancellation System**
+   - **Added**: Cancel appointment functionality with proper permissions
+   - **Added**: Status history tracking for cancellations
+   - **Added**: Cancel button in appointment view template
+   - **Files Modified**: 
+     - `app/routes/appointments.py` (new route)
+     - `app/templates/appointments/view_appointment.html`
+
+2. **Enhanced Error Handling**
+   - **Added**: Warning messages in booking form when no stylists or services are available
+   - **Added**: Better user feedback for missing data
+   - **File Modified**: `app/templates/appointments/book.html`
+
+3. **Service Initialization Script**
+   - **Created**: `init_services.py` script to populate sample services
+   - **Features**: Sample hair services with realistic pricing and durations
+   - **Usage**: Run `python init_services.py` to initialize services
+
+#### 📊 **Logging and Debugging**
+
+1. **Comprehensive Logging System**
+   - **Added**: Customer dashboard access logging
+   - **Added**: Stylist calendar view logging
+   - **Added**: Appointment booking logging
+   - **Added**: Debug information sent to Docker logs instead of UI
+   - **Files Modified**: 
+     - `app/routes/main.py`
+     - `app/routes/appointments.py`
+
+2. **Debug Information**
+   - **Removed**: Debug alerts from customer dashboard
+   - **Removed**: Debug cards from stylist calendar
+   - **Added**: Structured logging to Docker container logs
+   - **Benefit**: Clean UI while maintaining debugging capability
+
+#### 🔍 **Template Context Fixes**
+
+1. **Missing Template Variables**
+   - **Fixed**: Added `timedelta`, `calendar`, and `date` objects to template context
+   - **Fixed**: Added `get_appointments_for_slot` helper function
+   - **Files Modified**: `app/routes/appointments.py`
+   - **Impact**: Eliminates template rendering errors
+
+#### 📋 **Files Created/Modified Summary**
+
+**New Files:**
+- `app/templates/main/stylist_dashboard.html` - Stylist dashboard template
+- `app/templates/main/guest_dashboard.html` - Guest dashboard template
+- `init_services.py` - Service initialization script
+- `create_favicon.py` - Script to generate PNG favicon from SVG logo
+
+**Modified Files:**
+- `app/routes/appointments.py` - Fixed booking bug, added cancellation, enhanced logging
+- `app/routes/main.py` - Fixed dashboard routing, added logging
+- `app/routes/auth.py` - Added default role assignment
+- `app/templates/main/customer_dashboard.html` - Enhanced appointment display
+- `app/templates/main/index.html` - Fixed booking button routing
+- `app/templates/main/services.html` - Fixed booking button routing
+- `app/templates/appointments/book.html` - Enhanced error handling
+- `app/templates/appointments/stylist_calendar.html` - Fixed time filtering
+- `app/templates/appointments/view_appointment.html` - Added cancel button
+- `app/templates/base.html` - Updated logo to use logo_4.svg and added favicon support
+
+#### 🧪 **Testing Recommendations**
+
+1. **Customer Flow Testing**
+   ```bash
+   # Test customer registration and booking
+   1. Register as a new customer
+   2. Verify default 'customer' role assignment
+   3. Book an appointment
+   4. Check customer dashboard shows upcoming appointments
+   5. View appointment history
+   ```
+
+2. **Stylist Flow Testing**
+   ```bash
+   # Test stylist calendar functionality
+   1. Create a stylist user via admin panel
+   2. Log in as stylist
+   3. Access stylist dashboard
+   4. Click "View Schedule" to access calendar
+   5. Verify week view displays appointments correctly
+   ```
+
+3. **Admin Flow Testing**
+   ```bash
+   # Test appointment management
+   1. Log in as manager/owner
+   2. Access admin appointments view
+   3. Test appointment status updates
+   4. Verify appointment cancellation works
+   ```
+
+#### 🐛 **Known Issues Resolved**
+
+1. **Appointment Booking Errors**: Fixed database transaction issues
+2. **Missing Dashboard Pages**: Created all required dashboard templates
+3. **Broken Navigation**: Fixed all booking button routing
+4. **Calendar Display Issues**: Fixed time comparison in week view
+5. **Role Assignment**: Ensured new users get appropriate roles
+
+#### 📈 **Performance Improvements**
+
+1. **Database Queries**: Optimized appointment queries with proper filtering
+2. **Template Rendering**: Fixed context variable issues
+3. **User Experience**: Streamlined navigation and reduced error states
+4. **Logging**: Moved debug info to logs for better performance
+
+#### 🎨 **Branding and UI Updates**
+
+1. **Logo Update**
+   - **Changed**: Updated logo from `logo_2.png` to `logo_4.svg`
+   - **Benefits**: SVG format provides better quality at all sizes and smaller file size
+   - **Location**: Navigation bar in all pages via base template
+
+2. **Favicon Implementation**
+   - **Added**: SVG favicon using `logo_4.svg` for modern browsers
+   - **Added**: PNG fallback favicon for older browsers
+   - **Created**: `create_favicon.py` script to generate PNG favicon from SVG
+   - **Benefits**: Professional branding in browser tabs and bookmarks
+
+This comprehensive update significantly improves the reliability, user experience, and functionality of the appointment booking and management system.
+
 ### Features
 
 #### For Customers

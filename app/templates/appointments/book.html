@@ -8,37 +8,48 @@
                 <h3 class="card-title mb-0">Book an Appointment</h3>
             </div>
             <div class="card-body">
-                <form method="POST">
-                    {{ form.hidden_tag() }}
-                    
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                {{ form.stylist_id.label(class="form-label") }}
-                                {{ form.stylist_id(class="form-select") }}
-                                {% if form.stylist_id.errors %}
-                                    <div class="text-danger">
-                                        {% for error in form.stylist_id.errors %}
-                                            <small>{{ error }}</small>
-                                        {% endfor %}
-                                    </div>
-                                {% endif %}
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                {{ form.service_id.label(class="form-label") }}
-                                {{ form.service_id(class="form-select") }}
-                                {% if form.service_id.errors %}
-                                    <div class="text-danger">
-                                        {% for error in form.service_id.errors %}
-                                            <small>{{ error }}</small>
-                                        {% endfor %}
-                                    </div>
-                                {% endif %}
-                            </div>
-                        </div>
+                {% if not form.stylist_id.choices %}
+                    <div class="alert alert-warning">
+                        <h5><i class="fas fa-exclamation-triangle"></i> No Stylists Available</h5>
+                        <p>There are currently no stylists available for booking. Please contact the salon administrator to set up stylist accounts.</p>
                     </div>
+                {% elif not form.service_id.choices %}
+                    <div class="alert alert-warning">
+                        <h5><i class="fas fa-exclamation-triangle"></i> No Services Available</h5>
+                        <p>There are currently no services available for booking. Please contact the salon administrator to set up services.</p>
+                    </div>
+                {% else %}
+                    <form method="POST">
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.stylist_id.label(class="form-label") }}
+                                    {{ form.stylist_id(class="form-select") }}
+                                    {% if form.stylist_id.errors %}
+                                        <div class="text-danger">
+                                            {% for error in form.stylist_id.errors %}
+                                                <small>{{ error }}</small>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.service_id.label(class="form-label") }}
+                                    {{ form.service_id(class="form-select") }}
+                                    {% if form.service_id.errors %}
+                                        <div class="text-danger">
+                                            {% for error in form.service_id.errors %}
+                                                <small>{{ error }}</small>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
                     
                     <div class="row">
                         <div class="col-md-6">
@@ -110,10 +121,11 @@
                         {% endif %}
                     </div>
                     
-                    <div class="d-grid">
-                        {{ form.submit(class="btn btn-primary") }}
-                    </div>
-                </form>
+                        <div class="d-grid">
+                            {{ form.submit(class="btn btn-primary") }}
+                        </div>
+                    </form>
+                {% endif %}
             </div>
         </div>
         

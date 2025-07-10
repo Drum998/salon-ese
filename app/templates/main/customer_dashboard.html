@@ -16,7 +16,7 @@
                 <i class="fas fa-calendar-plus fa-3x text-primary mb-3"></i>
                 <h5 class="card-title">Book Appointment</h5>
                 <p class="card-text">Schedule your next hair appointment with our expert stylists.</p>
-                <a href="#" class="btn btn-primary">
+                <a href="{{ url_for('appointments.book_appointment') }}" class="btn btn-primary">
                     <i class="fas fa-plus"></i> Book Now
                 </a>
             </div>
@@ -29,7 +29,7 @@
                 <i class="fas fa-history fa-3x text-success mb-3"></i>
                 <h5 class="card-title">Appointment History</h5>
                 <p class="card-text">View your past appointments and service history.</p>
-                <a href="#" class="btn btn-success">
+                <a href="{{ url_for('appointments.my_appointments') }}" class="btn btn-success">
                     <i class="fas fa-list"></i> View History
                 </a>
             </div>
@@ -57,13 +57,56 @@
                 <h5><i class="fas fa-calendar-alt"></i> Upcoming Appointments</h5>
             </div>
             <div class="card-body">
-                <div class="alert alert-info">
-                    <i class="fas fa-info-circle"></i>
-                    <strong>No upcoming appointments.</strong> Book your first appointment to get started!
-                </div>
-                <a href="#" class="btn btn-primary">
-                    <i class="fas fa-calendar-plus"></i> Book Appointment
-                </a>
+                {% if upcoming_appointments %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Time</th>
+                                    <th>Service</th>
+                                    <th>Stylist</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for appointment in upcoming_appointments %}
+                                <tr>
+                                    <td>{{ appointment.appointment_date.strftime('%a, %b %d') }}</td>
+                                    <td>{{ appointment.start_time.strftime('%I:%M %p') }}</td>
+                                    <td>{{ appointment.service.name }}</td>
+                                    <td>{{ appointment.stylist.first_name }} {{ appointment.stylist.last_name }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ 'success' if appointment.status == 'confirmed' else 'secondary' }}">
+                                            {{ appointment.status.title() }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('appointments.view_appointment', appointment_id=appointment.id) }}" 
+                                           class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-eye"></i> View
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="mt-3">
+                        <a href="{{ url_for('appointments.my_appointments') }}" class="btn btn-outline-primary">
+                            <i class="fas fa-calendar"></i> View All Appointments
+                        </a>
+                    </div>
+                {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>No upcoming appointments.</strong> Book your first appointment to get started!
+                    </div>
+                    <a href="{{ url_for('appointments.book_appointment') }}" class="btn btn-primary">
+                        <i class="fas fa-calendar-plus"></i> Book Appointment
+                    </a>
+                {% endif %}
             </div>
         </div>
     </div>

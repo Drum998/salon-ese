@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify
+from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, current_app
 from flask_login import current_user, login_required
 from app.models import User, Role, Service, Appointment, AppointmentStatus
 from app.forms import AppointmentBookingForm, AppointmentManagementForm, AppointmentFilterForm, ServiceForm
@@ -6,6 +6,7 @@ from app.extensions import db
 from datetime import datetime, date, timedelta
 from functools import wraps
 import calendar
+import logging
 
 bp = Blueprint('appointments', __name__)
 
@@ -80,6 +81,7 @@ def book_appointment():
         )
         
         db.session.add(appointment)
+        db.session.flush()  # This gets the ID without committing
         
         # Create initial status record
         status_record = AppointmentStatus(
@@ -90,6 +92,11 @@ def book_appointment():
         db.session.add(status_record)
         
         db.session.commit()
+        
+        # Log the booking
+        current_app.logger.info(f"Appointment booked: ID {appointment.id}, Customer {appointment.customer.first_name} {appointment.customer.last_name}, "
+                               f"Stylist {appointment.stylist.first_name} {appointment.stylist.last_name}, "
+                               f"Service {appointment.service.name}, Date {appointment.appointment_date}, Time {appointment.start_time}")
         
         flash('Appointment booked successfully!', 'success')
         return redirect(url_for('appointments.my_appointments'))
@@ -136,6 +143,21 @@ def stylist_appointments():
         Appointment.appointment_date <= end_date
     ).order_by(Appointment.appointment_date, Appointment.start_time).all()
     
+    # Log debug information
+    current_app.logger.info(f"Stylist {current_user.id} ({current_user.first_name} {current_user.last_name}) calendar view:")
+    current_app.logger.info(f"  Date range: {start_date} to {end_date}")
+    current_app.logger.info(f"  View type: {view_type}")
+    current_app.logger.info(f"  Total appointments found: {len(appointments)}")
+    for apt in appointments:
+        current_app.logger.info(f"    - {apt.appointment_date} at {apt.start_time}: {apt.customer.first_name} {apt.customer.last_name} ({apt.service.name})")
+    
+    # Create a helper function to get appointments for a specific time slot
+    def get_appointments_for_slot(appointments, target_date, target_hour, target_minute):
+        return [apt for apt in appointments 
+                if apt.appointment_date == target_date 
+                and apt.start_time.hour == target_hour 
+                and apt.start_time.minute == target_minute]
+    
     return render_template('appointments/stylist_calendar.html',
                          appointments=appointments,
                          start_date=start_date,
@@ -143,7 +165,11 @@ def stylist_appointments():
                          view_type=view_type,
                          selected_date=selected_date,
                          form=form,
-                         title='My Appointments')
+                         title='My Appointments',
+                         timedelta=timedelta,
+                         calendar=calendar,
+                         date=date,
+                         get_appointments_for_slot=get_appointments_for_slot)
 
 @bp.route('/admin-appointments')
 @login_required
@@ -184,6 +210,13 @@ def admin_appointments():
     
     appointments = query.order_by(Appointment.appointment_date, Appointment.start_time).all()
     
+    # Create a helper function to get appointments for a specific time slot
+    def get_appointments_for_slot(appointments, target_date, target_hour, target_minute):
+        return [apt for apt in appointments 
+                if apt.appointment_date == target_date 
+                and apt.start_time.hour == target_hour 
+                and apt.start_time.minute == target_minute]
+    
     return render_template('appointments/admin_calendar.html',
                          appointments=appointments,
                          start_date=start_date,
@@ -191,7 +224,11 @@ def admin_appointments():
                          view_type=view_type,
                          selected_date=selected_date,
                          form=form,
-                         title='All Appointments')
+                         title='All Appointments',
+                         timedelta=timedelta,
+                         calendar=calendar,
+                         date=date,
+                         get_appointments_for_slot=get_appointments_for_slot)
 
 @bp.route('/appointment/<int:appointment_id>')
 @login_required
@@ -247,6 +284,45 @@ def edit_appointment(appointment_id):
                          form=form,
                          appointment=appointment,
                          title='Edit Appointment')
+
+@bp.route('/appointment/<int:appointment_id>/cancel', methods=['POST'])
+@login_required
+def cancel_appointment(appointment_id):
+    appointment = Appointment.query.get_or_404(appointment_id)
+    
+    # Check permissions - customers can cancel their own appointments, stylists/managers can cancel any
+    if not (current_user.has_role('manager') or 
+            current_user.has_role('owner') or 
+            appointment.stylist_id == current_user.id or 
+            appointment.customer_id == current_user.id):
+        flash('You do not have permission to cancel this appointment.', 'error')
+        return redirect(url_for('main.index'))
+    
+    # Check if appointment can be cancelled (not in the past and not already cancelled)
+    if appointment.is_past:
+        flash('Cannot cancel appointments in the past.', 'error')
+        return redirect(url_for('appointments.view_appointment', appointment_id=appointment.id))
+    
+    if appointment.status == 'cancelled':
+        flash('Appointment is already cancelled.', 'error')
+        return redirect(url_for('appointments.view_appointment', appointment_id=appointment.id))
+    
+    # Cancel the appointment
+    old_status = appointment.status
+    appointment.status = 'cancelled'
+    
+    # Create status history record
+    status_record = AppointmentStatus(
+        appointment_id=appointment.id,
+        status='cancelled',
+        notes=f'Cancelled by {current_user.first_name} {current_user.last_name}',
+        changed_by_id=current_user.id
+    )
+    db.session.add(status_record)
+    db.session.commit()
+    
+    flash('Appointment cancelled successfully!', 'success')
+    return redirect(url_for('appointments.view_appointment', appointment_id=appointment.id))
 
 @bp.route('/services')
 @login_required

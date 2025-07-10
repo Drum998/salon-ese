@@ -65,6 +65,11 @@ def register():
             if owner_role:
                 user.roles.append(owner_role)
             user.email_verified = True  # First user is automatically verified
+        else:
+            # Assign default customer role to new users
+            customer_role = Role.query.filter_by(name='customer').first()
+            if customer_role:
+                user.roles.append(customer_role)
         
         db.session.add(user)
         db.session.commit()
