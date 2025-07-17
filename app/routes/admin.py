@@ -177,3 +177,213 @@ def salon_settings():
                          title='Salon Settings',
                          form=form,
                          salon_settings=salon_settings) 
+
+# ============================================================================
+# WORK PATTERNS AND EMPLOYMENT MANAGEMENT ROUTES
+# ============================================================================
+
+@bp.route('/admin/work-patterns')
+@login_required
+@role_required('manager')
+def work_patterns():
+    """List all work patterns"""
+    from app.models import WorkPattern, User
+    
+    # Get all work patterns with user information
+    patterns = db.session.query(WorkPattern, User).join(
+        User, WorkPattern.user_id == User.id
+    ).order_by(User.first_name, User.last_name, WorkPattern.pattern_name).all()
+    
+    return render_template('admin/work_patterns.html', 
+                         title='Work Patterns',
+                         patterns=patterns)
+
+@bp.route('/admin/work-patterns/new', methods=['GET', 'POST'])
+@login_required
+@role_required('manager')
+def new_work_pattern():
+    """Create a new work pattern"""
+    from app.models import WorkPattern
+    from app.forms import WorkPatternForm
+    
+    form = WorkPatternForm()
+    
+    if form.validate_on_submit():
+        try:
+            work_pattern = WorkPattern(
+                user_id=form.user_id.data,
+                pattern_name=form.pattern_name.data,
+                work_schedule=form.get_work_schedule_dict(),
+                is_active=form.is_active.data
+            )
+            
+            db.session.add(work_pattern)
+            db.session.commit()
+            
+            flash('Work pattern created successfully!', 'success')
+            return redirect(url_for('admin.work_patterns'))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error creating work pattern: {str(e)}', 'error')
+    
+    return render_template('admin/work_pattern_form.html', 
+                         title='New Work Pattern',
+                         form=form,
+                         action='Create')
+
+@bp.route('/admin/work-patterns/<int:pattern_id>/edit', methods=['GET', 'POST'])
+@login_required
+@role_required('manager')
+def edit_work_pattern(pattern_id):
+    """Edit an existing work pattern"""
+    from app.models import WorkPattern
+    from app.forms import WorkPatternForm
+    
+    work_pattern = WorkPattern.query.get_or_404(pattern_id)
+    form = WorkPatternForm(work_pattern=work_pattern)
+    
+    if form.validate_on_submit():
+        try:
+            work_pattern.user_id = form.user_id.data
+            work_pattern.pattern_name = form.pattern_name.data
+            work_pattern.work_schedule = form.get_work_schedule_dict()
+            work_pattern.is_active = form.is_active.data
+            
+            db.session.commit()
+            
+            flash('Work pattern updated successfully!', 'success')
+            return redirect(url_for('admin.work_patterns'))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error updating work pattern: {str(e)}', 'error')
+    
+    return render_template('admin/work_pattern_form.html', 
+                         title='Edit Work Pattern',
+                         form=form,
+                         work_pattern=work_pattern,
+                         action='Update')
+
+@bp.route('/admin/work-patterns/<int:pattern_id>/delete', methods=['POST'])
+@login_required
+@role_required('manager')
+def delete_work_pattern(pattern_id):
+    """Delete a work pattern"""
+    from app.models import WorkPattern
+    
+    work_pattern = WorkPattern.query.get_or_404(pattern_id)
+    
+    try:
+        db.session.delete(work_pattern)
+        db.session.commit()
+        flash('Work pattern deleted successfully!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error deleting work pattern: {str(e)}', 'error')
+    
+    return redirect(url_for('admin.work_patterns'))
+
+@bp.route('/admin/employment-details')
+@login_required
+@role_required('manager')
+def employment_details():
+    """List all employment details"""
+    from app.models import EmploymentDetails, User
+    
+    # Get all employment details with user information
+    details = db.session.query(EmploymentDetails, User).join(
+        User, EmploymentDetails.user_id == User.id
+    ).order_by(User.first_name, User.last_name).all()
+    
+    return render_template('admin/employment_details.html', 
+                         title='Employment Details',
+                         details=details)
+
+@bp.route('/admin/employment-details/new', methods=['GET', 'POST'])
+@login_required
+@role_required('manager')
+def new_employment_details():
+    """Create new employment details"""
+    from app.models import EmploymentDetails
+    from app.forms import EmploymentDetailsForm
+    
+    form = EmploymentDetailsForm()
+    
+    if form.validate_on_submit():
+        try:
+            employment_details = EmploymentDetails(
+                user_id=form.user_id.data,
+                employment_type=form.employment_type.data,
+                commission_percentage=float(form.commission_percentage.data) if form.commission_percentage.data else None,
+                billing_method=form.billing_method.data,
+                job_role=form.job_role.data
+            )
+            
+            db.session.add(employment_details)
+            db.session.commit()
+            
+            flash('Employment details created successfully!', 'success')
+            return redirect(url_for('admin.employment_details'))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error creating employment details: {str(e)}', 'error')
+    
+    return render_template('admin/employment_details_form.html', 
+                         title='New Employment Details',
+                         form=form,
+                         action='Create')
+
+@bp.route('/admin/employment-details/<int:details_id>/edit', methods=['GET', 'POST'])
+@login_required
+@role_required('manager')
+def edit_employment_details(details_id):
+    """Edit existing employment details"""
+    from app.models import EmploymentDetails
+    from app.forms import EmploymentDetailsForm
+    
+    employment_details = EmploymentDetails.query.get_or_404(details_id)
+    form = EmploymentDetailsForm(employment_details=employment_details)
+    
+    if form.validate_on_submit():
+        try:
+            employment_details.user_id = form.user_id.data
+            employment_details.employment_type = form.employment_type.data
+            employment_details.commission_percentage = float(form.commission_percentage.data) if form.commission_percentage.data else None
+            employment_details.billing_method = form.billing_method.data
+            employment_details.job_role = form.job_role.data
+            
+            db.session.commit()
+            
+            flash('Employment details updated successfully!', 'success')
+            return redirect(url_for('admin.employment_details'))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error updating employment details: {str(e)}', 'error')
+    
+    return render_template('admin/employment_details_form.html', 
+                         title='Edit Employment Details',
+                         form=form,
+                         employment_details=employment_details,
+                         action='Update')
+
+@bp.route('/admin/employment-details/<int:details_id>/delete', methods=['POST'])
+@login_required
+@role_required('manager')
+def delete_employment_details(details_id):
+    """Delete employment details"""
+    from app.models import EmploymentDetails
+    
+    employment_details = EmploymentDetails.query.get_or_404(details_id)
+    
+    try:
+        db.session.delete(employment_details)
+        db.session.commit()
+        flash('Employment details deleted successfully!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error deleting employment details: {str(e)}', 'error')
+    
+    return redirect(url_for('admin.employment_details')) 

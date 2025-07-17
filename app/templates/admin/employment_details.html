@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1><i class="fas fa-briefcase"></i> {{ title }}</h1>
+                <a href="{{ url_for('admin.new_employment_details') }}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> New Employment Details
+                </a>
+            </div>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            {% if details %}
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-list"></i> Employment Details</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Staff Member</th>
+                                        <th>Employment Type</th>
+                                        <th>Commission</th>
+                                        <th>Billing Method</th>
+                                        <th>Job Role</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for employment_detail, user in details %}
+                                    <tr>
+                                        <td>
+                                            <strong>{{ user.first_name }} {{ user.last_name }}</strong>
+                                            <br><small class="text-muted">{{ user.username }}</small>
+                                        </td>
+                                        <td>
+                                            {% if employment_detail.employment_type == 'employed' %}
+                                                <span class="badge bg-primary">Employed</span>
+                                            {% else %}
+                                                <span class="badge bg-warning">Self-Employed</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if employment_detail.commission_percentage %}
+                                                <span class="badge bg-success">{{ employment_detail.commission_percentage }}%</span>
+                                            {% else %}
+                                                <span class="text-muted">N/A</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if employment_detail.billing_method == 'salon_bills' %}
+                                                <span class="badge bg-info">Salon Bills</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">Stylist Bills</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if employment_detail.job_role %}
+                                                <small>{{ employment_detail.job_role }}</small>
+                                            {% else %}
+                                                <small class="text-muted">Not specified</small>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="btn-group" role="group">
+                                                <a href="{{ url_for('admin.edit_employment_details', details_id=employment_detail.id) }}" 
+                                                   class="btn btn-sm btn-outline-primary" 
+                                                   title="Edit Details">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                                <button type="button" 
+                                                        class="btn btn-sm btn-outline-danger" 
+                                                        title="Delete Details"
+                                                        onclick="confirmDelete({{ employment_detail.id }}, '{{ user.first_name }} {{ user.last_name }}')">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <div class="card">
+                    <div class="card-body text-center py-5">
+                        <i class="fas fa-briefcase fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No employment details found</h5>
+                        <p class="text-muted">Create employment details for your staff members to get started.</p>
+                        <a href="{{ url_for('admin.new_employment_details') }}" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Create Employment Details
+                        </a>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete the employment details for "<span id="staffName"></span>"?</p>
+                <p class="text-danger"><small>This action cannot be undone.</small></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="deleteForm" method="POST" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function confirmDelete(detailsId, staffName) {
+    document.getElementById('staffName').textContent = staffName;
+    document.getElementById('deleteForm').action = `/admin/employment-details/${detailsId}/delete`;
+    new bootstrap.Modal(document.getElementById('deleteModal')).show();
+}
+</script>
+{% endblock %} 

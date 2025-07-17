@@ -1,0 +1,426 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1><i class="fas fa-calendar-alt"></i> {{ title }}</h1>
+                <a href="{{ url_for('admin.work_patterns') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Work Patterns
+                </a>
+            </div>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-edit"></i> Work Pattern Details</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.user_id.label(class="form-label") }}
+                                    {{ form.user_id(class="form-select") }}
+                                    {% if form.user_id.errors %}
+                                        <div class="text-danger">
+                                            {% for error in form.user_id.errors %}
+                                                <small>{{ error }}</small>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.pattern_name.label(class="form-label") }}
+                                    {{ form.pattern_name(class="form-control") }}
+                                    {% if form.pattern_name.errors %}
+                                        <div class="text-danger">
+                                            {% for error in form.pattern_name.errors %}
+                                                <small>{{ error }}</small>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="form-check">
+                                {{ form.is_active(class="form-check-input") }}
+                                {{ form.is_active.label(class="form-check-label") }}
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <h5 class="mb-3"><i class="fas fa-clock"></i> Weekly Work Schedule</h5>
+                        
+                        <div class="row">
+                            <!-- Monday -->
+                            <div class="col-md-6 col-lg-4 mb-3">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <div class="form-check">
+                                            {{ form.monday_working(class="form-check-input day-working") }}
+                                            {{ form.monday_working.label(class="form-check-label fw-bold") }}
+                                        </div>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-6">
+                                                <label class="form-label small">Start Time</label>
+                                                {{ form.monday_start(class="form-control time-input", placeholder="09:00") }}
+                                                {% if form.monday_start.errors %}
+                                                    <div class="text-danger">
+                                                        {% for error in form.monday_start.errors %}
+                                                            <small>{{ error }}</small>
+                                                        {% endfor %}
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                            <div class="col-6">
+                                                <label class="form-label small">End Time</label>
+                                                {{ form.monday_end(class="form-control time-input", placeholder="17:00") }}
+                                                {% if form.monday_end.errors %}
+                                                    <div class="text-danger">
+                                                        {% for error in form.monday_end.errors %}
+                                                            <small>{{ error }}</small>
+                                                        {% endfor %}
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Tuesday -->
+                            <div class="col-md-6 col-lg-4 mb-3">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <div class="form-check">
+                                            {{ form.tuesday_working(class="form-check-input day-working") }}
+                                            {{ form.tuesday_working.label(class="form-check-label fw-bold") }}
+                                        </div>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-6">
+                                                <label class="form-label small">Start Time</label>
+                                                {{ form.tuesday_start(class="form-control time-input", placeholder="09:00") }}
+                                                {% if form.tuesday_start.errors %}
+                                                    <div class="text-danger">
+                                                        {% for error in form.tuesday_start.errors %}
+                                                            <small>{{ error }}</small>
+                                                        {% endfor %}
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                            <div class="col-6">
+                                                <label class="form-label small">End Time</label>
+                                                {{ form.tuesday_end(class="form-control time-input", placeholder="17:00") }}
+                                                {% if form.tuesday_end.errors %}
+                                                    <div class="text-danger">
+                                                        {% for error in form.tuesday_end.errors %}
+                                                            <small>{{ error }}</small>
+                                                        {% endfor %}
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Wednesday -->
+                            <div class="col-md-6 col-lg-4 mb-3">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <div class="form-check">
+                                            {{ form.wednesday_working(class="form-check-input day-working") }}
+                                            {{ form.wednesday_working.label(class="form-check-label fw-bold") }}
+                                        </div>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-6">
+                                                <label class="form-label small">Start Time</label>
+                                                {{ form.wednesday_start(class="form-control time-input", placeholder="09:00") }}
+                                                {% if form.wednesday_start.errors %}
+                                                    <div class="text-danger">
+                                                        {% for error in form.wednesday_start.errors %}
+                                                            <small>{{ error }}</small>
+                                                        {% endfor %}
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                            <div class="col-6">
+                                                <label class="form-label small">End Time</label>
+                                                {{ form.wednesday_end(class="form-control time-input", placeholder="17:00") }}
+                                                {% if form.wednesday_end.errors %}
+                                                    <div class="text-danger">
+                                                        {% for error in form.wednesday_end.errors %}
+                                                            <small>{{ error }}</small>
+                                                        {% endfor %}
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Thursday -->
+                            <div class="col-md-6 col-lg-4 mb-3">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <div class="form-check">
+                                            {{ form.thursday_working(class="form-check-input day-working") }}
+                                            {{ form.thursday_working.label(class="form-check-label fw-bold") }}
+                                        </div>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-6">
+                                                <label class="form-label small">Start Time</label>
+                                                {{ form.thursday_start(class="form-control time-input", placeholder="09:00") }}
+                                                {% if form.thursday_start.errors %}
+                                                    <div class="text-danger">
+                                                        {% for error in form.thursday_start.errors %}
+                                                            <small>{{ error }}</small>
+                                                        {% endfor %}
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                            <div class="col-6">
+                                                <label class="form-label small">End Time</label>
+                                                {{ form.thursday_end(class="form-control time-input", placeholder="17:00") }}
+                                                {% if form.thursday_end.errors %}
+                                                    <div class="text-danger">
+                                                        {% for error in form.thursday_end.errors %}
+                                                            <small>{{ error }}</small>
+                                                        {% endfor %}
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Friday -->
+                            <div class="col-md-6 col-lg-4 mb-3">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <div class="form-check">
+                                            {{ form.friday_working(class="form-check-input day-working") }}
+                                            {{ form.friday_working.label(class="form-check-label fw-bold") }}
+                                        </div>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-6">
+                                                <label class="form-label small">Start Time</label>
+                                                {{ form.friday_start(class="form-control time-input", placeholder="09:00") }}
+                                                {% if form.friday_start.errors %}
+                                                    <div class="text-danger">
+                                                        {% for error in form.friday_start.errors %}
+                                                            <small>{{ error }}</small>
+                                                        {% endfor %}
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                            <div class="col-6">
+                                                <label class="form-label small">End Time</label>
+                                                {{ form.friday_end(class="form-control time-input", placeholder="17:00") }}
+                                                {% if form.friday_end.errors %}
+                                                    <div class="text-danger">
+                                                        {% for error in form.friday_end.errors %}
+                                                            <small>{{ error }}</small>
+                                                        {% endfor %}
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Saturday -->
+                            <div class="col-md-6 col-lg-4 mb-3">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <div class="form-check">
+                                            {{ form.saturday_working(class="form-check-input day-working") }}
+                                            {{ form.saturday_working.label(class="form-check-label fw-bold") }}
+                                        </div>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-6">
+                                                <label class="form-label small">Start Time</label>
+                                                {{ form.saturday_start(class="form-control time-input", placeholder="09:00") }}
+                                                {% if form.saturday_start.errors %}
+                                                    <div class="text-danger">
+                                                        {% for error in form.saturday_start.errors %}
+                                                            <small>{{ error }}</small>
+                                                        {% endfor %}
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                            <div class="col-6">
+                                                <label class="form-label small">End Time</label>
+                                                {{ form.saturday_end(class="form-control time-input", placeholder="17:00") }}
+                                                {% if form.saturday_end.errors %}
+                                                    <div class="text-danger">
+                                                        {% for error in form.saturday_end.errors %}
+                                                            <small>{{ error }}</small>
+                                                        {% endfor %}
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Sunday -->
+                            <div class="col-md-6 col-lg-4 mb-3">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <div class="form-check">
+                                            {{ form.sunday_working(class="form-check-input day-working") }}
+                                            {{ form.sunday_working.label(class="form-check-label fw-bold") }}
+                                        </div>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-6">
+                                                <label class="form-label small">Start Time</label>
+                                                {{ form.sunday_start(class="form-control time-input", placeholder="09:00") }}
+                                                {% if form.sunday_start.errors %}
+                                                    <div class="text-danger">
+                                                        {% for error in form.sunday_start.errors %}
+                                                            <small>{{ error }}</small>
+                                                        {% endfor %}
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                            <div class="col-6">
+                                                <label class="form-label small">End Time</label>
+                                                {{ form.sunday_end(class="form-control time-input", placeholder="17:00") }}
+                                                {% if form.sunday_end.errors %}
+                                                    <div class="text-danger">
+                                                        {% for error in form.sunday_end.errors %}
+                                                            <small>{{ error }}</small>
+                                                        {% endfor %}
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('admin.work_patterns') }}" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> Cancel
+                            </a>
+                            {{ form.submit(class="btn btn-primary") }}
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle day working checkboxes
+    const dayWorkingCheckboxes = document.querySelectorAll('.day-working');
+    
+    dayWorkingCheckboxes.forEach(function(checkbox) {
+        const card = checkbox.closest('.card');
+        const timeInputs = card.querySelectorAll('.time-input');
+        
+        // Initial state
+        toggleTimeInputs(checkbox, timeInputs);
+        
+        // Event listener
+        checkbox.addEventListener('change', function() {
+            toggleTimeInputs(this, timeInputs);
+        });
+    });
+    
+    function toggleTimeInputs(checkbox, timeInputs) {
+        timeInputs.forEach(function(input) {
+            input.disabled = !checkbox.checked;
+            if (!checkbox.checked) {
+                input.value = '';
+            }
+        });
+    }
+    
+    // Time input validation
+    const timeInputs = document.querySelectorAll('.time-input');
+    timeInputs.forEach(function(input) {
+        input.addEventListener('blur', function() {
+            validateTimeFormat(this);
+        });
+    });
+    
+    function validateTimeFormat(input) {
+        const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
+        if (input.value && !timeRegex.test(input.value)) {
+            input.classList.add('is-invalid');
+            if (!input.nextElementSibling || !input.nextElementSibling.classList.contains('invalid-feedback')) {
+                const feedback = document.createElement('div');
+                feedback.className = 'invalid-feedback';
+                feedback.textContent = 'Please enter time in HH:MM format (e.g., 09:00)';
+                input.parentNode.appendChild(feedback);
+            }
+        } else {
+            input.classList.remove('is-invalid');
+            const feedback = input.parentNode.querySelector('.invalid-feedback');
+            if (feedback) {
+                feedback.remove();
+            }
+        }
+    }
+});
+</script>
+
+<style>
+.card-header .form-check {
+    margin-bottom: 0;
+}
+
+.time-input:disabled {
+    background-color: #f8f9fa;
+    opacity: 0.6;
+}
+
+.invalid-feedback {
+    display: block;
+}
+</style>
+{% endblock %} 

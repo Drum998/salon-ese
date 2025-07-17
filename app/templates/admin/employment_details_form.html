@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1><i class="fas fa-briefcase"></i> {{ title }}</h1>
+                <a href="{{ url_for('admin.employment_details') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Employment Details
+                </a>
+            </div>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-edit"></i> Employment Details</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.user_id.label(class="form-label") }}
+                                    {{ form.user_id(class="form-select") }}
+                                    {% if form.user_id.errors %}
+                                        <div class="text-danger">
+                                            {% for error in form.user_id.errors %}
+                                                <small>{{ error }}</small>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.employment_type.label(class="form-label") }}
+                                    {{ form.employment_type(class="form-select") }}
+                                    {% if form.employment_type.errors %}
+                                        <div class="text-danger">
+                                            {% for error in form.employment_type.errors %}
+                                                <small>{{ error }}</small>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.commission_percentage.label(class="form-label") }}
+                                    {{ form.commission_percentage(class="form-control", placeholder="e.g., 70.00") }}
+                                    <div class="form-text">Only applicable for self-employed staff (0-100%)</div>
+                                    {% if form.commission_percentage.errors %}
+                                        <div class="text-danger">
+                                            {% for error in form.commission_percentage.errors %}
+                                                <small>{{ error }}</small>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.billing_method.label(class="form-label") }}
+                                    {{ form.billing_method(class="form-select") }}
+                                    {% if form.billing_method.errors %}
+                                        <div class="text-danger">
+                                            {% for error in form.billing_method.errors %}
+                                                <small>{{ error }}</small>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.job_role.label(class="form-label") }}
+                            {{ form.job_role(class="form-control", placeholder="e.g., Senior Stylist, Junior Stylist, Manager") }}
+                            {% if form.job_role.errors %}
+                                <div class="text-danger">
+                                    {% for error in form.job_role.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('admin.employment_details') }}" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> Cancel
+                            </a>
+                            {{ form.submit(class="btn btn-primary") }}
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const employmentTypeSelect = document.getElementById('employment_type');
+    const commissionField = document.getElementById('commission_percentage');
+    const commissionLabel = commissionField.previousElementSibling;
+    const commissionHelp = commissionField.nextElementSibling;
+    
+    function toggleCommissionField() {
+        const isSelfEmployed = employmentTypeSelect.value === 'self_employed';
+        
+        commissionField.disabled = !isSelfEmployed;
+        commissionLabel.classList.toggle('text-muted', !isSelfEmployed);
+        commissionHelp.classList.toggle('text-muted', !isSelfEmployed);
+        
+        if (!isSelfEmployed) {
+            commissionField.value = '';
+        }
+    }
+    
+    // Initial state
+    toggleCommissionField();
+    
+    // Event listener
+    employmentTypeSelect.addEventListener('change', toggleCommissionField);
+    
+    // Commission percentage validation
+    commissionField.addEventListener('blur', function() {
+        if (this.value && employmentTypeSelect.value === 'self_employed') {
+            const percentage = parseFloat(this.value);
+            if (isNaN(percentage) || percentage < 0 || percentage > 100) {
+                this.classList.add('is-invalid');
+                if (!this.nextElementSibling.nextElementSibling || !this.nextElementSibling.nextElementSibling.classList.contains('invalid-feedback')) {
+                    const feedback = document.createElement('div');
+                    feedback.className = 'invalid-feedback';
+                    feedback.textContent = 'Please enter a valid percentage between 0 and 100.';
+                    this.parentNode.appendChild(feedback);
+                }
+            } else {
+                this.classList.remove('is-invalid');
+                const feedback = this.parentNode.querySelector('.invalid-feedback');
+                if (feedback) {
+                    feedback.remove();
+                }
+            }
+        }
+    });
+});
+</script>
+
+<style>
+.form-control:disabled {
+    background-color: #f8f9fa;
+    opacity: 0.6;
+}
+
+.text-muted {
+    color: #6c757d !important;
+}
+
+.invalid-feedback {
+    display: block;
+}
+</style>
+{% endblock %} 

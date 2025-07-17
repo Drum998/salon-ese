@@ -392,3 +392,222 @@ class SalonSettingsForm(FlaskForm):
                 'close': close_field.data if not closed_field.data else '18:00'
             }
         return hours 
+
+class WorkPatternForm(FlaskForm):
+    """Form for managing staff work patterns"""
+    user_id = SelectField('Staff Member', coerce=int, validators=[DataRequired()])
+    pattern_name = StringField('Pattern Name', validators=[DataRequired(), Length(max=100)])
+    is_active = BooleanField('Active Pattern', default=True)
+    
+    # Work schedule for each day
+    monday_start = StringField('Monday Start', validators=[Optional()])
+    monday_end = StringField('Monday End', validators=[Optional()])
+    monday_working = BooleanField('Monday Working')
+    
+    tuesday_start = StringField('Tuesday Start', validators=[Optional()])
+    tuesday_end = StringField('Tuesday End', validators=[Optional()])
+    tuesday_working = BooleanField('Tuesday Working')
+    
+    wednesday_start = StringField('Wednesday Start', validators=[Optional()])
+    wednesday_end = StringField('Wednesday End', validators=[Optional()])
+    wednesday_working = BooleanField('Wednesday Working')
+    
+    thursday_start = StringField('Thursday Start', validators=[Optional()])
+    thursday_end = StringField('Thursday End', validators=[Optional()])
+    thursday_working = BooleanField('Thursday Working')
+    
+    friday_start = StringField('Friday Start', validators=[Optional()])
+    friday_end = StringField('Friday End', validators=[Optional()])
+    friday_working = BooleanField('Friday Working')
+    
+    saturday_start = StringField('Saturday Start', validators=[Optional()])
+    saturday_end = StringField('Saturday End', validators=[Optional()])
+    saturday_working = BooleanField('Saturday Working')
+    
+    sunday_start = StringField('Sunday Start', validators=[Optional()])
+    sunday_end = StringField('Sunday End', validators=[Optional()])
+    sunday_working = BooleanField('Sunday Working')
+    
+    submit = SubmitField('Save Work Pattern')
+    
+    def __init__(self, work_pattern=None, *args, **kwargs):
+        super(WorkPatternForm, self).__init__(*args, **kwargs)
+        self.work_pattern = work_pattern
+        
+        # Populate staff member choices (only stylists and managers)
+        from app.models import User, Role
+        stylist_role = Role.query.filter_by(name='stylist').first()
+        manager_role = Role.query.filter_by(name='manager').first()
+        
+        if stylist_role and manager_role:
+            staff = User.query.join(User.roles).filter(
+                User.is_active == True,
+                User.roles.contains(stylist_role) | User.roles.contains(manager_role)
+            ).all()
+            self.user_id.choices = [(s.id, f"{s.first_name} {s.last_name} ({s.username})") for s in staff]
+        else:
+            self.user_id.choices = []
+        
+        # Pre-populate form if editing existing pattern
+        if work_pattern:
+            self.user_id.data = work_pattern.user_id
+            self.pattern_name.data = work_pattern.pattern_name
+            self.is_active.data = work_pattern.is_active
+            
+            if work_pattern.work_schedule:
+                schedule = work_pattern.work_schedule
+                for day in ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']:
+                    if day in schedule:
+                        day_data = schedule[day]
+                        setattr(self, f'{day}_working', day_data.get('working', False))
+                        setattr(self, f'{day}_start', day_data.get('start', ''))
+                        setattr(self, f'{day}_end', day_data.get('end', ''))
+    
+    def validate_time_format(self, time_str):
+        """Validate time format (HH:MM)"""
+        if not time_str:
+            return True
+        try:
+            hour, minute = map(int, time_str.split(':'))
+            if hour < 0 or hour > 23 or minute < 0 or minute > 59:
+                return False
+        except (ValueError, AttributeError):
+            return False
+        return True
+    
+    def validate_monday_start(self, field):
+        if self.monday_working.data and field.data and not self.validate_time_format(field.data):
+            raise ValidationError('Please enter a valid time in HH:MM format.')
+    
+    def validate_monday_end(self, field):
+        if self.monday_working.data and field.data and not self.validate_time_format(field.data):
+            raise ValidationError('Please enter a valid time in HH:MM format.')
+    
+    def validate_tuesday_start(self, field):
+        if self.tuesday_working.data and field.data and not self.validate_time_format(field.data):
+            raise ValidationError('Please enter a valid time in HH:MM format.')
+    
+    def validate_tuesday_end(self, field):
+        if self.tuesday_working.data and field.data and not self.validate_time_format(field.data):
+            raise ValidationError('Please enter a valid time in HH:MM format.')
+    
+    def validate_wednesday_start(self, field):
+        if self.wednesday_working.data and field.data and not self.validate_time_format(field.data):
+            raise ValidationError('Please enter a valid time in HH:MM format.')
+    
+    def validate_wednesday_end(self, field):
+        if self.wednesday_working.data and field.data and not self.validate_time_format(field.data):
+            raise ValidationError('Please enter a valid time in HH:MM format.')
+    
+    def validate_thursday_start(self, field):
+        if self.thursday_working.data and field.data and not self.validate_time_format(field.data):
+            raise ValidationError('Please enter a valid time in HH:MM format.')
+    
+    def validate_thursday_end(self, field):
+        if self.thursday_working.data and field.data and not self.validate_time_format(field.data):
+            raise ValidationError('Please enter a valid time in HH:MM format.')
+    
+    def validate_friday_start(self, field):
+        if self.friday_working.data and field.data and not self.validate_time_format(field.data):
+            raise ValidationError('Please enter a valid time in HH:MM format.')
+    
+    def validate_friday_end(self, field):
+        if self.friday_working.data and field.data and not self.validate_time_format(field.data):
+            raise ValidationError('Please enter a valid time in HH:MM format.')
+    
+    def validate_saturday_start(self, field):
+        if self.saturday_working.data and field.data and not self.validate_time_format(field.data):
+            raise ValidationError('Please enter a valid time in HH:MM format.')
+    
+    def validate_saturday_end(self, field):
+        if self.saturday_working.data and field.data and not self.validate_time_format(field.data):
+            raise ValidationError('Please enter a valid time in HH:MM format.')
+    
+    def validate_sunday_start(self, field):
+        if self.sunday_working.data and field.data and not self.validate_time_format(field.data):
+            raise ValidationError('Please enter a valid time in HH:MM format.')
+    
+    def validate_sunday_end(self, field):
+        if self.sunday_working.data and field.data and not self.validate_time_format(field.data):
+            raise ValidationError('Please enter a valid time in HH:MM format.')
+    
+    def get_work_schedule_dict(self):
+        """Convert form data to work schedule dictionary"""
+        schedule = {}
+        days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+        
+        for day in days:
+            working = getattr(self, f'{day}_working').data
+            start = getattr(self, f'{day}_start').data
+            end = getattr(self, f'{day}_end').data
+            
+            schedule[day] = {
+                'working': working,
+                'start': start if working and start else None,
+                'end': end if working and end else None
+            }
+        
+        return schedule
+
+class EmploymentDetailsForm(FlaskForm):
+    """Form for managing employment details"""
+    user_id = SelectField('Staff Member', coerce=int, validators=[DataRequired()])
+    employment_type = SelectField('Employment Type', choices=[
+        ('employed', 'Employed'),
+        ('self_employed', 'Self-Employed')
+    ], validators=[DataRequired()])
+    commission_percentage = StringField('Commission Percentage (%)', validators=[Optional()])
+    billing_method = SelectField('Billing Method', choices=[
+        ('salon_bills', 'Salon Bills'),
+        ('stylist_bills', 'Stylist Bills')
+    ], validators=[DataRequired()])
+    job_role = StringField('Job Role', validators=[Optional(), Length(max=100)])
+    submit = SubmitField('Save Employment Details')
+    
+    def __init__(self, employment_details=None, *args, **kwargs):
+        super(EmploymentDetailsForm, self).__init__(*args, **kwargs)
+        self.employment_details = employment_details
+        
+        # Populate staff member choices (only stylists and managers)
+        from app.models import User, Role
+        stylist_role = Role.query.filter_by(name='stylist').first()
+        manager_role = Role.query.filter_by(name='manager').first()
+        
+        if stylist_role and manager_role:
+            staff = User.query.join(User.roles).filter(
+                User.is_active == True,
+                User.roles.contains(stylist_role) | User.roles.contains(manager_role)
+            ).all()
+            self.user_id.choices = [(s.id, f"{s.first_name} {s.last_name} ({s.username})") for s in staff]
+        else:
+            self.user_id.choices = []
+        
+        # Pre-populate form if editing existing details
+        if employment_details:
+            self.user_id.data = employment_details.user_id
+            self.employment_type.data = employment_details.employment_type
+            self.commission_percentage.data = str(employment_details.commission_percentage) if employment_details.commission_percentage else ''
+            self.billing_method.data = employment_details.billing_method
+            self.job_role.data = employment_details.job_role
+    
+    def validate_commission_percentage(self, field):
+        """Validate commission percentage for self-employed staff"""
+        if self.employment_type.data == 'self_employed' and field.data:
+            try:
+                percentage = float(field.data)
+                if percentage < 0 or percentage > 100:
+                    raise ValueError
+            except ValueError:
+                raise ValidationError('Please enter a valid percentage between 0 and 100.')
+        elif self.employment_type.data == 'employed' and field.data:
+            raise ValidationError('Commission percentage is not applicable for employed staff.')
+    
+    def validate_user_id(self, field):
+        """Ensure user doesn't already have employment details"""
+        from app.models import EmploymentDetails
+        if self.employment_details and field.data == self.employment_details.user_id:
+            return
+        
+        existing = EmploymentDetails.query.filter_by(user_id=field.data).first()
+        if existing:
+            raise ValidationError('This staff member already has employment details. Please edit the existing record.') 
