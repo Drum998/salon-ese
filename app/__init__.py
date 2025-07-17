@@ -48,9 +48,9 @@ def create_app(config_name='default'):
         except OSError:
             pass
         
-        # Retry database connection and initialization
-        max_retries = 10
-        retry_delay = 3
+        # Optimized database initialization with shorter retry times
+        max_retries = 5  # Reduced from 10
+        retry_delay = 2  # Reduced from 3
         
         for attempt in range(max_retries):
             try:
@@ -86,7 +86,7 @@ def create_app(config_name='default'):
                 if attempt < max_retries - 1:
                     print(f"Retrying in {retry_delay} seconds...")
                     time.sleep(retry_delay)
-                    retry_delay = min(retry_delay * 1.5, 30)  # Cap at 30 seconds
+                    retry_delay = min(retry_delay * 1.2, 10)  # Reduced max delay from 30 to 10 seconds
                 else:
                     print(f"Database initialization failed after {max_retries} attempts: {e}")
                     # Don't raise the exception, just log it and continue

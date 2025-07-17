@@ -197,4 +197,220 @@ class AppointmentStatus(db.Model):
     changed_by = db.relationship('User', backref='appointment_status_changes')
     
     def __repr__(self):
-        return f'<AppointmentStatus {self.appointment_id}: {self.status}>' 
+        return f'<AppointmentStatus {self.appointment_id}: {self.status}>'
+
+# ============================================================================
+# NEW MODELS FOR CLIENT REQUIREMENTS
+# ============================================================================
+
+class SalonSettings(db.Model):
+    """Salon configuration settings including opening hours"""
+    id = db.Column(db.Integer, primary_key=True)
+    salon_name = db.Column(db.String(100), nullable=False, default='Salon ESE')
+    opening_hours = db.Column(db.JSON, nullable=False)  # Store daily opening/closing times
+    emergency_extension_enabled = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=uk_utcnow)
+    updated_at = db.Column(db.DateTime, default=uk_utcnow, onupdate=uk_utcnow)
+    
+    def __repr__(self):
+        return f'<SalonSettings {self.salon_name}>'
+    
+    @classmethod
+    def get_settings(cls):
+        """Get the salon settings, create default if none exist"""
+        settings = cls.query.first()
+        if not settings:
+            # Create default settings
+            default_hours = {
+                'monday': {'open': '09:00', 'close': '18:00', 'closed': False},
+                'tuesday': {'open': '09:00', 'close': '18:00', 'closed': False},
+                'wednesday': {'open': '09:00', 'close': '18:00', 'closed': False},
+                'thursday': {'open': '09:00', 'close': '18:00', 'closed': False},
+                'friday': {'open': '09:00', 'close': '18:00', 'closed': False},
+                'saturday': {'open': '09:00', 'close': '17:00', 'closed': False},
+                'sunday': {'open': '10:00', 'close': '16:00', 'closed': True}
+            }
+            settings = cls(opening_hours=default_hours)
+            db.session.add(settings)
+            db.session.commit()
+        return settings
+
+class WorkPattern(db.Model):
+    """Staff work patterns and schedules"""
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    pattern_name = db.Column(db.String(100), nullable=False)
+    work_schedule = db.Column(db.JSON, nullable=False)  # Store weekly work schedule
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=uk_utcnow)
+    updated_at = db.Column(db.DateTime, default=uk_utcnow, onupdate=uk_utcnow)
+    
+    # Relationships
+    user = db.relationship('User', backref='work_patterns')
+    
+    def __repr__(self):
+        return f'<WorkPattern {self.pattern_name} for {self.user.username}>'
+    
+    def get_weekly_hours(self):
+        """Calculate total weekly hours from work schedule"""
+        total_hours = 0
+        for day, schedule in self.work_schedule.items():
+            if schedule.get('working', False):
+                start_time = schedule.get('start_time', '09:00')
+                end_time = schedule.get('end_time', '18:00')
+                
+                # Parse times and calculate hours
+                start_hour, start_minute = map(int, start_time.split(':'))
+                end_hour, end_minute = map(int, end_time.split(':'))
+                
+                start_minutes = start_hour * 60 + start_minute
+                end_minutes = end_hour * 60 + end_minute
+                
+                total_hours += (end_minutes - start_minutes) / 60
+        
+        return round(total_hours, 2)
+
+class EmploymentDetails(db.Model):
+    """Employment details for staff members"""
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, unique=True)
+    employment_type = db.Column(db.String(20), nullable=False)  # 'employed' or 'self_employed'
+    commission_percentage = db.Column(db.Numeric(5, 2))  # For self-employed (e.g., 70.00 for 70%)
+    billing_method = db.Column(db.String(20), default='salon_bills')  # 'salon_bills' or 'stylist_bills'
+    job_role = db.Column(db.String(100))
+    created_at = db.Column(db.DateTime, default=uk_utcnow)
+    updated_at = db.Column(db.DateTime, default=uk_utcnow, onupdate=uk_utcnow)
+    
+    # Relationships
+    user = db.relationship('User', backref='employment_details', uselist=False)
+    
+    def __repr__(self):
+        return f'<EmploymentDetails {self.user.username} - {self.employment_type}>'
+    
+    @property
+    def is_self_employed(self):
+        """Check if user is self-employed"""
+        return self.employment_type == 'self_employed'
+    
+    @property
+    def is_employed(self):
+        """Check if user is employed"""
+        return self.employment_type == 'employed'
+
+class HolidayQuota(db.Model):
+    """Holiday entitlements and usage tracking"""
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    year = db.Column(db.Integer, nullable=False)
+    total_hours_per_week = db.Column(db.Integer, nullable=False)
+    holiday_days_entitled = db.Column(db.Integer, nullable=False)
+    holiday_days_taken = db.Column(db.Integer, default=0)
+    holiday_days_remaining = db.Column(db.Integer, nullable=False)
+    created_at = db.Column(db.DateTime, default=uk_utcnow)
+    updated_at = db.Column(db.DateTime, default=uk_utcnow, onupdate=uk_utcnow)
+    
+    # Relationships
+    user = db.relationship('User', backref='holiday_quotas')
+    
+    def __repr__(self):
+        return f'<HolidayQuota {self.user.username} {self.year}: {self.holiday_days_remaining} days remaining>'
+    
+    @classmethod
+    def calculate_entitlement(cls, hours_per_week):
+        """
+        Calculate holiday entitlement based on UK employment law
+        Standard: 5.6 weeks per year (28 days for full-time)
+        """
+        if hours_per_week >= 37.5:  # Full-time
+            return 28
+        elif hours_per_week >= 20:  # Part-time
+            return int((hours_per_week / 37.5) * 28)
+        else:  # Reduced hours
+            return int((hours_per_week / 37.5) * 28)
+    
+    def update_remaining_days(self):
+        """Update remaining days based on taken days"""
+        self.holiday_days_remaining = self.holiday_days_entitled - self.holiday_days_taken
+
+class HolidayRequest(db.Model):
+    """Holiday requests and approvals"""
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    start_date = db.Column(db.Date, nullable=False)
+    end_date = db.Column(db.Date, nullable=False)
+    days_requested = db.Column(db.Integer, nullable=False)
+    status = db.Column(db.String(20), default='pending')  # pending, approved, rejected
+    approved_by_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    approved_at = db.Column(db.DateTime)
+    notes = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=uk_utcnow)
+    updated_at = db.Column(db.DateTime, default=uk_utcnow, onupdate=uk_utcnow)
+    
+    # Relationships
+    user = db.relationship('User', foreign_keys=[user_id], backref='holiday_requests')
+    approved_by = db.relationship('User', foreign_keys=[approved_by_id], backref='approved_holidays')
+    
+    def __repr__(self):
+        return f'<HolidayRequest {self.user.username} {self.start_date} to {self.end_date} - {self.status}>'
+    
+    @property
+    def is_approved(self):
+        """Check if holiday request is approved"""
+        return self.status == 'approved'
+    
+    @property
+    def is_pending(self):
+        """Check if holiday request is pending"""
+        return self.status == 'pending'
+    
+    @property
+    def is_rejected(self):
+        """Check if holiday request is rejected"""
+        return self.status == 'rejected'
+    
+    def approve(self, approved_by_user):
+        """Approve the holiday request"""
+        self.status = 'approved'
+        self.approved_by_id = approved_by_user.id
+        self.approved_at = uk_utcnow()
+        
+        # Update holiday quota
+        quota = HolidayQuota.query.filter_by(
+            user_id=self.user_id, 
+            year=self.start_date.year
+        ).first()
+        
+        if quota:
+            quota.holiday_days_taken += self.days_requested
+            quota.update_remaining_days()
+    
+    def reject(self, rejected_by_user, notes=None):
+        """Reject the holiday request"""
+        self.status = 'rejected'
+        self.approved_by_id = rejected_by_user.id
+        self.approved_at = uk_utcnow()
+        if notes:
+            self.notes = notes
+
+class BillingElement(db.Model):
+    """Salon billing elements for commission calculations"""
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)  # e.g., 'color', 'electric'
+    percentage = db.Column(db.Numeric(5, 2), nullable=False)  # e.g., 25.00 for 25%
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=uk_utcnow)
+    updated_at = db.Column(db.DateTime, default=uk_utcnow, onupdate=uk_utcnow)
+    
+    def __repr__(self):
+        return f'<BillingElement {self.name}: {self.percentage}%>'
+    
+    @classmethod
+    def get_active_elements(cls):
+        """Get all active billing elements"""
+        return cls.query.filter_by(is_active=True).all()
+    
+    @classmethod
+    def get_total_percentage(cls):
+        """Get total percentage of all active billing elements"""
+        elements = cls.get_active_elements()
+        return sum(element.percentage for element in elements) 

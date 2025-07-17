@@ -105,18 +105,25 @@
                                     </a>
                                 </div>
                                 <div class="col-md-3 mb-2">
-                                    <a href="{{ url_for('auth.register') }}" class="btn btn-outline-info w-100">
+                                    <a href="{{ url_for('admin.salon_settings') }}" class="btn btn-outline-info w-100">
+                                        <i class="fas fa-clock"></i> Salon Settings
+                                    </a>
+                                </div>
+                                <div class="col-md-3 mb-2">
+                                    <a href="{{ url_for('auth.register') }}" class="btn btn-outline-secondary w-100">
                                         <i class="fas fa-user-plus"></i> Add New User
                                     </a>
                                 </div>
-                                {% if current_user.can_access('owner') %}
+                            </div>
+                            {% if current_user.can_access('owner') %}
+                            <div class="row mt-2">
                                 <div class="col-md-3 mb-2">
                                     <a href="{{ url_for('admin.system_settings') }}" class="btn btn-outline-warning w-100">
                                         <i class="fas fa-cog"></i> System Settings
                                     </a>
                                 </div>
-                                {% endif %}
                             </div>
+                            {% endif %}
                         </div>
                     </div>
                 </div>

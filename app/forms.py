@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField, FileAllowed
-from wtforms import StringField, PasswordField, BooleanField, SubmitField, TextAreaField, SelectField, DateField
+from wtforms import StringField, PasswordField, BooleanField, SubmitField, TextAreaField, SelectField, DateField, TimeField
 from wtforms.validators import DataRequired, Email, Length, EqualTo, ValidationError, Optional
 from app.models import User, Role
 import json
@@ -235,7 +235,7 @@ class AppointmentFilterForm(FlaskForm):
     
     def __init__(self, *args, **kwargs):
         super(AppointmentFilterForm, self).__init__(*args, **kwargs)
-        # Populate stylist choices (only active stylists)
+        # Populate stylist choices
         from app.models import User, Role
         stylist_role = Role.query.filter_by(name='stylist').first()
         if stylist_role:
@@ -245,4 +245,150 @@ class AppointmentFilterForm(FlaskForm):
             ).all()
             self.stylist_id.choices = [('', 'All Stylists')] + [(s.id, f"{s.first_name} {s.last_name}") for s in stylists]
         else:
-            self.stylist_id.choices = [('', 'All Stylists')] 
+            self.stylist_id.choices = [('', 'All Stylists')]
+
+# ============================================================================
+# NEW FORMS FOR SALON MANAGEMENT
+# ============================================================================
+
+class SalonSettingsForm(FlaskForm):
+    """Form for managing salon settings and opening hours"""
+    salon_name = StringField('Salon Name', validators=[DataRequired(), Length(max=100)])
+    emergency_extension_enabled = BooleanField('Enable Emergency Hour Extensions', default=True)
+    
+    # Opening hours for each day
+    monday_open = StringField('Monday Open', validators=[DataRequired()])
+    monday_close = StringField('Monday Close', validators=[DataRequired()])
+    monday_closed = BooleanField('Monday Closed')
+    
+    tuesday_open = StringField('Tuesday Open', validators=[DataRequired()])
+    tuesday_close = StringField('Tuesday Close', validators=[DataRequired()])
+    tuesday_closed = BooleanField('Tuesday Closed')
+    
+    wednesday_open = StringField('Wednesday Open', validators=[DataRequired()])
+    wednesday_close = StringField('Wednesday Close', validators=[DataRequired()])
+    wednesday_closed = BooleanField('Wednesday Closed')
+    
+    thursday_open = StringField('Thursday Open', validators=[DataRequired()])
+    thursday_close = StringField('Thursday Close', validators=[DataRequired()])
+    thursday_closed = BooleanField('Thursday Closed')
+    
+    friday_open = StringField('Friday Open', validators=[DataRequired()])
+    friday_close = StringField('Friday Close', validators=[DataRequired()])
+    friday_closed = BooleanField('Friday Closed')
+    
+    saturday_open = StringField('Saturday Open', validators=[DataRequired()])
+    saturday_close = StringField('Saturday Close', validators=[DataRequired()])
+    saturday_closed = BooleanField('Saturday Closed')
+    
+    sunday_open = StringField('Sunday Open', validators=[DataRequired()])
+    sunday_close = StringField('Sunday Close', validators=[DataRequired()])
+    sunday_closed = BooleanField('Sunday Closed')
+    
+    submit = SubmitField('Save Settings')
+    
+    def __init__(self, salon_settings=None, *args, **kwargs):
+        super(SalonSettingsForm, self).__init__(*args, **kwargs)
+        self.salon_settings = salon_settings
+        
+        # Pre-populate form with existing settings
+        if salon_settings and salon_settings.opening_hours:
+            hours = salon_settings.opening_hours
+            
+            # Set salon name
+            if salon_settings.salon_name:
+                self.salon_name.data = salon_settings.salon_name
+            
+            # Set emergency extension setting
+            self.emergency_extension_enabled.data = salon_settings.emergency_extension_enabled
+            
+            # Set opening hours for each day
+            for day in ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']:
+                day_data = hours.get(day, {})
+                open_field = getattr(self, f'{day}_open')
+                close_field = getattr(self, f'{day}_close')
+                closed_field = getattr(self, f'{day}_closed')
+                
+                open_field.data = day_data.get('open', '09:00')
+                close_field.data = day_data.get('close', '18:00')
+                closed_field.data = day_data.get('closed', False)
+    
+    def validate_time_format(self, time_str):
+        """Validate time format (HH:MM)"""
+        try:
+            hour, minute = map(int, time_str.split(':'))
+            if hour < 0 or hour > 23 or minute < 0 or minute > 59:
+                raise ValueError
+        except (ValueError, AttributeError):
+            raise ValidationError('Time must be in HH:MM format (e.g., 09:00)')
+    
+    def validate_monday_open(self, field):
+        if not self.monday_closed.data:
+            self.validate_time_format(field.data)
+    
+    def validate_monday_close(self, field):
+        if not self.monday_closed.data:
+            self.validate_time_format(field.data)
+    
+    def validate_tuesday_open(self, field):
+        if not self.tuesday_closed.data:
+            self.validate_time_format(field.data)
+    
+    def validate_tuesday_close(self, field):
+        if not self.tuesday_closed.data:
+            self.validate_time_format(field.data)
+    
+    def validate_wednesday_open(self, field):
+        if not self.wednesday_closed.data:
+            self.validate_time_format(field.data)
+    
+    def validate_wednesday_close(self, field):
+        if not self.wednesday_closed.data:
+            self.validate_time_format(field.data)
+    
+    def validate_thursday_open(self, field):
+        if not self.thursday_closed.data:
+            self.validate_time_format(field.data)
+    
+    def validate_thursday_close(self, field):
+        if not self.thursday_closed.data:
+            self.validate_time_format(field.data)
+    
+    def validate_friday_open(self, field):
+        if not self.friday_closed.data:
+            self.validate_time_format(field.data)
+    
+    def validate_friday_close(self, field):
+        if not self.friday_closed.data:
+            self.validate_time_format(field.data)
+    
+    def validate_saturday_open(self, field):
+        if not self.saturday_closed.data:
+            self.validate_time_format(field.data)
+    
+    def validate_saturday_close(self, field):
+        if not self.saturday_closed.data:
+            self.validate_time_format(field.data)
+    
+    def validate_sunday_open(self, field):
+        if not self.sunday_closed.data:
+            self.validate_time_format(field.data)
+    
+    def validate_sunday_close(self, field):
+        if not self.sunday_closed.data:
+            self.validate_time_format(field.data)
+    
+    def get_opening_hours_dict(self):
+        """Convert form data to opening hours dictionary"""
+        hours = {}
+        for day in ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']:
+            closed_field = getattr(self, f'{day}_closed')
+            open_field = getattr(self, f'{day}_open')
+            close_field = getattr(self, f'{day}_close')
+            
+            hours[day] = {
+                'closed': closed_field.data,
+                'open': open_field.data if not closed_field.data else '09:00',
+                'close': close_field.data if not closed_field.data else '18:00'
+            }
+        return hours 

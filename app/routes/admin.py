@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
-from app.models import User, Role, UserProfile
-from app.forms import AdminUserForm, RoleAssignmentForm
+from app.models import User, Role, UserProfile, SalonSettings
+from app.forms import AdminUserForm, RoleAssignmentForm, SalonSettingsForm
 from app.extensions import db
 from app.routes.main import role_required
 from app.utils import uk_now
@@ -141,4 +141,39 @@ def system_settings():
                          Role=Role,
                          UserProfile=UserProfile,
                          LoginAttempt=LoginAttempt,
-                         uk_now=uk_now) 
+                         uk_now=uk_now)
+
+# ============================================================================
+# NEW SALON MANAGEMENT ROUTES
+# ============================================================================
+
+@bp.route('/admin/salon-settings', methods=['GET', 'POST'])
+@login_required
+@role_required('manager')
+def salon_settings():
+    """Manage salon settings and opening hours"""
+    # Get current salon settings
+    salon_settings = SalonSettings.get_settings()
+    
+    # Create form with existing settings
+    form = SalonSettingsForm(salon_settings=salon_settings)
+    
+    if form.validate_on_submit():
+        try:
+            # Update salon settings
+            salon_settings.salon_name = form.salon_name.data
+            salon_settings.emergency_extension_enabled = form.emergency_extension_enabled.data
+            salon_settings.opening_hours = form.get_opening_hours_dict()
+            
+            db.session.commit()
+            flash('Salon settings updated successfully!', 'success')
+            return redirect(url_for('admin.salon_settings'))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error updating salon settings: {str(e)}', 'error')
+    
+    return render_template('admin/salon_settings.html', 
+                         title='Salon Settings',
+                         form=form,
+                         salon_settings=salon_settings) 
