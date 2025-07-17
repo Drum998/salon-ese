@@ -97,15 +97,15 @@ The easiest way to run tests is using the provided test runner script:
 
 ```bash
 # Run all tests
-docker exec -it salon-ese-app python run_tests.py
+docker exec -it salon-ese-web-1 python run_tests.py
 
 # Run specific test suites
-docker exec -it salon-ese-app python run_tests.py salon_settings
-docker exec -it salon-ese-app python run_tests.py work_patterns
-docker exec -it salon-ese-app python run_tests.py employment_details
+docker exec -it salon-ese-web-1 python run_tests.py salon_settings
+docker exec -it salon-ese-web-1 python run_tests.py work_patterns
+docker exec -it salon-ese-web-1 python run_tests.py employment_details
 
 # Show test runner help
-docker exec -it salon-ese-app python run_tests.py help
+docker exec -it salon-ese-web-1 python run_tests.py help
 ```
 
 ### Method 2: Using Pytest Directly
@@ -114,21 +114,21 @@ For more control over test execution:
 
 ```bash
 # Run all tests
-docker exec -it salon-ese-app pytest tests/ -v
+docker exec -it salon-ese-web-1 pytest tests/ -v
 
 # Run specific test file
-docker exec -it salon-ese-app pytest tests/test_salon_settings.py -v
-docker exec -it salon-ese-app pytest tests/test_work_patterns.py -v
-docker exec -it salon-ese-app pytest tests/test_employment_details.py -v
+docker exec -it salon-ese-web-1 pytest tests/test_salon_settings.py -v
+docker exec -it salon-ese-web-1 pytest tests/test_work_patterns.py -v
+docker exec -it salon-ese-web-1 pytest tests/test_employment_details.py -v
 
 # Run with coverage reporting
-docker exec -it salon-ese-app pytest tests/ -v --cov=app
+docker exec -it salon-ese-web-1 pytest tests/ -v --cov=app
 
 # Run specific test class
-docker exec -it salon-ese-app pytest tests/test_salon_settings.py::TestSalonSettingsModel -v
+docker exec -it salon-ese-web-1 pytest tests/test_salon_settings.py::TestSalonSettingsModel -v
 
 # Run specific test method
-docker exec -it salon-ese-app pytest tests/test_salon_settings.py::TestSalonSettingsModel::test_salon_settings_creation -v
+docker exec -it salon-ese-web-1 pytest tests/test_salon_settings.py::TestSalonSettingsModel::test_salon_settings_creation -v
 ```
 
 ### Method 3: Interactive Testing
@@ -137,7 +137,7 @@ For debugging or interactive testing:
 
 ```bash
 # Access the container shell
-docker exec -it salon-ese-app bash
+docker exec -it salon-ese-web-1 bash
 
 # Run tests from within the container
 python run_tests.py
@@ -285,7 +285,7 @@ These tests are designed to be run in CI/CD pipelines:
 # Example GitHub Actions step
 - name: Run Tests
   run: |
-    docker exec salon-ese-app python run_tests.py
+    docker exec salon-ese-web-1 python run_tests.py
 ```
 
 ## Test Maintenance

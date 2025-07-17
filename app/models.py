@@ -256,8 +256,12 @@ class WorkPattern(db.Model):
         total_hours = 0
         for day, schedule in self.work_schedule.items():
             if schedule.get('working', False):
-                start_time = schedule.get('start_time', '09:00')
-                end_time = schedule.get('end_time', '18:00')
+                start_time = schedule.get('start')
+                end_time = schedule.get('end')
+                
+                # Skip if times are None or empty
+                if not start_time or not end_time:
+                    continue
                 
                 # Parse times and calculate hours
                 start_hour, start_minute = map(int, start_time.split(':'))

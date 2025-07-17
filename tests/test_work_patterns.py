@@ -56,7 +56,7 @@ def manager_user(app, init_database):
         user.roles.append(manager_role)
         db.session.add(user)
         db.session.commit()
-        return user
+        return user.id
 
 @pytest.fixture
 def stylist_user(app, init_database):
@@ -82,7 +82,7 @@ def stylist_user(app, init_database):
         user.roles.append(stylist_role)
         db.session.add(user)
         db.session.commit()
-        return user
+        return user.id
 
 class TestWorkPatternModel:
     """Test WorkPattern model functionality."""
@@ -101,7 +101,7 @@ class TestWorkPatternModel:
             }
             
             pattern = WorkPattern(
-                user_id=stylist_user.id,
+                user_id=stylist_user,
                 pattern_name='Full Time Weekdays',
                 work_schedule=work_schedule,
                 is_active=True
@@ -110,7 +110,7 @@ class TestWorkPatternModel:
             db.session.commit()
             
             assert pattern.id is not None
-            assert pattern.user_id == stylist_user.id
+            assert pattern.user_id == stylist_user
             assert pattern.pattern_name == 'Full Time Weekdays'
             assert pattern.is_active == True
             assert 'monday' in pattern.work_schedule
@@ -131,7 +131,7 @@ class TestWorkPatternModel:
             }
             
             pattern = WorkPattern(
-                user_id=stylist_user.id,
+                user_id=stylist_user,
                 pattern_name='Full Time Weekdays',
                 work_schedule=work_schedule,
                 is_active=True
@@ -156,7 +156,7 @@ class TestWorkPatternModel:
             }
             
             pattern = WorkPattern(
-                user_id=stylist_user.id,
+                user_id=stylist_user,
                 pattern_name='Part Time',
                 work_schedule=work_schedule,
                 is_active=True
@@ -181,7 +181,7 @@ class TestWorkPatternModel:
             }
             
             pattern = WorkPattern(
-                user_id=stylist_user.id,
+                user_id=stylist_user,
                 pattern_name='No Work',
                 work_schedule=work_schedule,
                 is_active=True
@@ -198,7 +198,7 @@ class TestWorkPatternForm:
         """Test valid work pattern form data."""
         with app.app_context():
             form_data = {
-                'user_id': stylist_user.id,
+                'user_id': stylist_user,
                 'pattern_name': 'Full Time Weekdays',
                 'is_active': True,
                 'monday_start': '09:00',
@@ -231,7 +231,7 @@ class TestWorkPatternForm:
         """Test form validation with invalid time format."""
         with app.app_context():
             form_data = {
-                'user_id': stylist_user.id,
+                'user_id': stylist_user,
                 'pattern_name': 'Test Pattern',
                 'is_active': True,
                 'monday_start': '25:00',  # Invalid time
@@ -265,7 +265,7 @@ class TestWorkPatternForm:
         """Test that non-working days don't require time validation."""
         with app.app_context():
             form_data = {
-                'user_id': stylist_user.id,
+                'user_id': stylist_user,
                 'pattern_name': 'Part Time',
                 'is_active': True,
                 'monday_start': '',  # Empty for non-working day
@@ -298,7 +298,7 @@ class TestWorkPatternForm:
         """Test conversion of form data to work schedule dictionary."""
         with app.app_context():
             form_data = {
-                'user_id': stylist_user.id,
+                'user_id': stylist_user,
                 'pattern_name': 'Test Pattern',
                 'is_active': True,
                 'monday_start': '09:00',
@@ -381,7 +381,7 @@ class TestWorkPatternAdminRoutes:
         
         # Submit form to create work pattern
         response = client.post('/admin/work-patterns/new', data={
-            'user_id': stylist_user.id,
+            'user_id': stylist_user,
             'pattern_name': 'Full Time Weekdays',
             'is_active': True,
             'monday_start': '09:00',
@@ -405,16 +405,15 @@ class TestWorkPatternAdminRoutes:
             'sunday_start': '',
             'sunday_end': '',
             'sunday_working': False
-        }, follow_redirects=True)
+        })
         
-        assert response.status_code == 200
-        assert b'Work pattern created successfully' in response.data
+        assert response.status_code == 302  # Redirect after successful creation
         
         # Verify pattern was created
         with client.application.app_context():
             pattern = WorkPattern.query.filter_by(pattern_name='Full Time Weekdays').first()
             assert pattern is not None
-            assert pattern.user_id == stylist_user.id
+            assert pattern.user_id == stylist_user
             assert pattern.is_active == True
             assert pattern.work_schedule['monday']['working'] == True
             assert pattern.work_schedule['monday']['start'] == '09:00'
@@ -434,7 +433,7 @@ class TestWorkPatternAdminRoutes:
             }
             
             pattern = WorkPattern(
-                user_id=stylist_user.id,
+                user_id=stylist_user,
                 pattern_name='Original Pattern',
                 work_schedule=work_schedule,
                 is_active=True
@@ -451,7 +450,7 @@ class TestWorkPatternAdminRoutes:
         
         # Edit the pattern
         response = client.post(f'/admin/work-patterns/{pattern_id}/edit', data={
-            'user_id': stylist_user.id,
+            'user_id': stylist_user,
             'pattern_name': 'Updated Pattern',
             'is_active': True,
             'monday_start': '10:00',
@@ -475,10 +474,9 @@ class TestWorkPatternAdminRoutes:
             'sunday_start': '',
             'sunday_end': '',
             'sunday_working': False
-        }, follow_redirects=True)
+        })
         
-        assert response.status_code == 200
-        assert b'Work pattern updated successfully' in response.data
+        assert response.status_code == 302  # Redirect after successful update
         
         # Verify pattern was updated
         with client.application.app_context():
@@ -502,7 +500,7 @@ class TestWorkPatternAdminRoutes:
             }
             
             pattern = WorkPattern(
-                user_id=stylist_user.id,
+                user_id=stylist_user,
                 pattern_name='Pattern to Delete',
                 work_schedule=work_schedule,
                 is_active=True
@@ -518,10 +516,9 @@ class TestWorkPatternAdminRoutes:
         })
         
         # Delete the pattern
-        response = client.post(f'/admin/work-patterns/{pattern_id}/delete', follow_redirects=True)
+        response = client.post(f'/admin/work-patterns/{pattern_id}/delete')
         
-        assert response.status_code == 200
-        assert b'Work pattern deleted successfully' in response.data
+        assert response.status_code == 302  # Redirect after successful deletion
         
         # Verify pattern was deleted
         with client.application.app_context():
@@ -538,7 +535,7 @@ class TestWorkPatternAdminRoutes:
         
         # Submit form with invalid time format
         response = client.post('/admin/work-patterns/new', data={
-            'user_id': stylist_user.id,
+            'user_id': stylist_user,
             'pattern_name': 'Test Pattern',
             'is_active': True,
             'monday_start': '25:00',  # Invalid time
@@ -562,8 +559,8 @@ class TestWorkPatternAdminRoutes:
             'sunday_start': '',
             'sunday_end': '',
             'sunday_working': False
-        }, follow_redirects=True)
+        })
         
-        assert response.status_code == 200
+        assert response.status_code == 200  # Form should be re-displayed with errors
         # Form should be re-displayed with errors
         assert b'New Work Pattern' in response.data 

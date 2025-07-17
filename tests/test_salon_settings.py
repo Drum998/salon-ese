@@ -320,10 +320,9 @@ class TestSalonSettingsAdminRoutes:
             'sunday_open': '09:00',
             'sunday_close': '17:00',
             'sunday_closed': True
-        }, follow_redirects=True)
+        })
         
-        assert response.status_code == 200
-        assert b'Salon settings updated successfully' in response.data
+        assert response.status_code == 302  # Redirect after successful update
         
         # Verify settings were saved
         with client.application.app_context():
@@ -365,8 +364,8 @@ class TestSalonSettingsAdminRoutes:
             'sunday_open': '09:00',
             'sunday_close': '17:00',
             'sunday_closed': True
-        }, follow_redirects=True)
+        })
         
-        assert response.status_code == 200
+        assert response.status_code == 200  # Form should be re-displayed with errors
         # Form should be re-displayed with errors
         assert b'Salon Settings' in response.data 

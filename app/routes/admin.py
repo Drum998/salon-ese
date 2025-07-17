@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
-from app.models import User, Role, UserProfile, SalonSettings
-from app.forms import AdminUserForm, RoleAssignmentForm, SalonSettingsForm
+from app.models import User, Role, UserProfile, SalonSettings, WorkPattern, EmploymentDetails
+from app.forms import AdminUserForm, RoleAssignmentForm, SalonSettingsForm, WorkPatternForm, EmploymentDetailsForm
 from app.extensions import db
 from app.routes.main import role_required
 from app.utils import uk_now
@@ -9,7 +9,7 @@ import json
 
 bp = Blueprint('admin', __name__)
 
-@bp.route('/admin')
+@bp.route('/')
 @login_required
 @role_required('manager')
 def dashboard():
@@ -31,7 +31,7 @@ def dashboard():
                          recent_users=recent_users,
                          uk_now=uk_now)
 
-@bp.route('/admin/users')
+@bp.route('/users')
 @login_required
 @role_required('manager')
 def users():
@@ -40,7 +40,7 @@ def users():
         page=page, per_page=20, error_out=False)
     return render_template('admin/users.html', title='User Management', users=users)
 
-@bp.route('/admin/users/<int:user_id>', methods=['GET', 'POST'])
+@bp.route('/users/<int:user_id>', methods=['GET', 'POST'])
 @login_required
 @role_required('manager')
 def edit_user(user_id):
@@ -76,7 +76,7 @@ def edit_user(user_id):
     
     return render_template('admin/edit_user.html', title='Edit User', form=form, user=user)
 
-@bp.route('/admin/users/<int:user_id>/delete', methods=['POST'])
+@bp.route('/users/<int:user_id>/delete', methods=['POST'])
 @login_required
 @role_required('owner')
 def delete_user(user_id):
@@ -97,7 +97,7 @@ def delete_user(user_id):
     flash('User deleted successfully!', 'success')
     return redirect(url_for('admin.users'))
 
-@bp.route('/admin/roles', methods=['GET', 'POST'])
+@bp.route('/roles', methods=['GET', 'POST'])
 @login_required
 @role_required('manager')
 def manage_roles():
@@ -130,7 +130,7 @@ def manage_roles():
                          roles=roles,
                          role_stats=role_stats)
 
-@bp.route('/admin/system')
+@bp.route('/system')
 @login_required
 @role_required('owner')
 def system_settings():
@@ -147,7 +147,7 @@ def system_settings():
 # NEW SALON MANAGEMENT ROUTES
 # ============================================================================
 
-@bp.route('/admin/salon-settings', methods=['GET', 'POST'])
+@bp.route('/salon-settings', methods=['GET', 'POST'])
 @login_required
 @role_required('manager')
 def salon_settings():
@@ -173,21 +173,21 @@ def salon_settings():
             db.session.rollback()
             flash(f'Error updating salon settings: {str(e)}', 'error')
     
+    # If form has errors, return 200 status to show form with errors
     return render_template('admin/salon_settings.html', 
                          title='Salon Settings',
                          form=form,
-                         salon_settings=salon_settings) 
+                         salon_settings=salon_settings)
 
 # ============================================================================
 # WORK PATTERNS AND EMPLOYMENT MANAGEMENT ROUTES
 # ============================================================================
 
-@bp.route('/admin/work-patterns')
+@bp.route('/work-patterns')
 @login_required
 @role_required('manager')
 def work_patterns():
     """List all work patterns"""
-    from app.models import WorkPattern, User
     
     # Get all work patterns with user information
     patterns = db.session.query(WorkPattern, User).join(
@@ -198,13 +198,11 @@ def work_patterns():
                          title='Work Patterns',
                          patterns=patterns)
 
-@bp.route('/admin/work-patterns/new', methods=['GET', 'POST'])
+@bp.route('/work-patterns/new', methods=['GET', 'POST'])
 @login_required
 @role_required('manager')
 def new_work_pattern():
     """Create a new work pattern"""
-    from app.models import WorkPattern
-    from app.forms import WorkPatternForm
     
     form = WorkPatternForm()
     
@@ -232,13 +230,11 @@ def new_work_pattern():
                          form=form,
                          action='Create')
 
-@bp.route('/admin/work-patterns/<int:pattern_id>/edit', methods=['GET', 'POST'])
+@bp.route('/work-patterns/<int:pattern_id>/edit', methods=['GET', 'POST'])
 @login_required
 @role_required('manager')
 def edit_work_pattern(pattern_id):
     """Edit an existing work pattern"""
-    from app.models import WorkPattern
-    from app.forms import WorkPatternForm
     
     work_pattern = WorkPattern.query.get_or_404(pattern_id)
     form = WorkPatternForm(work_pattern=work_pattern)
@@ -258,6 +254,11 @@ def edit_work_pattern(pattern_id):
         except Exception as e:
             db.session.rollback()
             flash(f'Error updating work pattern: {str(e)}', 'error')
+    elif form.errors:
+        # If form has validation errors, show them
+        for field, errors in form.errors.items():
+            for error in errors:
+                flash(f'{field}: {error}', 'error')
     
     return render_template('admin/work_pattern_form.html', 
                          title='Edit Work Pattern',
@@ -265,12 +266,11 @@ def edit_work_pattern(pattern_id):
                          work_pattern=work_pattern,
                          action='Update')
 
-@bp.route('/admin/work-patterns/<int:pattern_id>/delete', methods=['POST'])
+@bp.route('/work-patterns/<int:pattern_id>/delete', methods=['POST'])
 @login_required
 @role_required('manager')
 def delete_work_pattern(pattern_id):
     """Delete a work pattern"""
-    from app.models import WorkPattern
     
     work_pattern = WorkPattern.query.get_or_404(pattern_id)
     
@@ -284,12 +284,11 @@ def delete_work_pattern(pattern_id):
     
     return redirect(url_for('admin.work_patterns'))
 
-@bp.route('/admin/employment-details')
+@bp.route('/employment-details')
 @login_required
 @role_required('manager')
 def employment_details():
     """List all employment details"""
-    from app.models import EmploymentDetails, User
     
     # Get all employment details with user information
     details = db.session.query(EmploymentDetails, User).join(
@@ -300,13 +299,11 @@ def employment_details():
                          title='Employment Details',
                          details=details)
 
-@bp.route('/admin/employment-details/new', methods=['GET', 'POST'])
+@bp.route('/employment-details/new', methods=['GET', 'POST'])
 @login_required
 @role_required('manager')
 def new_employment_details():
     """Create new employment details"""
-    from app.models import EmploymentDetails
-    from app.forms import EmploymentDetailsForm
     
     form = EmploymentDetailsForm()
     
@@ -335,13 +332,11 @@ def new_employment_details():
                          form=form,
                          action='Create')
 
-@bp.route('/admin/employment-details/<int:details_id>/edit', methods=['GET', 'POST'])
+@bp.route('/employment-details/<int:details_id>/edit', methods=['GET', 'POST'])
 @login_required
 @role_required('manager')
 def edit_employment_details(details_id):
     """Edit existing employment details"""
-    from app.models import EmploymentDetails
-    from app.forms import EmploymentDetailsForm
     
     employment_details = EmploymentDetails.query.get_or_404(details_id)
     form = EmploymentDetailsForm(employment_details=employment_details)
@@ -362,6 +357,11 @@ def edit_employment_details(details_id):
         except Exception as e:
             db.session.rollback()
             flash(f'Error updating employment details: {str(e)}', 'error')
+    elif form.errors:
+        # If form has validation errors, show them
+        for field, errors in form.errors.items():
+            for error in errors:
+                flash(f'{field}: {error}', 'error')
     
     return render_template('admin/employment_details_form.html', 
                          title='Edit Employment Details',
@@ -369,12 +369,11 @@ def edit_employment_details(details_id):
                          employment_details=employment_details,
                          action='Update')
 
-@bp.route('/admin/employment-details/<int:details_id>/delete', methods=['POST'])
+@bp.route('/employment-details/<int:details_id>/delete', methods=['POST'])
 @login_required
 @role_required('manager')
 def delete_employment_details(details_id):
     """Delete employment details"""
-    from app.models import EmploymentDetails
     
     employment_details = EmploymentDetails.query.get_or_404(details_id)
     
