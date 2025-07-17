@@ -282,17 +282,32 @@ class SalonSettingsForm(FlaskForm):
 
     def __init__(self, salon_settings=None, *args, **kwargs):
         super(SalonSettingsForm, self).__init__(*args, **kwargs)
+        self.salon_settings = salon_settings
+        
         if salon_settings:
             self.salon_name.data = salon_settings.salon_name
             self.emergency_extension_enabled.data = salon_settings.emergency_extension_enabled
+            
+            # Set opening hours from existing settings
             if salon_settings.opening_hours:
-                hours = salon_settings.opening_hours
                 for day in ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']:
-                    if day in hours:
-                        day_data = hours[day]
-                        getattr(self, f'{day}_closed').data = day_data.get('closed', False)
-                        getattr(self, f'{day}_open').data = day_data.get('open', '')
-                        getattr(self, f'{day}_close').data = day_data.get('close', '')
+                    day_data = salon_settings.opening_hours.get(day, {})
+                    getattr(self, f'{day}_open').data = day_data.get('open', '')
+                    getattr(self, f'{day}_close').data = day_data.get('close', '')
+                    getattr(self, f'{day}_closed').data = day_data.get('closed', True)
+        
+        # If form data was provided, ensure boolean fields are properly set
+        if 'data' in kwargs and kwargs['data']:
+            data = kwargs['data']
+            # Set boolean fields from form data
+            for day in ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']:
+                closed_key = f'{day}_closed'
+                if closed_key in data:
+                    # Convert string to boolean for form data
+                    closed_value = data[closed_key]
+                    if isinstance(closed_value, str):
+                        closed_value = closed_value.lower() in ('true', '1', 'on', 'yes')
+                    getattr(self, closed_key).data = closed_value
 
     def validate_time_format(self, time_str):
         if not time_str:
@@ -306,74 +321,46 @@ class SalonSettingsForm(FlaskForm):
         return True
 
     def validate_monday_open(self, field):
-        if not self.monday_closed.data and not field.data:
-            raise ValidationError('Opening time is required when day is not closed.')
-        if not self.monday_closed.data and field.data and not self.validate_time_format(field.data):
+        if not getattr(self, 'monday_closed').data and field.data and not self.validate_time_format(field.data):
             raise ValidationError('Please enter a valid time in HH:MM format.')
     def validate_monday_close(self, field):
-        if not self.monday_closed.data and not field.data:
-            raise ValidationError('Closing time is required when day is not closed.')
-        if not self.monday_closed.data and field.data and not self.validate_time_format(field.data):
+        if not getattr(self, 'monday_closed').data and field.data and not self.validate_time_format(field.data):
             raise ValidationError('Please enter a valid time in HH:MM format.')
     def validate_tuesday_open(self, field):
-        if not self.tuesday_closed.data and not field.data:
-            raise ValidationError('Opening time is required when day is not closed.')
-        if not self.tuesday_closed.data and field.data and not self.validate_time_format(field.data):
+        if not getattr(self, 'tuesday_closed').data and field.data and not self.validate_time_format(field.data):
             raise ValidationError('Please enter a valid time in HH:MM format.')
     def validate_tuesday_close(self, field):
-        if not self.tuesday_closed.data and not field.data:
-            raise ValidationError('Closing time is required when day is not closed.')
-        if not self.tuesday_closed.data and field.data and not self.validate_time_format(field.data):
+        if not getattr(self, 'tuesday_closed').data and field.data and not self.validate_time_format(field.data):
             raise ValidationError('Please enter a valid time in HH:MM format.')
     def validate_wednesday_open(self, field):
-        if not self.wednesday_closed.data and not field.data:
-            raise ValidationError('Opening time is required when day is not closed.')
-        if not self.wednesday_closed.data and field.data and not self.validate_time_format(field.data):
+        if not getattr(self, 'wednesday_closed').data and field.data and not self.validate_time_format(field.data):
             raise ValidationError('Please enter a valid time in HH:MM format.')
     def validate_wednesday_close(self, field):
-        if not self.wednesday_closed.data and not field.data:
-            raise ValidationError('Closing time is required when day is not closed.')
-        if not self.wednesday_closed.data and field.data and not self.validate_time_format(field.data):
+        if not getattr(self, 'wednesday_closed').data and field.data and not self.validate_time_format(field.data):
             raise ValidationError('Please enter a valid time in HH:MM format.')
     def validate_thursday_open(self, field):
-        if not self.thursday_closed.data and not field.data:
-            raise ValidationError('Opening time is required when day is not closed.')
-        if not self.thursday_closed.data and field.data and not self.validate_time_format(field.data):
+        if not getattr(self, 'thursday_closed').data and field.data and not self.validate_time_format(field.data):
             raise ValidationError('Please enter a valid time in HH:MM format.')
     def validate_thursday_close(self, field):
-        if not self.thursday_closed.data and not field.data:
-            raise ValidationError('Closing time is required when day is not closed.')
-        if not self.thursday_closed.data and field.data and not self.validate_time_format(field.data):
+        if not getattr(self, 'thursday_closed').data and field.data and not self.validate_time_format(field.data):
             raise ValidationError('Please enter a valid time in HH:MM format.')
     def validate_friday_open(self, field):
-        if not self.friday_closed.data and not field.data:
-            raise ValidationError('Opening time is required when day is not closed.')
-        if not self.friday_closed.data and field.data and not self.validate_time_format(field.data):
+        if not getattr(self, 'friday_closed').data and field.data and not self.validate_time_format(field.data):
             raise ValidationError('Please enter a valid time in HH:MM format.')
     def validate_friday_close(self, field):
-        if not self.friday_closed.data and not field.data:
-            raise ValidationError('Closing time is required when day is not closed.')
-        if not self.friday_closed.data and field.data and not self.validate_time_format(field.data):
+        if not getattr(self, 'friday_closed').data and field.data and not self.validate_time_format(field.data):
             raise ValidationError('Please enter a valid time in HH:MM format.')
     def validate_saturday_open(self, field):
-        if not self.saturday_closed.data and not field.data:
-            raise ValidationError('Opening time is required when day is not closed.')
-        if not self.saturday_closed.data and field.data and not self.validate_time_format(field.data):
+        if not getattr(self, 'saturday_closed').data and field.data and not self.validate_time_format(field.data):
             raise ValidationError('Please enter a valid time in HH:MM format.')
     def validate_saturday_close(self, field):
-        if not self.saturday_closed.data and not field.data:
-            raise ValidationError('Closing time is required when day is not closed.')
-        if not self.saturday_closed.data and field.data and not self.validate_time_format(field.data):
+        if not getattr(self, 'saturday_closed').data and field.data and not self.validate_time_format(field.data):
             raise ValidationError('Please enter a valid time in HH:MM format.')
     def validate_sunday_open(self, field):
-        if not self.sunday_closed.data and not field.data:
-            raise ValidationError('Opening time is required when day is not closed.')
-        if not self.sunday_closed.data and field.data and not self.validate_time_format(field.data):
+        if not getattr(self, 'sunday_closed').data and field.data and not self.validate_time_format(field.data):
             raise ValidationError('Please enter a valid time in HH:MM format.')
     def validate_sunday_close(self, field):
-        if not self.sunday_closed.data and not field.data:
-            raise ValidationError('Closing time is required when day is not closed.')
-        if not self.sunday_closed.data and field.data and not self.validate_time_format(field.data):
+        if not getattr(self, 'sunday_closed').data and field.data and not self.validate_time_format(field.data):
             raise ValidationError('Please enter a valid time in HH:MM format.')
 
     def validate(self):
@@ -381,66 +368,104 @@ class SalonSettingsForm(FlaskForm):
         if not super().validate():
             return False
         
-        # Call custom validators manually if they weren't called
+        # Call custom validators manually
         try:
             self.validate_monday_open(self.monday_open)
+        except ValidationError as e:
+            self.monday_open.errors.append(str(e))
+            return False
+        
+        try:
             self.validate_monday_close(self.monday_close)
+        except ValidationError as e:
+            self.monday_close.errors.append(str(e))
+            return False
+        
+        try:
             self.validate_tuesday_open(self.tuesday_open)
+        except ValidationError as e:
+            self.tuesday_open.errors.append(str(e))
+            return False
+        
+        try:
             self.validate_tuesday_close(self.tuesday_close)
+        except ValidationError as e:
+            self.tuesday_close.errors.append(str(e))
+            return False
+        
+        try:
             self.validate_wednesday_open(self.wednesday_open)
+        except ValidationError as e:
+            self.wednesday_open.errors.append(str(e))
+            return False
+        
+        try:
             self.validate_wednesday_close(self.wednesday_close)
+        except ValidationError as e:
+            self.wednesday_close.errors.append(str(e))
+            return False
+        
+        try:
             self.validate_thursday_open(self.thursday_open)
+        except ValidationError as e:
+            self.thursday_open.errors.append(str(e))
+            return False
+        
+        try:
             self.validate_thursday_close(self.thursday_close)
+        except ValidationError as e:
+            self.thursday_close.errors.append(str(e))
+            return False
+        
+        try:
             self.validate_friday_open(self.friday_open)
+        except ValidationError as e:
+            self.friday_open.errors.append(str(e))
+            return False
+        
+        try:
             self.validate_friday_close(self.friday_close)
+        except ValidationError as e:
+            self.friday_close.errors.append(str(e))
+            return False
+        
+        try:
             self.validate_saturday_open(self.saturday_open)
+        except ValidationError as e:
+            self.saturday_open.errors.append(str(e))
+            return False
+        
+        try:
             self.validate_saturday_close(self.saturday_close)
+        except ValidationError as e:
+            self.saturday_close.errors.append(str(e))
+            return False
+        
+        try:
             self.validate_sunday_open(self.sunday_open)
+        except ValidationError as e:
+            self.sunday_open.errors.append(str(e))
+            return False
+        
+        try:
             self.validate_sunday_close(self.sunday_close)
         except ValidationError as e:
-            # Add error to appropriate field
-            if 'monday_open' in str(e):
-                self.monday_open.errors.append(str(e))
-            elif 'monday_close' in str(e):
-                self.monday_close.errors.append(str(e))
-            elif 'tuesday_open' in str(e):
-                self.tuesday_open.errors.append(str(e))
-            elif 'tuesday_close' in str(e):
-                self.tuesday_close.errors.append(str(e))
-            elif 'wednesday_open' in str(e):
-                self.wednesday_open.errors.append(str(e))
-            elif 'wednesday_close' in str(e):
-                self.wednesday_close.errors.append(str(e))
-            elif 'thursday_open' in str(e):
-                self.thursday_open.errors.append(str(e))
-            elif 'thursday_close' in str(e):
-                self.thursday_close.errors.append(str(e))
-            elif 'friday_open' in str(e):
-                self.friday_open.errors.append(str(e))
-            elif 'friday_close' in str(e):
-                self.friday_close.errors.append(str(e))
-            elif 'saturday_open' in str(e):
-                self.saturday_open.errors.append(str(e))
-            elif 'saturday_close' in str(e):
-                self.saturday_close.errors.append(str(e))
-            elif 'sunday_open' in str(e):
-                self.sunday_open.errors.append(str(e))
-            elif 'sunday_close' in str(e):
-                self.sunday_close.errors.append(str(e))
+            self.sunday_close.errors.append(str(e))
             return False
         
         return True
 
     def get_opening_hours_dict(self):
         hours = {}
-        for day in ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']:
-            closed_field = getattr(self, f'{day}_closed')
+        days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+        for day in days:
             open_field = getattr(self, f'{day}_open')
             close_field = getattr(self, f'{day}_close')
+            closed_field = getattr(self, f'{day}_closed')
             hours[day] = {
+                'open': open_field.data if open_field.data else None,
+                'close': close_field.data if close_field.data else None,
                 'closed': closed_field.data,
-                'open': open_field.data if not closed_field.data else None,
-                'close': close_field.data if not closed_field.data else None
             }
         return hours
 
@@ -492,14 +517,27 @@ class WorkPatternForm(FlaskForm):
             self.user_id.data = work_pattern.user_id
             self.pattern_name.data = work_pattern.pattern_name
             self.is_active.data = work_pattern.is_active
+            
+            # Set work schedule from existing pattern
             if work_pattern.work_schedule:
-                schedule = work_pattern.work_schedule
                 for day in ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']:
-                    if day in schedule:
-                        day_data = schedule[day]
-                        getattr(self, f'{day}_working').data = day_data.get('working', False)
-                        getattr(self, f'{day}_start').data = day_data.get('start', '')
-                        getattr(self, f'{day}_end').data = day_data.get('end', '')
+                    day_data = work_pattern.work_schedule.get(day, {})
+                    getattr(self, f'{day}_start').data = day_data.get('start', '')
+                    getattr(self, f'{day}_end').data = day_data.get('end', '')
+                    getattr(self, f'{day}_working').data = day_data.get('working', False)
+        
+        # If form data was provided, ensure boolean fields are properly set
+        if 'data' in kwargs and kwargs['data']:
+            data = kwargs['data']
+            # Set boolean fields from form data
+            for day in ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']:
+                working_key = f'{day}_working'
+                if working_key in data:
+                    # Convert string to boolean for form data
+                    working_value = data[working_key]
+                    if isinstance(working_value, str):
+                        working_value = working_value.lower() in ('true', '1', 'on', 'yes')
+                    getattr(self, working_key).data = working_value
 
     def validate_time_format(self, time_str):
         if not time_str:
@@ -513,46 +551,46 @@ class WorkPatternForm(FlaskForm):
         return True
 
     def validate_monday_start(self, field):
-        if self.monday_working.data and field.data and not self.validate_time_format(field.data):
+        if getattr(self, 'monday_working').data and field.data and not self.validate_time_format(field.data):
             raise ValidationError('Please enter a valid time in HH:MM format.')
     def validate_monday_end(self, field):
-        if self.monday_working.data and field.data and not self.validate_time_format(field.data):
+        if getattr(self, 'monday_working').data and field.data and not self.validate_time_format(field.data):
             raise ValidationError('Please enter a valid time in HH:MM format.')
     def validate_tuesday_start(self, field):
-        if self.tuesday_working.data and field.data and not self.validate_time_format(field.data):
+        if getattr(self, 'tuesday_working').data and field.data and not self.validate_time_format(field.data):
             raise ValidationError('Please enter a valid time in HH:MM format.')
     def validate_tuesday_end(self, field):
-        if self.tuesday_working.data and field.data and not self.validate_time_format(field.data):
+        if getattr(self, 'tuesday_working').data and field.data and not self.validate_time_format(field.data):
             raise ValidationError('Please enter a valid time in HH:MM format.')
     def validate_wednesday_start(self, field):
-        if self.wednesday_working.data and field.data and not self.validate_time_format(field.data):
+        if getattr(self, 'wednesday_working').data and field.data and not self.validate_time_format(field.data):
             raise ValidationError('Please enter a valid time in HH:MM format.')
     def validate_wednesday_end(self, field):
-        if self.wednesday_working.data and field.data and not self.validate_time_format(field.data):
+        if getattr(self, 'wednesday_working').data and field.data and not self.validate_time_format(field.data):
             raise ValidationError('Please enter a valid time in HH:MM format.')
     def validate_thursday_start(self, field):
-        if self.thursday_working.data and field.data and not self.validate_time_format(field.data):
+        if getattr(self, 'thursday_working').data and field.data and not self.validate_time_format(field.data):
             raise ValidationError('Please enter a valid time in HH:MM format.')
     def validate_thursday_end(self, field):
-        if self.thursday_working.data and field.data and not self.validate_time_format(field.data):
+        if getattr(self, 'thursday_working').data and field.data and not self.validate_time_format(field.data):
             raise ValidationError('Please enter a valid time in HH:MM format.')
     def validate_friday_start(self, field):
-        if self.friday_working.data and field.data and not self.validate_time_format(field.data):
+        if getattr(self, 'friday_working').data and field.data and not self.validate_time_format(field.data):
             raise ValidationError('Please enter a valid time in HH:MM format.')
     def validate_friday_end(self, field):
-        if self.friday_working.data and field.data and not self.validate_time_format(field.data):
+        if getattr(self, 'friday_working').data and field.data and not self.validate_time_format(field.data):
             raise ValidationError('Please enter a valid time in HH:MM format.')
     def validate_saturday_start(self, field):
-        if self.saturday_working.data and field.data and not self.validate_time_format(field.data):
+        if getattr(self, 'saturday_working').data and field.data and not self.validate_time_format(field.data):
             raise ValidationError('Please enter a valid time in HH:MM format.')
     def validate_saturday_end(self, field):
-        if self.saturday_working.data and field.data and not self.validate_time_format(field.data):
+        if getattr(self, 'saturday_working').data and field.data and not self.validate_time_format(field.data):
             raise ValidationError('Please enter a valid time in HH:MM format.')
     def validate_sunday_start(self, field):
-        if self.sunday_working.data and field.data and not self.validate_time_format(field.data):
+        if getattr(self, 'sunday_working').data and field.data and not self.validate_time_format(field.data):
             raise ValidationError('Please enter a valid time in HH:MM format.')
     def validate_sunday_end(self, field):
-        if self.sunday_working.data and field.data and not self.validate_time_format(field.data):
+        if getattr(self, 'sunday_working').data and field.data and not self.validate_time_format(field.data):
             raise ValidationError('Please enter a valid time in HH:MM format.')
 
     def validate(self):
@@ -560,52 +598,89 @@ class WorkPatternForm(FlaskForm):
         if not super().validate():
             return False
         
-        # Call custom validators manually if they weren't called
+        # Call custom validators manually
         try:
             self.validate_monday_start(self.monday_start)
+        except ValidationError as e:
+            self.monday_start.errors.append(str(e))
+            return False
+        
+        try:
             self.validate_monday_end(self.monday_end)
+        except ValidationError as e:
+            self.monday_end.errors.append(str(e))
+            return False
+        
+        try:
             self.validate_tuesday_start(self.tuesday_start)
+        except ValidationError as e:
+            self.tuesday_start.errors.append(str(e))
+            return False
+        
+        try:
             self.validate_tuesday_end(self.tuesday_end)
+        except ValidationError as e:
+            self.tuesday_end.errors.append(str(e))
+            return False
+        
+        try:
             self.validate_wednesday_start(self.wednesday_start)
+        except ValidationError as e:
+            self.wednesday_start.errors.append(str(e))
+            return False
+        
+        try:
             self.validate_wednesday_end(self.wednesday_end)
+        except ValidationError as e:
+            self.wednesday_end.errors.append(str(e))
+            return False
+        
+        try:
             self.validate_thursday_start(self.thursday_start)
+        except ValidationError as e:
+            self.thursday_start.errors.append(str(e))
+            return False
+        
+        try:
             self.validate_thursday_end(self.thursday_end)
+        except ValidationError as e:
+            self.thursday_end.errors.append(str(e))
+            return False
+        
+        try:
             self.validate_friday_start(self.friday_start)
+        except ValidationError as e:
+            self.friday_start.errors.append(str(e))
+            return False
+        
+        try:
             self.validate_friday_end(self.friday_end)
+        except ValidationError as e:
+            self.friday_end.errors.append(str(e))
+            return False
+        
+        try:
             self.validate_saturday_start(self.saturday_start)
+        except ValidationError as e:
+            self.saturday_start.errors.append(str(e))
+            return False
+        
+        try:
             self.validate_saturday_end(self.saturday_end)
+        except ValidationError as e:
+            self.saturday_end.errors.append(str(e))
+            return False
+        
+        try:
             self.validate_sunday_start(self.sunday_start)
+        except ValidationError as e:
+            self.sunday_start.errors.append(str(e))
+            return False
+        
+        try:
             self.validate_sunday_end(self.sunday_end)
         except ValidationError as e:
-            # Add error to appropriate field
-            if 'monday_start' in str(e):
-                self.monday_start.errors.append(str(e))
-            elif 'monday_end' in str(e):
-                self.monday_end.errors.append(str(e))
-            elif 'tuesday_start' in str(e):
-                self.tuesday_start.errors.append(str(e))
-            elif 'tuesday_end' in str(e):
-                self.tuesday_end.errors.append(str(e))
-            elif 'wednesday_start' in str(e):
-                self.wednesday_start.errors.append(str(e))
-            elif 'wednesday_end' in str(e):
-                self.wednesday_end.errors.append(str(e))
-            elif 'thursday_start' in str(e):
-                self.thursday_start.errors.append(str(e))
-            elif 'thursday_end' in str(e):
-                self.thursday_end.errors.append(str(e))
-            elif 'friday_start' in str(e):
-                self.friday_start.errors.append(str(e))
-            elif 'friday_end' in str(e):
-                self.friday_end.errors.append(str(e))
-            elif 'saturday_start' in str(e):
-                self.saturday_start.errors.append(str(e))
-            elif 'saturday_end' in str(e):
-                self.saturday_end.errors.append(str(e))
-            elif 'sunday_start' in str(e):
-                self.sunday_start.errors.append(str(e))
-            elif 'sunday_end' in str(e):
-                self.sunday_end.errors.append(str(e))
+            self.sunday_end.errors.append(str(e))
             return False
         
         return True
@@ -614,13 +689,13 @@ class WorkPatternForm(FlaskForm):
         schedule = {}
         days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
         for day in days:
-            working = getattr(self, f'{day}_working').data
-            start = getattr(self, f'{day}_start').data
-            end = getattr(self, f'{day}_end').data
+            working_field = getattr(self, f'{day}_working')
+            start_field = getattr(self, f'{day}_start')
+            end_field = getattr(self, f'{day}_end')
             schedule[day] = {
-                'working': working,
-                'start': start if working and start else None,
-                'end': end if working and end else None
+                'working': working_field.data,
+                'start': start_field.data if working_field.data and start_field.data else None,
+                'end': end_field.data if working_field.data and end_field.data else None
             }
         return schedule
 
@@ -661,6 +736,10 @@ class EmploymentDetailsForm(FlaskForm):
             self.commission_percentage.data = str(employment_details.commission_percentage) if employment_details.commission_percentage else ''
             self.billing_method.data = employment_details.billing_method
             self.job_role.data = employment_details.job_role
+        
+        # If form data was provided, ensure employment_type is set for validation
+        if 'data' in kwargs and kwargs['data']:
+            self.employment_type.data = kwargs['data'].get('employment_type', self.employment_type.data)
 
     def validate_commission_percentage(self, field):
         employment_type = self.employment_type.data
@@ -691,15 +770,17 @@ class EmploymentDetailsForm(FlaskForm):
         if not super().validate():
             return False
         
-        # Call custom validators manually if they weren't called
+        # Call custom validators manually
         try:
             self.validate_commission_percentage(self.commission_percentage)
+        except ValidationError as e:
+            self.commission_percentage.errors.append(str(e))
+            return False
+        
+        try:
             self.validate_user_id(self.user_id)
         except ValidationError as e:
-            if 'commission_percentage' in str(e):
-                self.commission_percentage.errors.append(str(e))
-            elif 'user_id' in str(e):
-                self.user_id.errors.append(str(e))
+            self.user_id.errors.append(str(e))
             return False
         
         return True 

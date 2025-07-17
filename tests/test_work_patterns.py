@@ -383,28 +383,28 @@ class TestWorkPatternAdminRoutes:
         response = client.post('/admin/work-patterns/new', data={
             'user_id': stylist_user,
             'pattern_name': 'Full Time Weekdays',
-            'is_active': True,
+            'is_active': 'on',
             'monday_start': '09:00',
             'monday_end': '17:00',
-            'monday_working': True,
+            'monday_working': 'on',
             'tuesday_start': '09:00',
             'tuesday_end': '17:00',
-            'tuesday_working': True,
+            'tuesday_working': 'on',
             'wednesday_start': '09:00',
             'wednesday_end': '17:00',
-            'wednesday_working': True,
+            'wednesday_working': 'on',
             'thursday_start': '09:00',
             'thursday_end': '17:00',
-            'thursday_working': True,
+            'thursday_working': 'on',
             'friday_start': '09:00',
             'friday_end': '17:00',
-            'friday_working': True,
+            'friday_working': 'on',
             'saturday_start': '',
             'saturday_end': '',
-            'saturday_working': False,
+            'saturday_working': '',
             'sunday_start': '',
             'sunday_end': '',
-            'sunday_working': False
+            'sunday_working': ''
         })
         
         assert response.status_code == 302  # Redirect after successful creation
@@ -448,32 +448,36 @@ class TestWorkPatternAdminRoutes:
             'password': 'managerpass123'
         })
         
+        # First, get the edit page to load the form with existing data
+        response = client.get(f'/admin/work-patterns/{pattern_id}/edit')
+        assert response.status_code == 200
+        
         # Edit the pattern
         response = client.post(f'/admin/work-patterns/{pattern_id}/edit', data={
             'user_id': stylist_user,
             'pattern_name': 'Updated Pattern',
-            'is_active': True,
+            'is_active': 'on',
             'monday_start': '10:00',
             'monday_end': '18:00',
-            'monday_working': True,
+            'monday_working': 'on',
             'tuesday_start': '10:00',
             'tuesday_end': '18:00',
-            'tuesday_working': True,
+            'tuesday_working': 'on',
             'wednesday_start': '10:00',
             'wednesday_end': '18:00',
-            'wednesday_working': True,
+            'wednesday_working': 'on',
             'thursday_start': '10:00',
             'thursday_end': '18:00',
-            'thursday_working': True,
+            'thursday_working': 'on',
             'friday_start': '10:00',
             'friday_end': '18:00',
-            'friday_working': True,
+            'friday_working': 'on',
             'saturday_start': '',
             'saturday_end': '',
-            'saturday_working': False,
+            'saturday_working': '',
             'sunday_start': '',
             'sunday_end': '',
-            'sunday_working': False
+            'sunday_working': ''
         })
         
         assert response.status_code == 302  # Redirect after successful update
@@ -537,28 +541,28 @@ class TestWorkPatternAdminRoutes:
         response = client.post('/admin/work-patterns/new', data={
             'user_id': stylist_user,
             'pattern_name': 'Test Pattern',
-            'is_active': True,
+            'is_active': 'on',
             'monday_start': '25:00',  # Invalid time
             'monday_end': '17:00',
-            'monday_working': True,
+            'monday_working': 'on',
             'tuesday_start': '09:00',
             'tuesday_end': '17:00',
-            'tuesday_working': True,
+            'tuesday_working': 'on',
             'wednesday_start': '09:00',
             'wednesday_end': '17:00',
-            'wednesday_working': True,
+            'wednesday_working': 'on',
             'thursday_start': '09:00',
             'thursday_end': '17:00',
-            'thursday_working': True,
+            'thursday_working': 'on',
             'friday_start': '09:00',
             'friday_end': '17:00',
-            'friday_working': True,
+            'friday_working': 'on',
             'saturday_start': '',
             'saturday_end': '',
-            'saturday_working': False,
+            'saturday_working': '',
             'sunday_start': '',
             'sunday_end': '',
-            'sunday_working': False
+            'sunday_working': ''
         })
         
         assert response.status_code == 200  # Form should be re-displayed with errors

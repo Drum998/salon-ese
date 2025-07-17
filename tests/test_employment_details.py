@@ -382,7 +382,11 @@ class TestEmploymentDetailsAdminRoutes:
             'password': 'managerpass123'
         })
         
-        # Edit the details
+        # First, get the edit page to load the form with existing data
+        response = client.get(f'/admin/employment-details/{details_id}/edit')
+        assert response.status_code == 200
+        
+        # Now edit the details
         response = client.post(f'/admin/employment-details/{details_id}/edit', data={
             'user_id': str(stylist_user),
             'employment_type': 'self_employed',

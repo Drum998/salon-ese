@@ -172,8 +172,13 @@ def salon_settings():
         except Exception as e:
             db.session.rollback()
             flash(f'Error updating salon settings: {str(e)}', 'error')
+    elif form.errors:
+        # If form has validation errors, show them
+        for field, errors in form.errors.items():
+            for error in errors:
+                flash(f'{field}: {error}', 'error')
     
-    # If form has errors, return 200 status to show form with errors
+    # If form has errors or is GET request, return 200 status to show form with errors
     return render_template('admin/salon_settings.html', 
                          title='Salon Settings',
                          form=form,

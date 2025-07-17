@@ -298,28 +298,28 @@ class TestSalonSettingsAdminRoutes:
         # Submit form with new settings
         response = client.post('/admin/salon-settings', data={
             'salon_name': 'Updated Salon Name',
-            'emergency_extension_enabled': True,
+            'emergency_extension_enabled': 'on',
             'monday_open': '10:00',
             'monday_close': '19:00',
-            'monday_closed': False,
+            'monday_closed': '',
             'tuesday_open': '10:00',
             'tuesday_close': '19:00',
-            'tuesday_closed': False,
+            'tuesday_closed': '',
             'wednesday_open': '10:00',
             'wednesday_close': '19:00',
-            'wednesday_closed': False,
+            'wednesday_closed': '',
             'thursday_open': '10:00',
             'thursday_close': '19:00',
-            'thursday_closed': False,
+            'thursday_closed': '',
             'friday_open': '10:00',
             'friday_close': '19:00',
-            'friday_closed': False,
+            'friday_closed': '',
             'saturday_open': '09:00',
             'saturday_close': '17:00',
-            'saturday_closed': False,
+            'saturday_closed': '',
             'sunday_open': '09:00',
             'sunday_close': '17:00',
-            'sunday_closed': True
+            'sunday_closed': 'on'
         })
         
         assert response.status_code == 302  # Redirect after successful update
@@ -342,28 +342,28 @@ class TestSalonSettingsAdminRoutes:
         # Submit form with invalid time format
         response = client.post('/admin/salon-settings', data={
             'salon_name': 'Test Salon',
-            'emergency_extension_enabled': True,
+            'emergency_extension_enabled': 'on',
             'monday_open': '25:00',  # Invalid time
             'monday_close': '18:00',
-            'monday_closed': False,
+            'monday_closed': '',
             'tuesday_open': '09:00',
             'tuesday_close': '18:00',
-            'tuesday_closed': False,
+            'tuesday_closed': '',
             'wednesday_open': '09:00',
             'wednesday_close': '18:00',
-            'wednesday_closed': False,
+            'wednesday_closed': '',
             'thursday_open': '09:00',
             'thursday_close': '18:00',
-            'thursday_closed': False,
+            'thursday_closed': '',
             'friday_open': '09:00',
             'friday_close': '18:00',
-            'friday_closed': False,
+            'friday_closed': '',
             'saturday_open': '09:00',
             'saturday_close': '17:00',
-            'saturday_closed': False,
+            'saturday_closed': '',
             'sunday_open': '09:00',
             'sunday_close': '17:00',
-            'sunday_closed': True
+            'sunday_closed': 'on'
         })
         
         assert response.status_code == 200  # Form should be re-displayed with errors
