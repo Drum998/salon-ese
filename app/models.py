@@ -108,52 +108,77 @@ class LoginAttempt(db.Model):
     def __repr__(self):
         return f'<LoginAttempt {self.user_id} - {"Success" if self.success else "Failed"}>'
 
+class AppointmentService(db.Model):
+    __tablename__ = 'appointment_service'
+    id = db.Column(db.Integer, primary_key=True)
+    appointment_id = db.Column(db.Integer, db.ForeignKey('appointment.id'), nullable=False)
+    service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=False)
+    duration = db.Column(db.Integer, nullable=False)  # Duration in minutes (can be custom)
+    waiting_time = db.Column(db.Integer)  # Optional waiting/processing time in minutes
+    order = db.Column(db.Integer, nullable=False, default=0)  # Sequence/order of service in appointment
+
+    # Relationships
+    appointment = db.relationship('Appointment', back_populates='services_link')
+    service = db.relationship('Service', back_populates='appointments_link')
+
+    def __repr__(self):
+        return f'<AppointmentService {self.appointment_id} - {self.service_id}>'
+
+# Update Service model
 class Service(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text)
-    duration = db.Column(db.Integer, nullable=False)  # Duration in minutes
+    duration = db.Column(db.Integer, nullable=False)  # Standard duration in minutes
+    waiting_time = db.Column(db.Integer)  # Optional waiting/processing time in minutes
     price = db.Column(db.Numeric(10, 2), nullable=False)
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=uk_utcnow)
-    
+
     # Relationships
-    appointments = db.relationship('Appointment', backref='service', lazy='dynamic')
-    
+    appointments = db.relationship('Appointment', backref='service', lazy='dynamic')  # Deprecated
+    appointments_link = db.relationship('AppointmentService', back_populates='service', cascade='all, delete-orphan')
+
     def __repr__(self):
         return f'<Service {self.name}>'
 
+# Update Appointment model
 class Appointment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     customer_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     stylist_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=False)
-    
+    service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=True)  # Deprecated, keep for migration
+    booked_by_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)  # Who booked the appointment
+
     # Appointment details
     appointment_date = db.Column(db.Date, nullable=False)
     start_time = db.Column(db.Time, nullable=False)
     end_time = db.Column(db.Time, nullable=False)
-    
+
     # Contact and notes
     customer_phone = db.Column(db.String(20))
     customer_email = db.Column(db.String(120))
     notes = db.Column(db.Text)
-    
+
     # Status and tracking
     status = db.Column(db.String(20), default='confirmed')  # confirmed, completed, cancelled, no-show
     created_at = db.Column(db.DateTime, default=uk_utcnow)
     updated_at = db.Column(db.DateTime, default=uk_utcnow, onupdate=uk_utcnow)
-    
+
     # Relationships
     customer = db.relationship('User', foreign_keys=[customer_id], backref='customer_appointments')
     stylist = db.relationship('User', foreign_keys=[stylist_id], backref='stylist_appointments')
-    
+    booked_by = db.relationship('User', foreign_keys=[booked_by_id], backref='booked_appointments')
+    services_link = db.relationship('AppointmentService', back_populates='appointment', cascade='all, delete-orphan')
+
     def __repr__(self):
         return f'<Appointment {self.id}: {self.customer.first_name} with {self.stylist.first_name} on {self.appointment_date}>'
-    
+
     @property
     def duration_minutes(self):
-        """Calculate appointment duration in minutes"""
+        """Calculate total appointment duration in minutes (sum of all services)"""
+        if self.services_link:
+            return sum(link.duration + (link.waiting_time or 0) for link in self.services_link)
         if self.start_time and self.end_time:
             start_minutes = self.start_time.hour * 60 + self.start_time.minute
             end_minutes = self.end_time.hour * 60 + self.end_time.minute
