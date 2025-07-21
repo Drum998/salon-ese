@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField, FileAllowed
-from wtforms import StringField, PasswordField, BooleanField, SubmitField, TextAreaField, SelectField, DateField, TimeField
+from wtforms import StringField, PasswordField, BooleanField, SubmitField, TextAreaField, SelectField, DateField, TimeField, FieldList, FormField, IntegerField, HiddenField
 from wtforms.validators import DataRequired, Email, Length, EqualTo, ValidationError, Optional
 from app.models import User, Role
 import json
@@ -160,19 +160,24 @@ class ServiceForm(FlaskForm):
         except ValueError:
             raise ValidationError('Please enter a valid price.')
 
+class AppointmentServiceForm(FlaskForm):
+    service_id = SelectField('Service', coerce=int, validators=[DataRequired()])
+    duration = IntegerField('Duration (minutes)', validators=[DataRequired()])
+    waiting_time = IntegerField('Waiting Time (minutes)', validators=[Optional()])
+
 class AppointmentBookingForm(FlaskForm):
     stylist_id = SelectField('Stylist', coerce=int, validators=[DataRequired()])
-    service_id = SelectField('Service', coerce=int, validators=[DataRequired()])
+    customer_id = SelectField('Customer', coerce=int, validators=[DataRequired()])
+    services = FieldList(FormField(AppointmentServiceForm), min_entries=1, max_entries=10)
     appointment_date = DateField('Date', validators=[DataRequired()])
     start_time = SelectField('Time', validators=[DataRequired()])
     customer_phone = StringField('Phone Number', validators=[Optional(), Length(max=20)])
     customer_email = StringField('Email', validators=[Optional(), Email()])
     notes = TextAreaField('Notes', validators=[Optional(), Length(max=500)])
     submit = SubmitField('Book Appointment')
-    
+
     def __init__(self, *args, **kwargs):
         super(AppointmentBookingForm, self).__init__(*args, **kwargs)
-        # Populate stylist choices (only active stylists)
         from app.models import User, Role
         stylist_role = Role.query.filter_by(name='stylist').first()
         if stylist_role:
@@ -183,18 +188,31 @@ class AppointmentBookingForm(FlaskForm):
             self.stylist_id.choices = [(s.id, f"{s.first_name} {s.last_name}") for s in stylists]
         else:
             self.stylist_id.choices = []
-        
+        # Populate customer choices (all active users with 'customer' role)
+        customer_role = Role.query.filter_by(name='customer').first()
+        if customer_role:
+            customers = User.query.join(User.roles).filter(
+                User.is_active == True,
+                User.roles.contains(customer_role)
+            ).all()
+            self.customer_id.choices = [(c.id, f"{c.first_name} {c.last_name} ({c.username})") for c in customers]
+        else:
+            self.customer_id.choices = []
+        # If the current user is a customer, set their ID and hide the field
+        from flask_login import current_user
+        if current_user.is_authenticated and current_user.has_role('customer'):
+            self.customer_id.choices = [(current_user.id, f"{current_user.first_name} {current_user.last_name} ({current_user.username})")]
+            self.customer_id.data = current_user.id
+            self.customer_id.widget = HiddenField().widget
         # Populate service choices (only active services)
         from app.models import Service
         services = Service.query.filter_by(is_active=True).all()
-        self.service_id.choices = [(s.id, f"{s.name} (£{s.price}) - {s.duration}min") for s in services]
-        
+        self.services.choices = [(s.id, f"{s.name} (£{s.price}) - {s.duration}min") for s in services]
         # Populate time slots (9 AM to 6 PM, 30-minute intervals)
         time_slots = []
-        for hour in range(9, 18):  # 9 AM to 6 PM
+        for hour in range(9, 18):
             for minute in [0, 30]:
-                time_str = f"{hour:02d}:{minute:02d}"
-                time_slots.append((time_str, time_str))
+                time_slots.append((f"{hour:02d}:{minute:02d}", f"{hour:02d}:{minute:02d}"))
         self.start_time.choices = time_slots
     
     def validate_appointment_date(self, appointment_date):

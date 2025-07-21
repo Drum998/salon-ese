@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, current_app
 from flask_login import current_user, login_required
-from app.models import User, Role, Service, Appointment, AppointmentStatus
+from app.models import User, Role, Service, Appointment, AppointmentStatus, AppointmentService
 from app.forms import AppointmentBookingForm, AppointmentManagementForm, AppointmentFilterForm, ServiceForm
 from app.extensions import db
 from datetime import datetime, date, timedelta
@@ -10,13 +10,13 @@ import logging
 
 bp = Blueprint('appointments', __name__)
 
-def role_required(role_name):
+def roles_required(*role_names):
     def decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
             if not current_user.is_authenticated:
                 return redirect(url_for('auth.login'))
-            if not current_user.can_access(role_name):
+            if not any(current_user.has_role(role) for role in role_names):
                 flash('You do not have permission to access this page.', 'error')
                 return redirect(url_for('main.index'))
             return f(*args, **kwargs)
@@ -25,24 +25,31 @@ def role_required(role_name):
 
 @bp.route('/book', methods=['GET', 'POST'])
 @login_required
-@role_required('customer')
+@roles_required('customer', 'stylist', 'manager', 'owner')
 def book_appointment():
     form = AppointmentBookingForm()
     
+    # Populate service choices for each subform
+    services = Service.query.filter_by(is_active=True).all()
+    service_choices = [(s.id, f"{s.name} (£{s.price}) - {s.duration}min") for s in services]
+    for subform in form.services:
+        subform.service_id.choices = service_choices
+    
     if form.validate_on_submit():
-        # Get the selected service to calculate end time
-        service = Service.query.get(form.service_id.data)
-        if not service:
-            flash('Selected service not found.', 'error')
-            return redirect(url_for('appointments.book_appointment'))
-        
-        # Parse start time and calculate end time
+        # Parse start time
         start_time = datetime.strptime(form.start_time.data, '%H:%M').time()
         start_datetime = datetime.combine(form.appointment_date.data, start_time)
-        end_datetime = start_datetime + timedelta(minutes=service.duration)
+        
+        # Calculate total duration (sum of all services)
+        total_duration = 0
+        for service_form in form.services.entries:
+            total_duration += (service_form.duration.data or 0)
+            if service_form.waiting_time.data:
+                total_duration += service_form.waiting_time.data
+        end_datetime = start_datetime + timedelta(minutes=total_duration)
         end_time = end_datetime.time()
         
-        # Check for conflicts
+        # Check for conflicts (same as before, but for total duration)
         conflicts = Appointment.query.filter(
             Appointment.stylist_id == form.stylist_id.data,
             Appointment.appointment_date == form.appointment_date.data,
@@ -62,26 +69,37 @@ def book_appointment():
                 )
             )
         ).first()
-        
         if conflicts:
             flash('This time slot conflicts with an existing appointment. Please choose a different time.', 'error')
             return redirect(url_for('appointments.book_appointment'))
         
-        # Create the appointment
+        # Create the appointment (service_id is deprecated, set to first service for legacy compatibility)
+        first_service_id = form.services.entries[0].service_id.data if form.services.entries else None
         appointment = Appointment(
-            customer_id=current_user.id,
+            customer_id=form.customer_id.data,
             stylist_id=form.stylist_id.data,
-            service_id=form.service_id.data,
+            service_id=first_service_id,
             appointment_date=form.appointment_date.data,
             start_time=start_time,
             end_time=end_time,
             customer_phone=form.customer_phone.data or current_user.phone,
             customer_email=form.customer_email.data or current_user.email,
-            notes=form.notes.data
+            notes=form.notes.data,
+            booked_by_id=current_user.id
         )
-        
         db.session.add(appointment)
-        db.session.flush()  # This gets the ID without committing
+        db.session.flush()  # Get appointment.id
+        
+        # Create AppointmentService entries
+        for idx, service_form in enumerate(form.services.entries):
+            appt_service = AppointmentService(
+                appointment_id=appointment.id,
+                service_id=service_form.service_id.data,
+                duration=service_form.duration.data,
+                waiting_time=service_form.waiting_time.data or 0,
+                order=idx
+            )
+            db.session.add(appt_service)
         
         # Create initial status record
         status_record = AppointmentStatus(
@@ -90,22 +108,29 @@ def book_appointment():
             changed_by_id=current_user.id
         )
         db.session.add(status_record)
-        
         db.session.commit()
         
         # Log the booking
         current_app.logger.info(f"Appointment booked: ID {appointment.id}, Customer {appointment.customer.first_name} {appointment.customer.last_name}, "
                                f"Stylist {appointment.stylist.first_name} {appointment.stylist.last_name}, "
-                               f"Service {appointment.service.name}, Date {appointment.appointment_date}, Time {appointment.start_time}")
+                               f"Services {[s.service_id.data for s in form.services.entries]}, Date {appointment.appointment_date}, Time {appointment.start_time}")
         
         flash('Appointment booked successfully!', 'success')
-        return redirect(url_for('appointments.my_appointments'))
+        # Redirect based on role
+        if current_user.has_role('customer'):
+            return redirect(url_for('appointments.my_appointments'))
+        elif current_user.has_role('stylist'):
+            return redirect(url_for('appointments.stylist_appointments'))
+        elif current_user.has_role('manager') or current_user.has_role('owner'):
+            return redirect(url_for('appointments.admin_appointments'))
+        else:
+            return redirect(url_for('main.index'))
     
     return render_template('appointments/book.html', form=form, title='Book Appointment')
 
 @bp.route('/my-appointments')
 @login_required
-@role_required('customer')
+@roles_required('customer', 'stylist', 'manager', 'owner')
 def my_appointments():
     appointments = Appointment.query.filter_by(customer_id=current_user.id)\
         .order_by(Appointment.appointment_date, Appointment.start_time).all()
@@ -115,7 +140,7 @@ def my_appointments():
 
 @bp.route('/stylist-appointments')
 @login_required
-@role_required('stylist')
+@roles_required('stylist', 'manager', 'owner')
 def stylist_appointments():
     form = AppointmentFilterForm()
     
@@ -173,7 +198,7 @@ def stylist_appointments():
 
 @bp.route('/admin-appointments')
 @login_required
-@role_required('manager')
+@roles_required('manager', 'owner')
 def admin_appointments():
     form = AppointmentFilterForm()
     
@@ -332,7 +357,7 @@ def cancel_appointment(appointment_id):
 
 @bp.route('/services')
 @login_required
-@role_required('manager')
+@roles_required('manager', 'owner')
 def manage_services():
     services = Service.query.order_by(Service.name).all()
     return render_template('appointments/services.html',
@@ -341,7 +366,7 @@ def manage_services():
 
 @bp.route('/services/new', methods=['GET', 'POST'])
 @login_required
-@role_required('manager')
+@roles_required('manager', 'owner')
 def new_service():
     form = ServiceForm()
     
@@ -364,7 +389,7 @@ def new_service():
 
 @bp.route('/services/<int:service_id>/edit', methods=['GET', 'POST'])
 @login_required
-@role_required('manager')
+@roles_required('manager', 'owner')
 def edit_service(service_id):
     service = Service.query.get_or_404(service_id)
     form = ServiceForm(obj=service)

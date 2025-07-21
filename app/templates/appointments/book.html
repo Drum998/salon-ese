@@ -13,7 +13,7 @@
                         <h5><i class="fas fa-exclamation-triangle"></i> No Stylists Available</h5>
                         <p>There are currently no stylists available for booking. Please contact the salon administrator to set up stylist accounts.</p>
                     </div>
-                {% elif not form.service_id.choices %}
+                {% elif not form.services[0].service_id.choices %}
                     <div class="alert alert-warning">
                         <h5><i class="fas fa-exclamation-triangle"></i> No Services Available</h5>
                         <p>There are currently no services available for booking. Please contact the salon administrator to set up services.</p>
@@ -21,7 +21,6 @@
                 {% else %}
                     <form method="POST">
                         {{ form.hidden_tag() }}
-                        
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
@@ -38,11 +37,87 @@
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    {{ form.service_id.label(class="form-label") }}
-                                    {{ form.service_id(class="form-select") }}
-                                    {% if form.service_id.errors %}
+                                    {# Show customer dropdown only for non-customer users #}
+                                    {% if not current_user.has_role('customer') %}
+                                        {{ form.customer_id.label(class="form-label") }}
+                                        {{ form.customer_id(class="form-select") }}
+                                        {% if form.customer_id.errors %}
+                                            <div class="text-danger">
+                                                {% for error in form.customer_id.errors %}
+                                                    <small>{{ error }}</small>
+                                                {% endfor %}
+                                            </div>
+                                        {% endif %}
+                                    {% else %}
+                                        {{ form.customer_id() }} {# hidden field #}
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div id="services-list">
+                            <label class="form-label">Services</label>
+                            {% for subform in form.services %}
+                            <div class="row service-row mb-2" data-index="{{ loop.index0 }}">
+                                <div class="col-md-5">
+                                    {{ subform.service_id(class="form-select") }}
+                                    {% if subform.service_id.errors %}
                                         <div class="text-danger">
-                                            {% for error in form.service_id.errors %}
+                                            {% for error in subform.service_id.errors %}
+                                                <small>{{ error }}</small>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-3">
+                                    {{ subform.duration(class="form-control", placeholder="Duration (min)") }}
+                                    {% if subform.duration.errors %}
+                                        <div class="text-danger">
+                                            {% for error in subform.duration.errors %}
+                                                <small>{{ error }}</small>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-3">
+                                    {{ subform.waiting_time(class="form-control", placeholder="Waiting (min)") }}
+                                    {% if subform.waiting_time.errors %}
+                                        <div class="text-danger">
+                                            {% for error in subform.waiting_time.errors %}
+                                                <small>{{ error }}</small>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-1 d-flex align-items-center">
+                                    <button type="button" class="btn btn-danger btn-sm remove-service" title="Remove Service" {% if loop.length == 1 %}disabled{% endif %}><i class="fas fa-minus"></i></button>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <div class="mb-3">
+                            <button type="button" class="btn btn-secondary btn-sm" id="add-service"><i class="fas fa-plus"></i> Add Service</button>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.appointment_date.label(class="form-label") }}
+                                    {{ form.appointment_date(class="form-control", type="date") }}
+                                    {% if form.appointment_date.errors %}
+                                        <div class="text-danger">
+                                            {% for error in form.appointment_date.errors %}
+                                                <small>{{ error }}</small>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.start_time.label(class="form-label") }}
+                                    {{ form.start_time(class="form-select") }}
+                                    {% if form.start_time.errors %}
+                                        <div class="text-danger">
+                                            {% for error in form.start_time.errors %}
                                                 <small>{{ error }}</small>
                                             {% endfor %}
                                         </div>
@@ -50,77 +125,45 @@
                                 </div>
                             </div>
                         </div>
-                    
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                {{ form.appointment_date.label(class="form-label") }}
-                                {{ form.appointment_date(class="form-control", type="date") }}
-                                {% if form.appointment_date.errors %}
-                                    <div class="text-danger">
-                                        {% for error in form.appointment_date.errors %}
-                                            <small>{{ error }}</small>
-                                        {% endfor %}
-                                    </div>
-                                {% endif %}
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.customer_phone.label(class="form-label") }}
+                                    {{ form.customer_phone(class="form-control", placeholder="Optional - for notifications") }}
+                                    {% if form.customer_phone.errors %}
+                                        <div class="text-danger">
+                                            {% for error in form.customer_phone.errors %}
+                                                <small>{{ error }}</small>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.customer_email.label(class="form-label") }}
+                                    {{ form.customer_email(class="form-control", placeholder="Optional - for notifications") }}
+                                    {% if form.customer_email.errors %}
+                                        <div class="text-danger">
+                                            {% for error in form.customer_email.errors %}
+                                                <small>{{ error }}</small>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
                             </div>
                         </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                {{ form.start_time.label(class="form-label") }}
-                                {{ form.start_time(class="form-select") }}
-                                {% if form.start_time.errors %}
-                                    <div class="text-danger">
-                                        {% for error in form.start_time.errors %}
-                                            <small>{{ error }}</small>
-                                        {% endfor %}
-                                    </div>
-                                {% endif %}
-                            </div>
+                        <div class="mb-3">
+                            {{ form.notes.label(class="form-label") }}
+                            {{ form.notes(class="form-control", rows="3", placeholder="Any special requests or notes...") }}
+                            {% if form.notes.errors %}
+                                <div class="text-danger">
+                                    {% for error in form.notes.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
                         </div>
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                {{ form.customer_phone.label(class="form-label") }}
-                                {{ form.customer_phone(class="form-control", placeholder="Optional - for notifications") }}
-                                {% if form.customer_phone.errors %}
-                                    <div class="text-danger">
-                                        {% for error in form.customer_phone.errors %}
-                                            <small>{{ error }}</small>
-                                        {% endfor %}
-                                    </div>
-                                {% endif %}
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                {{ form.customer_email.label(class="form-label") }}
-                                {{ form.customer_email(class="form-control", placeholder="Optional - for notifications") }}
-                                {% if form.customer_email.errors %}
-                                    <div class="text-danger">
-                                        {% for error in form.customer_email.errors %}
-                                            <small>{{ error }}</small>
-                                        {% endfor %}
-                                    </div>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        {{ form.notes.label(class="form-label") }}
-                        {{ form.notes(class="form-control", rows="3", placeholder="Any special requests or notes...") }}
-                        {% if form.notes.errors %}
-                            <div class="text-danger">
-                                {% for error in form.notes.errors %}
-                                    <small>{{ error }}</small>
-                                {% endfor %}
-                            </div>
-                        {% endif %}
-                    </div>
-                    
                         <div class="d-grid">
                             {{ form.submit(class="btn btn-primary") }}
                         </div>
@@ -128,7 +171,6 @@
                 {% endif %}
             </div>
         </div>
-        
         <div class="card mt-3">
             <div class="card-header">
                 <h5 class="card-title mb-0">Booking Information</h5>
@@ -147,10 +189,35 @@
 
 <script>
 // Set minimum date to today
+// Add/remove service rows dynamically
+
 document.addEventListener('DOMContentLoaded', function() {
     const dateInput = document.querySelector('input[type="date"]');
     const today = new Date().toISOString().split('T')[0];
     dateInput.setAttribute('min', today);
+
+    // Add/remove service rows
+    const servicesList = document.getElementById('services-list');
+    const addServiceBtn = document.getElementById('add-service');
+    servicesList.addEventListener('click', function(e) {
+        if (e.target.closest('.remove-service')) {
+            const row = e.target.closest('.service-row');
+            if (servicesList.querySelectorAll('.service-row').length > 1) {
+                row.remove();
+            }
+        }
+    });
+    addServiceBtn.addEventListener('click', function() {
+        const lastRow = servicesList.querySelector('.service-row:last-of-type');
+        if (!lastRow) return;
+        const newRow = lastRow.cloneNode(true);
+        // Clear values
+        newRow.querySelectorAll('select, input').forEach(function(input) {
+            if (input.tagName === 'SELECT') input.selectedIndex = 0;
+            if (input.tagName === 'INPUT') input.value = '';
+        });
+        servicesList.appendChild(newRow);
+    });
 });
 </script>
 {% endblock %} 

@@ -63,16 +63,22 @@
                     {% if current_user.is_authenticated %}
                         {% if current_user.has_role('customer') %}
                             <li class="nav-item">
-                                <a class="nav-link" href="{{ url_for('appointments.book_appointment') }}">Book Appointment</a>
+                                <a class="nav-link" href="{{ url_for('appointments.book_appointment') }}"><strong>Book Appointment</strong></a>
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link" href="{{ url_for('appointments.my_appointments') }}">My Appointments</a>
                             </li>
                         {% elif current_user.has_role('stylist') %}
                             <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('appointments.book_appointment') }}"><strong>Book Appointment</strong></a>
+                            </li>
+                            <li class="nav-item">
                                 <a class="nav-link" href="{{ url_for('appointments.stylist_appointments') }}">My Schedule</a>
                             </li>
                         {% elif current_user.has_role('manager') or current_user.has_role('owner') %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('appointments.book_appointment') }}"><strong>Book Appointment</strong></a>
+                            </li>
                             <li class="nav-item">
                                 <a class="nav-link" href="{{ url_for('appointments.admin_appointments') }}">All Appointments</a>
                             </li>
