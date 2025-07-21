@@ -223,7 +223,7 @@ class AppointmentFilterForm(FlaskForm):
         ('week', 'Week View'),
         ('month', 'Month View')
     ], default='week', validators=[DataRequired()])
-    stylist_id = SelectField('Stylist', coerce=int, validators=[Optional()])
+    stylist_id = SelectField('Stylist', validators=[Optional()])
     status = SelectField('Status', choices=[
         ('', 'All Statuses'),
         ('confirmed', 'Confirmed'),
@@ -243,7 +243,7 @@ class AppointmentFilterForm(FlaskForm):
                 User.is_active == True,
                 User.roles.contains(stylist_role)
             ).all()
-            self.stylist_id.choices = [('', 'All Stylists')] + [(s.id, f"{s.first_name} {s.last_name}") for s in stylists]
+            self.stylist_id.choices = [('', 'All Stylists')] + [(str(s.id), f"{s.first_name} {s.last_name}") for s in stylists]
         else:
             self.stylist_id.choices = [('', 'All Stylists')]
 
@@ -698,6 +698,36 @@ class WorkPatternForm(FlaskForm):
                 'end': end_field.data if working_field.data and end_field.data else None
             }
         return schedule
+
+class AdminUserAddForm(FlaskForm):
+    """Form for admin to add new users with role and employment assignment"""
+    username = StringField('Username', validators=[DataRequired(), Length(min=3, max=64)])
+    email = StringField('Email', validators=[DataRequired(), Email()])
+    first_name = StringField('First Name', validators=[DataRequired(), Length(max=64)])
+    last_name = StringField('Last Name', validators=[DataRequired(), Length(max=64)])
+    phone = StringField('Phone Number', validators=[Optional(), Length(max=20)])
+    password = PasswordField('Password', validators=[DataRequired(), Length(min=8)])
+    role = SelectField('Role', choices=[
+        ('customer', 'Customer'),
+        ('stylist', 'Stylist'),
+        ('manager', 'Manager'),
+        ('owner', 'Owner')
+    ], validators=[DataRequired()])
+    employment_type = SelectField('Employment Type', choices=[
+        ('employed', 'Employed'),
+        ('self_employed', 'Self-Employed')
+    ], validators=[Optional()])
+    submit = SubmitField('Create User')
+    
+    def validate_username(self, username):
+        user = User.query.filter_by(username=username.data).first()
+        if user:
+            raise ValidationError('Username already taken. Please choose a different one.')
+    
+    def validate_email(self, email):
+        user = User.query.filter_by(email=email.data).first()
+        if user:
+            raise ValidationError('Email already registered. Please use a different email address.')
 
 class EmploymentDetailsForm(FlaskForm):
     user_id = SelectField('Staff Member', coerce=int, validators=[DataRequired()])

@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
 from app.models import User, Role, UserProfile, SalonSettings, WorkPattern, EmploymentDetails
-from app.forms import AdminUserForm, RoleAssignmentForm, SalonSettingsForm, WorkPatternForm, EmploymentDetailsForm
+from app.forms import AdminUserForm, RoleAssignmentForm, SalonSettingsForm, WorkPatternForm, EmploymentDetailsForm, AdminUserAddForm
 from app.extensions import db
 from app.routes.main import role_required
 from app.utils import uk_now
@@ -75,6 +75,46 @@ def edit_user(user_id):
         form.roles.data = user.roles[0].name
     
     return render_template('admin/edit_user.html', title='Edit User', form=form, user=user)
+
+@bp.route('/users/add', methods=['GET', 'POST'])
+@login_required
+@role_required('manager')
+def add_user():
+    form = AdminUserAddForm()
+    
+    if form.validate_on_submit():
+        # Create new user
+        user = User(
+            username=form.username.data,
+            email=form.email.data,
+            first_name=form.first_name.data,
+            last_name=form.last_name.data,
+            phone=form.phone.data,
+            email_verified=True  # Admin-created users are verified
+        )
+        user.set_password(form.password.data)
+        
+        # Assign role
+        role = Role.query.filter_by(name=form.role.data).first()
+        if role:
+            user.roles.append(role)
+        
+        db.session.add(user)
+        db.session.commit()
+        
+        # Create employment details if stylist/manager/owner
+        if form.role.data in ['stylist', 'manager', 'owner'] and form.employment_type.data:
+            employment_details = EmploymentDetails(
+                user_id=user.id,
+                employment_type=form.employment_type.data
+            )
+            db.session.add(employment_details)
+            db.session.commit()
+        
+        flash(f'User {user.first_name} {user.last_name} created successfully!', 'success')
+        return redirect(url_for('admin.users'))
+    
+    return render_template('admin/add_user.html', title='Add New User', form=form)
 
 @bp.route('/users/<int:user_id>/delete', methods=['POST'])
 @login_required

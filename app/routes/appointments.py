@@ -202,8 +202,14 @@ def admin_appointments():
         Appointment.appointment_date <= end_date
     )
     
-    if stylist_id:
-        query = query.filter(Appointment.stylist_id == stylist_id)
+    # Handle stylist_id filter with proper type conversion
+    if stylist_id and stylist_id.strip():
+        try:
+            stylist_id_int = int(stylist_id)
+            query = query.filter(Appointment.stylist_id == stylist_id_int)
+        except ValueError:
+            # If stylist_id is not a valid integer, ignore the filter
+            pass
     
     if status_filter:
         query = query.filter(Appointment.status == status_filter)
@@ -403,7 +409,12 @@ def api_appointments():
     
     # Filter by stylist if specified
     if stylist_id and current_user.has_role('manager'):
-        query = query.filter(Appointment.stylist_id == stylist_id)
+        try:
+            stylist_id_int = int(stylist_id)
+            query = query.filter(Appointment.stylist_id == stylist_id_int)
+        except ValueError:
+            # If stylist_id is not a valid integer, ignore the filter
+            pass
     elif current_user.has_role('stylist'):
         query = query.filter(Appointment.stylist_id == current_user.id)
     elif current_user.has_role('customer'):

@@ -1,300 +1,527 @@
 # Salon ESE Development Plan
-## Client Requirements Integration
+## Enhanced Client Requirements Integration
 
-This document outlines the plan for integrating the client requirements from `next steps.txt` into the existing salon booking system.
-
----
-
-## 📋 Client Requirements Analysis
-
-Based on the client's requirements document, the following major features need to be implemented:
-
-### **Core Requirements:**
-1. **Salon Settings & Opening Hours Management**
-2. **Staff Work Patterns & Employment Management**
-3. **Holiday Management System**
-4. **Enhanced Staff Management**
-5. **Financial Management & Commission Tracking**
+This document outlines the comprehensive plan for integrating the new client requirements from `new_requirements.txt` into the existing salon booking system, while maintaining and enhancing all existing functionality.
 
 ---
 
-## 🎯 Discrete Tasks Breakdown
+## 📋 New Requirements Analysis
 
-### **Phase 1: Foundation & Database Schema**
+Based on the new requirements document, the following major enhancements need to be implemented:
 
-#### **Task 1.1: Salon Opening Hours Management**
-- Create salon opening hours settings page
-- Implement salon opening/closing time configuration
-- Add ability to extend salon hours for appointments that run over
-- Create settings management interface for salon owners
+### **Core New Requirements:**
+1. **Enhanced Appointment Booking System**
+   - Multiple services per appointment
+   - Service waiting times (color processing)
+   - Stylist-specific vs standard timing
+   - Emergency hour extension for appointments
 
-#### **Task 1.2: Work Pattern System**
-- Create work pattern management system
-- Implement employment type tracking (employed vs self-employed)
-- Add self-employed commission percentage tracking
-- Implement billing method selection (salon bills customer vs stylist bills customer)
-- Create salon billing elements configuration (color, electric, etc.)
+2. **Customer Management System**
+   - Backend customer addition (management/stylist only)
+   - Customer service history tracking
+   - Previous service booking suggestions
 
-#### **Task 1.3: Database Schema Extensions**
-- Add new models to support all requirements
-- Create database migrations
-- Update existing models as needed
+3. **Stylist View Enhancements**
+   - Global salon view vs personal view toggle
+   - Cross-stylist booking capabilities
+   - Real-time availability checking
 
-### **Phase 2: Staff Management Enhancement**
+4. **Service Management Enhancements**
+   - Service waiting times
+   - Service combinations
+   - Standard vs stylist-specific timing
 
-#### **Task 2.1: Employment System**
-- Extend User model with employment details
-- Add commission tracking for self-employed staff
-- Implement billing method selection
-- Create job role management
+5. **Holiday Management System**
+   - Holiday impact reporting
+   - Booking value analysis
+   - Staff availability tracking
 
-#### **Task 2.2: Work Pattern Integration**
-- Integrate work patterns with appointment booking
-- Add availability checking based on work patterns
-- Implement stylist schedule validation
-
-### **Phase 3: Holiday Management System**
-
-#### **Task 3.1: Holiday Quota System**
-- Implement holiday quota calculation based on work hours
-- Create holiday booking interface for staff
-- Add holiday approval workflow for employed staff
-- Implement holiday conflict detection and management
-
-#### **Task 3.2: Management Reports**
-- Create holiday overview reports
-- Implement staff availability reports
-- Add appointment impact analysis
-- Create holiday approval reports
-
-### **Phase 4: Financial Management**
-
-#### **Task 4.1: Billing System**
-- Implement billing element configuration
-- Add commission calculation system
-- Create financial reporting for management
-- Implement appointment cost breakdown
+6. **UI/UX Improvements**
+   - Fluid design changes
+   - Task completion from current page
+   - Fix broken functionality
 
 ---
 
-## 🏗️ Implementation Plan
+## 🎯 Implementation Plan
 
-### **Phase 1: Foundation & Database Schema**
+### **Phase 1: Database Schema Extensions & Core Models**
 
-#### **Step 1: Database Schema Extensions**
-
+#### **Task 1.1: Enhanced Service Management**
 **New Models Required:**
 
-1. **SalonSettings Model**
+1. **ServiceWaitingTime Model**
    ```python
-   class SalonSettings(db.Model):
+   class ServiceWaitingTime(db.Model):
        id = db.Column(db.Integer, primary_key=True)
-       salon_name = db.Column(db.String(100))
-       opening_hours = db.Column(db.JSON)  # Store daily opening/closing times
-       emergency_extension_enabled = db.Column(db.Boolean, default=True)
-       created_at = db.Column(db.DateTime, default=uk_utcnow)
-       updated_at = db.Column(db.DateTime, default=uk_utcnow, onupdate=uk_utcnow)
-   ```
-
-2. **WorkPattern Model**
-   ```python
-   class WorkPattern(db.Model):
-       id = db.Column(db.Integer, primary_key=True)
-       user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-       pattern_name = db.Column(db.String(100))
-       work_schedule = db.Column(db.JSON)  # Store weekly work schedule
+       service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=False)
+       waiting_time_minutes = db.Column(db.Integer, nullable=False, default=0)
        is_active = db.Column(db.Boolean, default=True)
        created_at = db.Column(db.DateTime, default=uk_utcnow)
+       
+       # Relationships
+       service = db.relationship('Service', backref='waiting_times')
    ```
 
-3. **EmploymentDetails Model**
+2. **StylistServiceTiming Model**
    ```python
-   class EmploymentDetails(db.Model):
+   class StylistServiceTiming(db.Model):
        id = db.Column(db.Integer, primary_key=True)
-       user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-       employment_type = db.Column(db.String(20))  # 'employed' or 'self_employed'
-       commission_percentage = db.Column(db.Numeric(5, 2))  # For self-employed
-       billing_method = db.Column(db.String(20))  # 'salon_bills' or 'stylist_bills'
-       job_role = db.Column(db.String(100))
+       stylist_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+       service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=False)
+       custom_duration_minutes = db.Column(db.Integer, nullable=False)
+       is_active = db.Column(db.Boolean, default=True)
        created_at = db.Column(db.DateTime, default=uk_utcnow)
+       
+       # Relationships
+       stylist = db.relationship('User', backref='service_timings')
+       service = db.relationship('Service', backref='stylist_timings')
    ```
 
-4. **HolidayQuota Model**
+#### **Task 1.2: Enhanced Appointment System**
+**Updates to Existing Models:**
+
+1. **Appointment Model Extensions**
    ```python
-   class HolidayQuota(db.Model):
+   # Add to existing Appointment model:
+   services = db.relationship('AppointmentService', backref='appointment', cascade='all, delete-orphan')
+   emergency_extension = db.Column(db.Boolean, default=False)
+   salon_extension_time = db.Column(db.Time)  # Time salon was extended to
+   ```
+
+2. **AppointmentService Model (New)**
+   ```python
+   class AppointmentService(db.Model):
        id = db.Column(db.Integer, primary_key=True)
-       user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-       year = db.Column(db.Integer, nullable=False)
-       total_hours_per_week = db.Column(db.Integer)
-       holiday_days_entitled = db.Column(db.Integer)
-       holiday_days_taken = db.Column(db.Integer, default=0)
-       holiday_days_remaining = db.Column(db.Integer)
+       appointment_id = db.Column(db.Integer, db.ForeignKey('appointment.id'), nullable=False)
+       service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=False)
+       sequence_order = db.Column(db.Integer, nullable=False)  # Order of services
+       start_time = db.Column(db.Time, nullable=False)
+       end_time = db.Column(db.Time, nullable=False)
+       waiting_time_minutes = db.Column(db.Integer, default=0)
+       stylist_duration_used = db.Column(db.Boolean, default=False)  # True if stylist timing used
        created_at = db.Column(db.DateTime, default=uk_utcnow)
+       
+       # Relationships
+       service = db.relationship('Service', backref='appointment_services')
    ```
 
-5. **HolidayRequest Model**
+#### **Task 1.3: Customer Management System**
+**New Models Required:**
+
+1. **CustomerServiceHistory Model**
    ```python
-   class HolidayRequest(db.Model):
+   class CustomerServiceHistory(db.Model):
        id = db.Column(db.Integer, primary_key=True)
-       user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-       start_date = db.Column(db.Date, nullable=False)
-       end_date = db.Column(db.Date, nullable=False)
-       days_requested = db.Column(db.Integer)
-       status = db.Column(db.String(20), default='pending')  # pending, approved, rejected
-       approved_by_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-       approved_at = db.Column(db.DateTime)
+       customer_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+       service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=False)
+       appointment_id = db.Column(db.Integer, db.ForeignKey('appointment.id'), nullable=False)
+       service_date = db.Column(db.Date, nullable=False)
+       stylist_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+       actual_duration_minutes = db.Column(db.Integer)
        notes = db.Column(db.Text)
        created_at = db.Column(db.DateTime, default=uk_utcnow)
+       
+       # Relationships
+       customer = db.relationship('User', foreign_keys=[customer_id], backref='service_history')
+       service = db.relationship('Service', backref='customer_history')
+       appointment = db.relationship('Appointment', backref='service_history')
+       stylist = db.relationship('User', foreign_keys=[stylist_id], backref='provided_services')
    ```
 
-6. **BillingElement Model**
+2. **CustomerPreferences Model**
    ```python
-   class BillingElement(db.Model):
+   class CustomerPreferences(db.Model):
        id = db.Column(db.Integer, primary_key=True)
-       name = db.Column(db.String(100), nullable=False)  # e.g., 'color', 'electric'
-       percentage = db.Column(db.Numeric(5, 2), nullable=False)
-       is_active = db.Column(db.Boolean, default=True)
+       customer_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, unique=True)
+       preferred_services = db.Column(db.JSON)  # List of preferred service IDs
+       preferred_stylist_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+       booking_preferences = db.Column(db.JSON)  # Booking preferences
        created_at = db.Column(db.DateTime, default=uk_utcnow)
+       updated_at = db.Column(db.DateTime, default=uk_utcnow, onupdate=uk_utcnow)
+       
+       # Relationships
+       customer = db.relationship('User', foreign_keys=[customer_id], backref='preferences')
+       preferred_stylist = db.relationship('User', foreign_keys=[preferred_stylist_id], backref='preferred_by')
    ```
 
-#### **Step 2: Admin Settings Interface**
-
-**New Routes Required:**
-- `/admin/salon-settings` - Salon opening hours management
-- `/admin/work-patterns` - Work pattern configuration
-- `/admin/employment` - Employment type management
-- `/admin/billing-elements` - Billing elements configuration
-
-**New Templates Required:**
-- `admin/salon_settings.html`
-- `admin/work_patterns.html`
-- `admin/employment.html`
-- `admin/billing_elements.html`
-
-### **Phase 2: Staff Management Enhancement**
-
-#### **Step 3: Employment System Integration**
-
+#### **Task 1.4: Enhanced Holiday Management**
 **Updates to Existing Models:**
-- Extend User model with employment relationship
-- Add employment status to user profile
-- Update appointment booking to consider employment type
 
+1. **HolidayRequest Model Extensions**
+   ```python
+   # Add to existing HolidayRequest model:
+   booking_impact_value = db.Column(db.Numeric(10, 2))  # Potential lost revenue
+   affected_appointments = db.Column(db.Integer, default=0)
+   other_staff_off = db.Column(db.JSON)  # List of other staff off during period
+   ```
+
+2. **HolidayImpactReport Model (New)**
+   ```python
+   class HolidayImpactReport(db.Model):
+       id = db.Column(db.Integer, primary_key=True)
+       holiday_request_id = db.Column(db.Integer, db.ForeignKey('holiday_request.id'), nullable=False)
+       report_date = db.Column(db.Date, nullable=False)
+       potential_bookings_lost = db.Column(db.Integer, default=0)
+       potential_revenue_lost = db.Column(db.Numeric(10, 2), default=0)
+       staff_availability = db.Column(db.JSON)  # Staff availability during period
+       created_at = db.Column(db.DateTime, default=uk_utcnow)
+       
+       # Relationships
+       holiday_request = db.relationship('HolidayRequest', backref='impact_reports')
+   ```
+
+### **Phase 2: Enhanced Appointment Booking System**
+
+#### **Task 2.1: Multiple Service Booking**
+**New Routes Required:**
+- `/appointments/book-multi-service` - Multi-service booking interface
+- `/appointments/calculate-timing` - AJAX endpoint for timing calculations
+- `/appointments/check-availability` - Enhanced availability checking
+
+**New Forms Required:**
+```python
+class MultiServiceBookingForm(FlaskForm):
+    customer_id = SelectField('Customer', coerce=int, validators=[DataRequired()])
+    stylist_id = SelectField('Stylist', coerce=int, validators=[DataRequired()])
+    appointment_date = DateField('Date', validators=[DataRequired()])
+    start_time = SelectField('Start Time', validators=[DataRequired()])
+    services = SelectMultipleField('Services', coerce=int, validators=[DataRequired()])
+    use_stylist_timing = BooleanField('Use Stylist Timing', default=False)
+    emergency_extension = BooleanField('Allow Emergency Extension', default=False)
+    notes = TextAreaField('Notes', validators=[Optional()])
+    submit = SubmitField('Book Appointment')
+```
+
+#### **Task 2.2: Service Timing System**
+**Business Logic Implementation:**
+```python
+def calculate_appointment_timing(services, stylist_id, use_stylist_timing=False):
+    """
+    Calculate total appointment timing including waiting times
+    """
+    total_duration = 0
+    service_sequence = []
+    
+    for service in services:
+        # Get stylist-specific timing if requested
+        if use_stylist_timing:
+            stylist_timing = StylistServiceTiming.query.filter_by(
+                stylist_id=stylist_id, 
+                service_id=service.id,
+                is_active=True
+            ).first()
+            service_duration = stylist_timing.custom_duration_minutes if stylist_timing else service.duration
+        else:
+            service_duration = service.duration
+        
+        # Add waiting time if applicable
+        waiting_time = ServiceWaitingTime.query.filter_by(
+            service_id=service.id,
+            is_active=True
+        ).first()
+        
+        total_duration += service_duration
+        if waiting_time:
+            total_duration += waiting_time.waiting_time_minutes
+        
+        service_sequence.append({
+            'service': service,
+            'duration': service_duration,
+            'waiting_time': waiting_time.waiting_time_minutes if waiting_time else 0
+        })
+    
+    return total_duration, service_sequence
+```
+
+#### **Task 2.3: Emergency Hour Extension**
+**Implementation:**
+```python
+def extend_salon_hours(appointment_end_time, stylist_id):
+    """
+    Extend salon hours for appointments that run over
+    """
+    salon_settings = SalonSettings.get_settings()
+    
+    if not salon_settings.emergency_extension_enabled:
+        return False
+    
+    # Check if appointment extends beyond salon hours
+    day_name = appointment_end_time.strftime('%A').lower()
+    day_hours = salon_settings.opening_hours.get(day_name, {})
+    
+    if day_hours.get('closed', True):
+        return False
+    
+    closing_time = datetime.strptime(day_hours['close'], '%H:%M').time()
+    
+    if appointment_end_time.time() > closing_time:
+        # Extend salon hours for this stylist
+        return True
+    
+    return False
+```
+
+### **Phase 3: Customer Management System**
+
+#### **Task 3.1: Backend Customer Addition**
+**New Routes Required:**
+- `/admin/customers/add` - Add new customer (admin/stylist only)
+- `/admin/customers/manage` - Customer management interface
+- `/admin/customers/<int:customer_id>/history` - Customer service history
+
+**New Forms Required:**
+```python
+class CustomerAddForm(FlaskForm):
+    first_name = StringField('First Name', validators=[DataRequired(), Length(max=64)])
+    last_name = StringField('Last Name', validators=[DataRequired(), Length(max=64)])
+    email = StringField('Email', validators=[Optional(), Email()])
+    phone = StringField('Phone Number', validators=[DataRequired(), Length(max=20)])
+    preferred_stylist_id = SelectField('Preferred Stylist', coerce=int, validators=[Optional()])
+    notes = TextAreaField('Notes', validators=[Optional()])
+    submit = SubmitField('Add Customer')
+```
+
+#### **Task 3.2: Service History Tracking**
+**Implementation:**
+```python
+def track_service_history(appointment):
+    """
+    Track service history when appointment is completed
+    """
+    for appointment_service in appointment.services:
+        history = CustomerServiceHistory(
+            customer_id=appointment.customer_id,
+            service_id=appointment_service.service_id,
+            appointment_id=appointment.id,
+            service_date=appointment.appointment_date,
+            stylist_id=appointment.stylist_id,
+            actual_duration_minutes=appointment_service.end_time - appointment_service.start_time,
+            notes=appointment.notes
+        )
+        db.session.add(history)
+    
+    db.session.commit()
+```
+
+#### **Task 3.3: Previous Service Suggestions**
+**Implementation:**
+```python
+def get_customer_service_suggestions(customer_id):
+    """
+    Get customer's previous services for booking suggestions
+    """
+    # Get customer's service history
+    history = CustomerServiceHistory.query.filter_by(customer_id=customer_id)\
+        .order_by(CustomerServiceHistory.service_date.desc())\
+        .limit(10).all()
+    
+    # Group by service and count frequency
+    service_counts = {}
+    for record in history:
+        service_id = record.service_id
+        if service_id not in service_counts:
+            service_counts[service_id] = {
+                'service': record.service,
+                'count': 0,
+                'last_date': record.service_date
+            }
+        service_counts[service_id]['count'] += 1
+    
+    # Return most frequent services
+    return sorted(service_counts.values(), key=lambda x: x['count'], reverse=True)
+```
+
+### **Phase 4: Stylist View Enhancements**
+
+#### **Task 4.1: Global vs Personal View Toggle**
+**New Routes Required:**
+- `/appointments/stylist-view` - Stylist view with toggle
+- `/appointments/global-view` - Global salon view
+- `/api/stylist-availability` - AJAX endpoint for availability
+
+**Implementation:**
+```python
+@bp.route('/stylist-view')
+@login_required
+@role_required('stylist')
+def stylist_view():
+    view_type = request.args.get('view', 'personal')  # personal or global
+    
+    if view_type == 'global':
+        # Show all stylists' appointments
+        appointments = Appointment.query.filter(
+            Appointment.appointment_date >= date.today(),
+            Appointment.status.in_(['confirmed', 'completed'])
+        ).order_by(Appointment.appointment_date, Appointment.start_time).all()
+    else:
+        # Show only current stylist's appointments
+        appointments = Appointment.query.filter(
+            Appointment.stylist_id == current_user.id,
+            Appointment.appointment_date >= date.today(),
+            Appointment.status.in_(['confirmed', 'completed'])
+        ).order_by(Appointment.appointment_date, Appointment.start_time).all()
+    
+    return render_template('appointments/stylist_view.html', 
+                         appointments=appointments, 
+                         view_type=view_type)
+```
+
+#### **Task 4.2: Cross-Stylist Booking**
+**Implementation:**
+```python
+def check_stylist_availability(stylist_id, date, start_time, end_time):
+    """
+    Check if stylist is available for booking
+    """
+    conflicts = Appointment.query.filter(
+        Appointment.stylist_id == stylist_id,
+        Appointment.appointment_date == date,
+        Appointment.status.in_(['confirmed', 'completed']),
+        db.or_(
+            db.and_(
+                Appointment.start_time <= start_time,
+                Appointment.end_time > start_time
+            ),
+            db.and_(
+                Appointment.start_time < end_time,
+                Appointment.end_time >= end_time
+            ),
+            db.and_(
+                Appointment.start_time >= start_time,
+                Appointment.end_time <= end_time
+            )
+        )
+    ).first()
+    
+    return conflicts is None
+```
+
+### **Phase 5: Enhanced Holiday Management**
+
+#### **Task 5.1: Holiday Impact Analysis**
+**New Routes Required:**
+- `/admin/holiday-impact/<int:request_id>` - Holiday impact analysis
+- `/admin/holiday-reports` - Holiday reporting dashboard
+
+**Implementation:**
+```python
+def analyze_holiday_impact(holiday_request):
+    """
+    Analyze the impact of a holiday request
+    """
+    # Calculate potential lost bookings
+    start_date = holiday_request.start_date
+    end_date = holiday_request.end_date
+    
+    # Get stylist's average daily bookings
+    avg_daily_bookings = Appointment.query.filter(
+        Appointment.stylist_id == holiday_request.user_id,
+        Appointment.appointment_date >= start_date - timedelta(days=30),
+        Appointment.appointment_date < start_date,
+        Appointment.status.in_(['confirmed', 'completed'])
+    ).count() / 30
+    
+    # Calculate potential lost revenue
+    avg_booking_value = db.session.query(db.func.avg(Service.price))\
+        .join(AppointmentService, Service.id == AppointmentService.service_id)\
+        .join(Appointment, AppointmentService.appointment_id == Appointment.id)\
+        .filter(Appointment.stylist_id == holiday_request.user_id)\
+        .scalar() or 0
+    
+    days_off = (end_date - start_date).days + 1
+    potential_lost_bookings = avg_daily_bookings * days_off
+    potential_lost_revenue = potential_lost_bookings * avg_booking_value
+    
+    # Check other staff availability
+    other_staff_off = HolidayRequest.query.filter(
+        HolidayRequest.user_id != holiday_request.user_id,
+        HolidayRequest.status == 'approved',
+        db.or_(
+            db.and_(
+                HolidayRequest.start_date <= end_date,
+                HolidayRequest.end_date >= start_date
+            )
+        )
+    ).all()
+    
+    return {
+        'potential_lost_bookings': int(potential_lost_bookings),
+        'potential_lost_revenue': float(potential_lost_revenue),
+        'days_off': days_off,
+        'other_staff_off': [hr.user.first_name + ' ' + hr.user.last_name for hr in other_staff_off]
+    }
+```
+
+### **Phase 6: UI/UX Improvements**
+
+#### **Task 6.1: Fix Broken Functionality**
+**Issues to Address:**
+1. **Add New User Button** - Ensure proper routing and form handling
+2. **All Appointments Button** - Fix navigation and permissions
+3. **Fluid Design Changes** - Implement responsive design improvements
+
+#### **Task 6.2: Task Completion from Current Page**
+**Implementation Strategy:**
+- Modal dialogs for quick actions
+- Inline editing capabilities
+- AJAX form submissions
+- Real-time updates without page refresh
+
+#### **Task 6.3: Enhanced Navigation**
 **New Features:**
-- Commission calculation for self-employed staff
-- Billing method selection in appointment booking
-- Job role assignment and management
-
-#### **Step 4: Work Pattern Integration**
-
-**Appointment Booking Updates:**
-- Check stylist availability against work patterns
-- Validate appointments against salon opening hours
-- Implement emergency hour extension for appointments
-
-### **Phase 3: Holiday Management System**
-
-#### **Step 5: Holiday System Implementation**
-
-**Holiday Quota Algorithm:**
-```python
-def calculate_holiday_entitlement(hours_per_week):
-    """
-    Calculate holiday entitlement based on UK employment law
-    Standard: 5.6 weeks per year (28 days for full-time)
-    """
-    if hours_per_week >= 37.5:  # Full-time
-        return 28
-    elif hours_per_week >= 20:  # Part-time
-        return int((hours_per_week / 37.5) * 28)
-    else:  # Reduced hours
-        return int((hours_per_week / 37.5) * 28)
-```
-
-**Holiday Booking Features:**
-- Self-employed staff: No approval required
-- Employed staff: Manager approval required
-- Conflict detection with other staff
-- Impact analysis on salon operations
-
-#### **Step 6: Management Reports**
-
-**Report Types:**
-- Daily staff availability report
-- Holiday impact analysis
-- Financial impact of staff absence
-- Appointment scheduling conflicts
-
-### **Phase 4: Financial Management**
-
-#### **Step 7: Billing System Implementation**
-
-**Commission Calculation:**
-```python
-def calculate_commission(appointment_total, commission_percentage, billing_elements):
-    """
-    Calculate stylist commission based on billing method and elements
-    """
-    if billing_method == 'salon_bills':
-        return appointment_total * (commission_percentage / 100)
-    else:  # stylist_bills
-        salon_share = sum(element.percentage for element in billing_elements)
-        return appointment_total * (salon_share / 100)
-```
-
-**Financial Features:**
-- Appointment cost breakdown
-- Commission tracking
-- Salon revenue reporting
-- Stylist earnings reports
+- Quick action buttons on each page
+- Context-sensitive menus
+- Breadcrumb navigation
+- Search functionality
 
 ---
 
 ## 🚀 Development Priorities
 
 ### **Immediate (Week 1-2):**
-1. **Database Schema Creation**
-   - Create all new models
+1. **Database Schema Updates**
+   - Create new models for enhanced functionality
    - Write database migrations
-   - Test model relationships
+   - Update existing models
 
-2. **Salon Settings Page**
-   - Create admin interface for salon settings
-   - Implement opening hours configuration
-   - Add emergency extension functionality
+2. **Fix Broken Functionality**
+   - Fix add new user button
+   - Fix all appointments navigation
+   - Test existing functionality
 
 ### **Short Term (Week 3-4):**
-1. **Work Pattern System**
-   - Create work pattern management
-   - Integrate with appointment booking
-   - Add availability validation
+1. **Enhanced Appointment Booking**
+   - Implement multi-service booking
+   - Add service timing system
+   - Implement emergency hour extension
 
-2. **Employment System**
-   - Extend user management
-   - Add employment type tracking
-   - Implement commission tracking
+2. **Customer Management**
+   - Backend customer addition
+   - Service history tracking
+   - Previous service suggestions
 
 ### **Medium Term (Week 5-8):**
-1. **Holiday Management**
-   - Implement holiday quota calculation
-   - Create holiday booking interface
-   - Add approval workflow
+1. **Stylist View Enhancements**
+   - Global vs personal view toggle
+   - Cross-stylist booking
+   - Real-time availability
 
-2. **Management Reports**
-   - Create holiday reports
-   - Implement availability reports
-   - Add financial impact analysis
+2. **Holiday Management**
+   - Impact analysis
+   - Enhanced reporting
+   - Staff availability tracking
 
 ### **Long Term (Week 9-12):**
-1. **Financial Integration**
-   - Complete billing system
-   - Implement commission calculations
-   - Create comprehensive reporting
+1. **UI/UX Improvements**
+   - Fluid design implementation
+   - Task completion from current page
+   - Enhanced user experience
 
 2. **System Optimization**
    - Performance improvements
-   - User experience enhancements
    - Testing and bug fixes
+   - Documentation updates
 
 ---
 
@@ -302,38 +529,38 @@ def calculate_commission(appointment_total, commission_percentage, billing_eleme
 
 ### **Unit Tests:**
 - Model validation and relationships
-- Business logic (holiday calculation, commission calculation)
+- Business logic (timing calculations, impact analysis)
 - Form validation and processing
 
 ### **Integration Tests:**
-- Appointment booking with new constraints
-- Holiday booking workflow
-- Commission calculation accuracy
+- Multi-service appointment booking
+- Holiday impact analysis
+- Cross-stylist booking workflow
 
 ### **User Acceptance Tests:**
-- Salon owner workflow
-- Stylist booking process
-- Manager approval process
-- Customer booking experience
+- Stylist booking workflow
+- Customer management process
+- Holiday approval process
+- Emergency hour extension
 
 ---
 
 ## 📊 Success Metrics
 
 ### **Functional Metrics:**
-- All client requirements implemented
+- All new requirements implemented
 - No regression in existing functionality
 - Performance maintained or improved
 
 ### **User Experience Metrics:**
-- Reduced booking conflicts
-- Improved staff satisfaction
-- Better management oversight
+- Reduced booking complexity
+- Improved stylist efficiency
+- Better customer satisfaction
 
 ### **Business Metrics:**
-- Accurate commission tracking
-- Improved holiday management
-- Better financial reporting
+- Accurate holiday impact analysis
+- Improved appointment utilization
+- Better financial tracking
 
 ---
 
@@ -341,13 +568,13 @@ def calculate_commission(appointment_total, commission_percentage, billing_eleme
 
 ### **Database Performance:**
 - Index optimization for new queries
-- Efficient holiday conflict detection
-- Optimized appointment availability checks
+- Efficient multi-service booking
+- Optimized holiday impact calculations
 
 ### **Security:**
 - Role-based access to new features
 - Data validation for all new inputs
-- Audit trail for financial transactions
+- Audit trail for customer management
 
 ### **Scalability:**
 - Efficient queries for large datasets
@@ -359,9 +586,9 @@ def calculate_commission(appointment_total, commission_percentage, billing_eleme
 ## 📝 Documentation Requirements
 
 ### **User Documentation:**
-- Salon owner setup guide
-- Stylist user manual
-- Manager approval workflow guide
+- Stylist booking guide
+- Customer management guide
+- Holiday management guide
 
 ### **Technical Documentation:**
 - API documentation for new endpoints
@@ -369,20 +596,20 @@ def calculate_commission(appointment_total, commission_percentage, billing_eleme
 - Deployment and configuration guide
 
 ### **Business Documentation:**
-- Holiday calculation methodology
-- Commission structure documentation
-- Billing element configuration guide
+- Multi-service booking methodology
+- Holiday impact calculation guide
+- Customer service tracking guide
 
 ---
 
 ## 🎯 Next Steps
 
-1. **Review and approve this plan**
-2. **Start with Phase 1, Step 1 (Database Schema)**
-3. **Create development timeline**
-4. **Set up testing environment**
-5. **Begin implementation**
+1. **Review and approve this enhanced plan**
+2. **Start with Phase 1 (Database Schema Updates)**
+3. **Create detailed development timeline**
+4. **Set up enhanced testing environment**
+5. **Begin implementation with priority fixes**
 
 ---
 
-*This plan is based on the client requirements in `next steps.txt` and the current state of the salon-ese project. It provides a structured approach to implementing all requested features while maintaining system stability and performance.* 
+*This enhanced plan integrates all new requirements from `new_requirements.txt` while maintaining and improving existing functionality. It provides a structured approach to implementing the enhanced salon management system with improved user experience and business efficiency.* 

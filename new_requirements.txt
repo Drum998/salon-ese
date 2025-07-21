@@ -1,0 +1,23 @@
+Most appointments when booked are booked by the stylist at the point the customer leaves the salon. So this functionality needs adding
+
+The book appointment function for the customer which is currently programmed will still have functionality but more for the App when we get that far with the build. When making online bookings from the customer through the app or web as it currently stands most salons only offer limited services. I think we could build it so that when anyone customer logs in they would have availability of services that they have previously had or at least the last service, so they are being asked would you like the salons set services that they allow you to book or would you want to rebook what you had last time. The reason for this is that the customers dont really know what they want or need, so they could end up booking something that the timeframe doesnt allow and then this messes the entire days column up.
+
+The services need to have a waiting time this is for when a colour is on the time it takes for this to process
+
+At the point the appointment is booked you need to be able to add more than 1 service so that you would add a cut to finish off. So for example the colour + the waiting time and then the finishing service of a cut and blow dry.
+
+The services should have a standard time to complete, however once all of the services are loaded on, the stylists should have a time with which to complete them. So for example the standard time for a cut maybe an hour but a certain stylist might be able to complete it quicker. When the stylist books an appointment they should be asked if they want to use there own time or the standard set time. If a customer uses the web or the app to book they will always book using the standard time. The system over a period of time could also look at the time taken when the customer came in last time and could also offer this as the benchmark time for appointment or at least the choice.
+
+At the point a stylist makes a booking for a customer, if it goes beyond the stylist own work pattern - they should have the ability to open up there own column to the time that the appointment will run for. This would then also open the salon up to this time. It would not however open up the other stylists columns. They will not have to go to the salon page to open up days and times to allow.
+
+We need a section to add customers to the system.This is not generally done by the customer it is done at the back end by the management team or by the stylist. 
+
+The add new user button was not working, the all appointments button at the top of the menu system was also not working.
+
+I think we need to tell the AI to be fluid with the design and to change it as it sees fit as we continue to add functionality. I think we need to tell it also that most tasks need to be completed from the page you are on. We do not want the users as in workers within the salon needing to go to multiple pages to have to change something to complete a task. Like the example above of changing the salon opening times.
+
+When reporting the holidays for signing off it would be very handy that the manager knows how many people are booked in and the value of the days potential bookings so far as well as who else is off beit self employed or employed girls.
+
+Most of the time when booking days stylists see who is booked for the entire day for everyone as when the phone rings anyone of the stylists could answer and they would then look at all columns to see who is busy or not and have functionality to book people in with anyone.
+
+Most of the time when booking days stylists see who is booked for the entire day for everyone as when the phone rings anyone of the stylists could answer and they would then look at all columns to see who is busy or not and have functionality to book people in with anyone. Having said this we also need the ability for the stylist to flick between their own view and a global salon for overview.
