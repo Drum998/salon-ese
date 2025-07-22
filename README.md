@@ -51,7 +51,156 @@ location /static/ {
 
 The salon management system includes a comprehensive appointment booking and management feature that allows customers to book appointments with their preferred stylists and enables staff to manage schedules efficiently.
 
-### 🆕 Recent Updates (Latest Development Session)
+## 🆕 Service Management Enhancements (Latest Release)
+
+### 🎯 Overview
+The latest release introduces comprehensive Service Management Enhancements that provide advanced control over service timing, stylist-specific durations, and waiting time management. These features address the core requirements for professional salon operations.
+
+### ✨ New Features
+
+#### 1. **Service Waiting Times**
+- **Purpose**: Track processing time for services like hair coloring
+- **Implementation**: Added `waiting_time` field to Service model
+- **Usage**: Managers can set waiting times (0-240 minutes) for services
+- **Display**: Waiting times shown in service cards and booking forms
+
+#### 2. **Stylist-Specific Service Timing**
+- **Purpose**: Allow stylists to set custom durations for services they perform
+- **Implementation**: New `StylistServiceTiming` model with unique stylist-service combinations
+- **Features**:
+  - Custom duration tracking per stylist per service
+  - Visual time savings display (faster/slower than standard)
+  - Active/inactive timing entries
+  - Notes for timing explanations
+
+#### 3. **Enhanced Appointment Booking**
+- **Stylist Timing Selection**: Checkbox to use stylist's custom timing during booking
+- **Multi-Service Support**: Book appointments with multiple services
+- **Waiting Time Integration**: Automatic inclusion of waiting times in duration calculations
+- **Timing Options**: Choose between standard service timing or stylist-specific timing
+
+#### 4. **Advanced Service Management Interface**
+- **Service Form Updates**: Added waiting time field with validation
+- **Stylist Timing Management**: Dedicated interface for managing stylist timings
+- **Visual Indicators**: Time savings badges and status indicators
+- **Bulk Management**: Easy addition and editing of stylist timing entries
+
+### 🔧 Technical Implementation
+
+#### Database Schema Changes
+```sql
+-- New StylistServiceTiming table
+CREATE TABLE stylist_service_timing (
+    id SERIAL PRIMARY KEY,
+    stylist_id INTEGER REFERENCES user(id),
+    service_id INTEGER REFERENCES service(id),
+    custom_duration INTEGER NOT NULL,
+    notes TEXT,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW(),
+    UNIQUE(stylist_id, service_id)
+);
+
+-- Added waiting_time column to Service table
+ALTER TABLE service ADD COLUMN waiting_time INTEGER;
+```
+
+#### New Models
+- **StylistServiceTiming**: Manages stylist-specific service durations
+- **Enhanced Service Model**: Added waiting_time field and stylist timing relationships
+
+#### New Routes
+- `/stylist-timings` - List all stylist timings
+- `/stylist-timings/new` - Add new stylist timing
+- `/stylist-timings/<id>/edit` - Edit existing timing
+- `/stylist-timings/<id>/delete` - Delete timing entry
+
+#### New Templates
+- `stylist_timings.html` - Management interface with time savings display
+- `stylist_timing_form.html` - Add/edit stylist timing form
+- Updated `service_form.html` - Added waiting time field
+- Updated `services.html` - Shows waiting times in service cards
+- Updated `book.html` - Added stylist timing checkbox
+
+### 🎨 User Interface Enhancements
+
+#### Service Management
+- **Waiting Time Field**: New field in service creation/editing forms
+- **Service Cards**: Display waiting time information alongside duration and price
+- **Validation**: Proper validation for waiting time (0-240 minutes)
+
+#### Stylist Timing Management
+- **Dedicated Page**: "Stylist Timings" link in navigation for managers/owners
+- **Time Savings Display**: Visual indicators showing time saved/extra time needed
+- **Status Management**: Active/inactive timing entries
+- **Bulk Operations**: Easy management of multiple timing entries
+
+#### Appointment Booking
+- **Stylist Timing Checkbox**: Option to use stylist's custom timing
+- **Enhanced Service Rows**: Improved layout with timing options
+- **Dynamic Duration**: Automatic duration updates based on timing selection
+
+### 📊 Business Benefits
+
+#### For Salon Owners/Managers
+- **Accurate Scheduling**: Better appointment duration estimates
+- **Stylist Optimization**: Track which stylists are faster/slower
+- **Service Planning**: Understand actual service timing requirements
+- **Revenue Optimization**: More accurate booking slots
+
+#### For Stylists
+- **Personalized Timing**: Set realistic durations for their work style
+- **Better Scheduling**: Avoid overbooking or underbooking
+- **Performance Tracking**: See how their timing compares to standard
+
+#### For Customers
+- **Accurate Appointments**: More precise appointment durations
+- **Better Experience**: Reduced waiting times and better scheduling
+- **Service Transparency**: Clear understanding of service timing
+
+### 🚀 Migration Guide
+
+For users updating from previous versions, see the comprehensive [Migration Guide](MIGRATION_GUIDE.md) for step-by-step instructions.
+
+### 🧪 Testing the New Features
+
+#### Service Management Testing
+```bash
+# 1. Add waiting time to a service
+- Navigate to Services > Edit Service
+- Add waiting time (e.g., 30 minutes for color services)
+- Save and verify waiting time appears in service list
+
+# 2. Create stylist timing entries
+- Navigate to Stylist Timings
+- Add custom timing for a stylist-service combination
+- Verify time savings are calculated and displayed
+
+# 3. Test appointment booking with new features
+- Book appointment with multiple services
+- Enable stylist timing checkbox
+- Verify duration calculations include waiting times
+```
+
+#### Verification Checklist
+- [ ] Waiting times can be added to services
+- [ ] Stylist timings can be created and managed
+- [ ] Appointment booking includes timing options
+- [ ] Duration calculations work correctly
+- [ ] Calendar displays multi-service appointments
+- [ ] Navigation includes "Stylist Timings" link
+
+### 🔮 Future Enhancements
+
+#### Planned Features
+- **Historical Timing Analysis**: Track timing trends over time
+- **Automatic Timing Suggestions**: AI-powered timing recommendations
+- **Service Combinations**: Pre-defined service packages with timing
+- **Advanced Reporting**: Detailed timing and efficiency reports
+- **Mobile App Integration**: Timing management on mobile devices
+
+### 🆕 Recent Updates (Previous Development Session)
 
 This section documents the comprehensive improvements made to the appointment booking and management system during the latest development session.
 
@@ -255,8 +404,10 @@ This comprehensive update significantly improves the reliability, user experienc
 - **All Appointments View**: See appointments across all stylists
 - **Filtering Options**: Filter by stylist, status, and date range
 - **Statistics Dashboard**: View appointment statistics and trends
-- **Service Management**: Add, edit, and manage salon services
+- **Enhanced Service Management**: Add, edit, and manage salon services with waiting times
+- **Stylist Timing Management**: Set custom durations for stylist-service combinations
 - **Status Management**: Update appointment statuses with notes
+- **Advanced Booking**: Book appointments with multiple services and custom timing
 
 ### Database Models
 
@@ -264,8 +415,16 @@ This comprehensive update significantly improves the reliability, user experienc
 - `name`: Service name (e.g., "Haircut & Style")
 - `description`: Detailed service description
 - `duration`: Duration in minutes
+- `waiting_time`: Optional waiting/processing time in minutes (e.g., for color processing)
 - `price`: Service price in GBP
 - `is_active`: Whether the service is available for booking
+
+#### StylistServiceTiming
+- `stylist_id`: Reference to the stylist
+- `service_id`: Reference to the service
+- `custom_duration`: Custom duration in minutes for this stylist-service combination
+- `notes`: Optional notes about the timing
+- `is_active`: Whether this timing entry is active
 
 #### Appointment
 - `customer_id`: Reference to the customer
@@ -293,13 +452,28 @@ This comprehensive update significantly improves the reliability, user experienc
 
 ### Setup Instructions
 
-1. **Database Migration**: The appointment tables are created automatically when the app starts
+1. **Database Migration**: Run the migration scripts to set up the database schema:
+   ```bash
+   # Run multi-service appointment migration
+   docker exec -it salon-ese-web-1 python migrate_appointments_multiservice.py
+   
+   # Run stylist timings migration
+   docker exec -it salon-ese-web-1 python migrate_stylist_timings.py
+   ```
+
 2. **Initialize Services**: Run the service initialization script:
    ```bash
    python init_services.py
    ```
+
 3. **Create Stylist Users**: Use the admin panel to create users with the 'stylist' role
+
 4. **Create Customer Users**: Users can register as customers or be created via admin panel
+
+5. **Configure Service Timings**: 
+   - Add waiting times to services (e.g., color processing time)
+   - Create stylist-specific timing entries for faster/slower stylists
+   - Test appointment booking with timing options
 
 ### API Endpoints
 
@@ -317,6 +491,10 @@ This comprehensive update significantly improves the reliability, user experienc
 - `GET /appointments/services` - Manage services
 - `GET/POST /appointments/services/new` - Add new service
 - `GET/POST /appointments/services/<id>/edit` - Edit service
+- `GET /appointments/stylist-timings` - Manage stylist service timings
+- `GET/POST /appointments/stylist-timings/new` - Add new stylist timing
+- `GET/POST /appointments/stylist-timings/<id>/edit` - Edit stylist timing
+- `POST /appointments/stylist-timings/<id>/delete` - Delete stylist timing
 
 #### API Endpoints
 - `GET /appointments/api/appointments` - JSON API for calendar data
@@ -378,6 +556,9 @@ salon-ese/
 ├── Dockerfile            # Docker container configuration
 ├── docker-compose.yml    # Multi-container orchestration
 ├── test_timezone.py      # Timezone testing script
+├── migrate_appointments_multiservice.py  # Multi-service appointment migration
+├── migrate_stylist_timings.py           # Stylist timing migration
+├── MIGRATION_GUIDE.md    # Migration instructions for users
 └── tests/                # Unit tests
 ```
 
