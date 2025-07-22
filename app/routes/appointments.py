@@ -125,6 +125,13 @@ def book_appointment():
             return redirect(url_for('appointments.admin_appointments'))
         else:
             return redirect(url_for('main.index'))
+    else:
+        # Debug: Show validation errors
+        if form.errors:
+            current_app.logger.error(f"Form validation errors: {form.errors}")
+            for field, errors in form.errors.items():
+                for error in errors:
+                    flash(f'Error in {field}: {error}', 'error')
     
     return render_template('appointments/book.html', form=form, title='Book Appointment')
 

@@ -159,13 +159,28 @@
                                             </td>
                                             {% for i in range(7) %}
                                                 {% set current_date = start_date + timedelta(days=i) %}
-                                                {% set current_time = "%02d:%02d"|format(hour, minute) %}
-                                                {% set slot_appointments = appointments|selectattr("appointment_date", "equalto", current_date)|selectattr("start_time", "equalto", current_time)|list %}
+                                                {% set slot_appointments = [] %}
+                                                {% for appointment in appointments %}
+                                                    {% if appointment.appointment_date == current_date and appointment.start_time.hour == hour and appointment.start_time.minute == minute %}
+                                                        {% set _ = slot_appointments.append(appointment) %}
+                                                    {% endif %}
+                                                {% endfor %}
                                                 <td class="position-relative" style="height: 80px; min-width: 120px;">
                                                     {% for appointment in slot_appointments %}
-                                                                                                                 <div class="appointment-slot p-2 h-100" style="background-color: {% if appointment.status == 'confirmed' %}#e3f2fd{% elif appointment.status == 'completed' %}#c8e6c9{% elif appointment.status == 'cancelled' %}#ffcdd2{% else %}#fff3e0{% endif %};">
+                                                        <div class="appointment-slot p-2 h-100" style="background-color: {% if appointment.status == 'confirmed' %}#e3f2fd{% elif appointment.status == 'completed' %}#c8e6c9{% elif appointment.status == 'cancelled' %}#ffcdd2{% else %}#fff3e0{% endif %};">
                                                             <div class="small fw-bold">{{ appointment.customer.first_name }} {{ appointment.customer.last_name }}</div>
-                                                            <div class="small">{{ appointment.service.name }}</div>
+                                                            <div class="small">
+                                                                {% if appointment.services_link %}
+                                                                    {% set service_names = appointment.services_link|map(attribute='service.name')|list %}
+                                                                    {% if service_names|length == 1 %}
+                                                                        {{ service_names[0] }}
+                                                                    {% else %}
+                                                                        {{ service_names|length }} services
+                                                                    {% endif %}
+                                                                {% else %}
+                                                                    {{ appointment.service.name if appointment.service else 'No service' }}
+                                                                {% endif %}
+                                                            </div>
                                                             <div class="small text-muted">{{ appointment.stylist.first_name }}</div>
                                                             <span class="badge bg-{{ 'success' if appointment.status == 'confirmed' else 'secondary' if appointment.status == 'completed' else 'danger' if appointment.status == 'cancelled' else 'warning' }} position-absolute top-0 end-0 m-1">
                                                                 {{ appointment.status[:3]|upper }}

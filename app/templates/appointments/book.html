@@ -58,6 +58,7 @@
                             <label class="form-label">Services</label>
                             {% for subform in form.services %}
                             <div class="row service-row mb-2" data-index="{{ loop.index0 }}">
+                                {{ subform.csrf_token }}
                                 <div class="col-md-5">
                                     {{ subform.service_id(class="form-select") }}
                                     {% if subform.service_id.errors %}
@@ -199,6 +200,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Add/remove service rows
     const servicesList = document.getElementById('services-list');
     const addServiceBtn = document.getElementById('add-service');
+    
     servicesList.addEventListener('click', function(e) {
         if (e.target.closest('.remove-service')) {
             const row = e.target.closest('.service-row');
@@ -207,15 +209,53 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     });
+    
     addServiceBtn.addEventListener('click', function() {
         const lastRow = servicesList.querySelector('.service-row:last-of-type');
         if (!lastRow) return;
+        
+        // Get the current number of service rows to calculate the new index
+        const currentRows = servicesList.querySelectorAll('.service-row');
+        const newIndex = currentRows.length;
+        
+        // Create a new row by cloning the last one
         const newRow = lastRow.cloneNode(true);
-        // Clear values
-        newRow.querySelectorAll('select, input').forEach(function(input) {
-            if (input.tagName === 'SELECT') input.selectedIndex = 0;
-            if (input.tagName === 'INPUT') input.value = '';
-        });
+        
+        // Get the CSRF token from the main form
+        const mainCsrfToken = document.querySelector('input[name="csrf_token"]').value;
+        
+        // Update the form field names to use the correct index
+        const serviceSelect = newRow.querySelector('select[name*="service_id"]');
+        const durationInput = newRow.querySelector('input[name*="duration"]');
+        const waitingInput = newRow.querySelector('input[name*="waiting_time"]');
+        const csrfInput = newRow.querySelector('input[name*="csrf_token"]');
+        
+        if (serviceSelect) {
+            serviceSelect.name = `services-${newIndex}-service_id`;
+            serviceSelect.id = `services-${newIndex}-service_id`;
+        }
+        if (durationInput) {
+            durationInput.name = `services-${newIndex}-duration`;
+            durationInput.id = `services-${newIndex}-duration`;
+        }
+        if (waitingInput) {
+            waitingInput.name = `services-${newIndex}-waiting_time`;
+            waitingInput.id = `services-${newIndex}-waiting_time`;
+        }
+        if (csrfInput) {
+            csrfInput.name = `services-${newIndex}-csrf_token`;
+            csrfInput.id = `services-${newIndex}-csrf_token`;
+            csrfInput.value = mainCsrfToken;
+        }
+        
+        // Clear the values
+        if (serviceSelect) serviceSelect.selectedIndex = 0;
+        if (durationInput) durationInput.value = '';
+        if (waitingInput) waitingInput.value = '';
+        
+        // Update the data-index attribute
+        newRow.setAttribute('data-index', newIndex);
+        
         servicesList.appendChild(newRow);
     });
 });
