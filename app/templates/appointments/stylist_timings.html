@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h3 class="mb-0">
+                        <i class="fas fa-clock"></i> {{ title }}
+                    </h3>
+                    <a href="{{ url_for('appointments.new_stylist_timing') }}" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Add Stylist Timing
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+
+                    {% if timings %}
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Stylist</th>
+                                        <th>Service</th>
+                                        <th>Standard Duration</th>
+                                        <th>Custom Duration</th>
+                                        <th>Time Saved</th>
+                                        <th>Notes</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for timing in timings %}
+                                        <tr>
+                                            <td>
+                                                <strong>{{ timing.stylist.first_name }} {{ timing.stylist.last_name }}</strong>
+                                            </td>
+                                            <td>{{ timing.service.name }}</td>
+                                            <td>{{ timing.service.duration }} min</td>
+                                            <td>
+                                                <span class="badge bg-{{ 'success' if timing.custom_duration < timing.service.duration else 'warning' }}">
+                                                    {{ timing.custom_duration }} min
+                                                </span>
+                                            </td>
+                                            <td>
+                                                {% set time_saved = timing.service.duration - timing.custom_duration %}
+                                                {% if time_saved > 0 %}
+                                                    <span class="text-success">
+                                                        <i class="fas fa-arrow-down"></i> {{ time_saved }} min saved
+                                                    </span>
+                                                {% elif time_saved < 0 %}
+                                                    <span class="text-warning">
+                                                        <i class="fas fa-arrow-up"></i> {{ -time_saved }} min extra
+                                                    </span>
+                                                {% else %}
+                                                    <span class="text-muted">No change</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if timing.notes %}
+                                                    <small class="text-muted">{{ timing.notes[:50] }}{% if timing.notes|length > 50 %}...{% endif %}</small>
+                                                {% else %}
+                                                    <span class="text-muted">-</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if timing.is_active %}
+                                                    <span class="badge bg-success">Active</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">Inactive</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <div class="btn-group" role="group">
+                                                    <a href="{{ url_for('appointments.edit_stylist_timing', timing_id=timing.id) }}" 
+                                                       class="btn btn-sm btn-outline-primary">
+                                                        <i class="fas fa-edit"></i>
+                                                    </a>
+                                                    <button type="button" class="btn btn-sm btn-outline-danger" 
+                                                            onclick="confirmDelete({{ timing.id }}, '{{ timing.stylist.first_name }} {{ timing.stylist.last_name }} - {{ timing.service.name }}')">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-clock fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No Stylist Timings Found</h5>
+                            <p class="text-muted">Start by adding custom timing for stylists who can complete services faster or slower than standard.</p>
+                            <a href="{{ url_for('appointments.new_stylist_timing') }}" class="btn btn-primary">
+                                <i class="fas fa-plus"></i> Add First Stylist Timing
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete the stylist timing for <strong id="timingName"></strong>?</p>
+                <p class="text-muted">This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="deleteForm" method="POST" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function confirmDelete(timingId, timingName) {
+    document.getElementById('timingName').textContent = timingName;
+    document.getElementById('deleteForm').action = '/appointments/stylist-timings/' + timingId + '/delete';
+    new bootstrap.Modal(document.getElementById('deleteModal')).show();
+}
+</script>
+{% endblock %} 

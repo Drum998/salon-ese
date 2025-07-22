@@ -140,6 +140,7 @@ class ServiceForm(FlaskForm):
     name = StringField('Service Name', validators=[DataRequired(), Length(max=100)])
     description = TextAreaField('Description', validators=[Optional(), Length(max=500)])
     duration = StringField('Duration (minutes)', validators=[DataRequired()])
+    waiting_time = StringField('Waiting Time (minutes)', validators=[Optional()])
     price = StringField('Price (£)', validators=[DataRequired()])
     is_active = BooleanField('Active Service', default=True)
     submit = SubmitField('Save Service')
@@ -152,6 +153,15 @@ class ServiceForm(FlaskForm):
         except ValueError:
             raise ValidationError('Please enter a valid duration in minutes (1-480).')
     
+    def validate_waiting_time(self, waiting_time):
+        if waiting_time.data:
+            try:
+                mins = int(waiting_time.data)
+                if mins < 0 or mins > 240:  # Max 4 hours waiting time
+                    raise ValueError
+            except ValueError:
+                raise ValidationError('Please enter a valid waiting time in minutes (0-240).')
+    
     def validate_price(self, price):
         try:
             price_val = float(price.data)
@@ -160,10 +170,62 @@ class ServiceForm(FlaskForm):
         except ValueError:
             raise ValidationError('Please enter a valid price.')
 
+class StylistServiceTimingForm(FlaskForm):
+    """Form for managing stylist-specific service durations"""
+    stylist_id = SelectField('Stylist', coerce=int, validators=[DataRequired()])
+    service_id = SelectField('Service', coerce=int, validators=[DataRequired()])
+    custom_duration = StringField('Custom Duration (minutes)', validators=[DataRequired()])
+    notes = TextAreaField('Notes', validators=[Optional(), Length(max=500)])
+    is_active = BooleanField('Active Timing', default=True)
+    submit = SubmitField('Save Stylist Timing')
+    
+    def __init__(self, *args, **kwargs):
+        super(StylistServiceTimingForm, self).__init__(*args, **kwargs)
+        from app.models import User, Role, Service
+        
+        # Populate stylist choices
+        stylist_role = Role.query.filter_by(name='stylist').first()
+        if stylist_role:
+            stylists = User.query.join(User.roles).filter(
+                User.is_active == True,
+                User.roles.contains(stylist_role)
+            ).all()
+            self.stylist_id.choices = [(s.id, f"{s.first_name} {s.last_name}") for s in stylists]
+        else:
+            self.stylist_id.choices = []
+        
+        # Populate service choices (only active services)
+        services = Service.query.filter_by(is_active=True).all()
+        self.service_id.choices = [(s.id, f"{s.name} (Standard: {s.duration}min)") for s in services]
+    
+    def validate_custom_duration(self, custom_duration):
+        try:
+            mins = int(custom_duration.data)
+            if mins <= 0 or mins > 480:  # Max 8 hours
+                raise ValueError
+        except ValueError:
+            raise ValidationError('Please enter a valid duration in minutes (1-480).')
+
 class AppointmentServiceForm(FlaskForm):
     service_id = SelectField('Service', coerce=int, validators=[DataRequired()])
     duration = IntegerField('Duration (minutes)', validators=[DataRequired()])
     waiting_time = IntegerField('Waiting Time (minutes)', validators=[Optional()])
+    use_stylist_timing = BooleanField('Use Stylist Timing (if available)', default=False)
+    
+    def __init__(self, stylist_id=None, *args, **kwargs):
+        super(AppointmentServiceForm, self).__init__(*args, **kwargs)
+        self.stylist_id = stylist_id
+        # Populate service choices (only active services)
+        from app.models import Service
+        services = Service.query.filter_by(is_active=True).all()
+        self.service_id.choices = [(s.id, f"{s.name} (£{s.price}) - {s.duration}min") for s in services]
+        
+        # Set default duration and waiting time based on selected service
+        if self.service_id.data:
+            service = Service.query.get(self.service_id.data)
+            if service:
+                self.duration.data = service.duration
+                self.waiting_time.data = service.waiting_time or 0
 
 class AppointmentBookingForm(FlaskForm):
     stylist_id = SelectField('Stylist', coerce=int, validators=[DataRequired()])
@@ -204,10 +266,11 @@ class AppointmentBookingForm(FlaskForm):
             self.customer_id.choices = [(current_user.id, f"{current_user.first_name} {current_user.last_name} ({current_user.username})")]
             self.customer_id.data = current_user.id
             self.customer_id.widget = HiddenField().widget
-        # Populate service choices (only active services)
-        from app.models import Service
-        services = Service.query.filter_by(is_active=True).all()
-        self.services.choices = [(s.id, f"{s.name} (£{s.price}) - {s.duration}min") for s in services]
+        
+        # Initialize service subforms with stylist timing support
+        for service_form in self.services:
+            service_form.stylist_id = self.stylist_id.data if self.stylist_id.data else None
+        
         # Populate time slots (9 AM to 6 PM, 30-minute intervals)
         time_slots = []
         for hour in range(9, 18):

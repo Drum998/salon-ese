@@ -59,7 +59,7 @@
                             {% for subform in form.services %}
                             <div class="row service-row mb-2" data-index="{{ loop.index0 }}">
                                 {{ subform.csrf_token }}
-                                <div class="col-md-5">
+                                <div class="col-md-4">
                                     {{ subform.service_id(class="form-select") }}
                                     {% if subform.service_id.errors %}
                                         <div class="text-danger">
@@ -69,7 +69,7 @@
                                         </div>
                                     {% endif %}
                                 </div>
-                                <div class="col-md-3">
+                                <div class="col-md-2">
                                     {{ subform.duration(class="form-control", placeholder="Duration (min)") }}
                                     {% if subform.duration.errors %}
                                         <div class="text-danger">
@@ -79,11 +79,24 @@
                                         </div>
                                     {% endif %}
                                 </div>
-                                <div class="col-md-3">
+                                <div class="col-md-2">
                                     {{ subform.waiting_time(class="form-control", placeholder="Waiting (min)") }}
                                     {% if subform.waiting_time.errors %}
                                         <div class="text-danger">
                                             {% for error in subform.waiting_time.errors %}
+                                                <small>{{ error }}</small>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        {{ subform.use_stylist_timing(class="form-check-input") }}
+                                        {{ subform.use_stylist_timing.label(class="form-check-label") }}
+                                    </div>
+                                    {% if subform.use_stylist_timing.errors %}
+                                        <div class="text-danger">
+                                            {% for error in subform.use_stylist_timing.errors %}
                                                 <small>{{ error }}</small>
                                             {% endfor %}
                                         </div>
@@ -228,6 +241,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const serviceSelect = newRow.querySelector('select[name*="service_id"]');
         const durationInput = newRow.querySelector('input[name*="duration"]');
         const waitingInput = newRow.querySelector('input[name*="waiting_time"]');
+        const stylistTimingCheckbox = newRow.querySelector('input[name*="use_stylist_timing"]');
         const csrfInput = newRow.querySelector('input[name*="csrf_token"]');
         
         if (serviceSelect) {
@@ -242,6 +256,10 @@ document.addEventListener('DOMContentLoaded', function() {
             waitingInput.name = `services-${newIndex}-waiting_time`;
             waitingInput.id = `services-${newIndex}-waiting_time`;
         }
+        if (stylistTimingCheckbox) {
+            stylistTimingCheckbox.name = `services-${newIndex}-use_stylist_timing`;
+            stylistTimingCheckbox.id = `services-${newIndex}-use_stylist_timing`;
+        }
         if (csrfInput) {
             csrfInput.name = `services-${newIndex}-csrf_token`;
             csrfInput.id = `services-${newIndex}-csrf_token`;
@@ -252,6 +270,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (serviceSelect) serviceSelect.selectedIndex = 0;
         if (durationInput) durationInput.value = '';
         if (waitingInput) waitingInput.value = '';
+        if (stylistTimingCheckbox) stylistTimingCheckbox.checked = false;
         
         // Update the data-index attribute
         newRow.setAttribute('data-index', newIndex);

@@ -38,7 +38,7 @@
                     </div>
                     
                     <div class="row">
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <div class="mb-3">
                                 {{ form.duration.label(class="form-label") }}
                                 {{ form.duration(class="form-control", placeholder="e.g., 60") }}
@@ -52,7 +52,21 @@
                                 {% endif %}
                             </div>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                {{ form.waiting_time.label(class="form-label") }}
+                                {{ form.waiting_time(class="form-control", placeholder="e.g., 30") }}
+                                <div class="form-text">Waiting time in minutes (0-240)</div>
+                                {% if form.waiting_time.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.waiting_time.errors %}
+                                            <small>{{ error }}</small>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-4">
                             <div class="mb-3">
                                 {{ form.price.label(class="form-label") }}
                                 <div class="input-group">

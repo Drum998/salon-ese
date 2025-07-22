@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="mb-0">
+                        <i class="fas fa-clock"></i> {{ title }}
+                    </h3>
+                </div>
+                <div class="card-body">
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+
+                    <form method="POST">
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.stylist_id.label(class="form-label") }}
+                                    {{ form.stylist_id(class="form-select" + (" is-invalid" if form.stylist_id.errors else "")) }}
+                                    {% if form.stylist_id.errors %}
+                                        <div class="invalid-feedback">
+                                            {% for error in form.stylist_id.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.service_id.label(class="form-label") }}
+                                    {{ form.service_id(class="form-select" + (" is-invalid" if form.service_id.errors else "")) }}
+                                    {% if form.service_id.errors %}
+                                        <div class="invalid-feedback">
+                                            {% for error in form.service_id.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.custom_duration.label(class="form-label") }}
+                            {{ form.custom_duration(class="form-control" + (" is-invalid" if form.custom_duration.errors else "")) }}
+                            {% if form.custom_duration.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.custom_duration.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <small class="form-text text-muted">Enter the duration in minutes that this stylist typically takes for this service.</small>
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.notes.label(class="form-label") }}
+                            {{ form.notes(class="form-control" + (" is-invalid" if form.notes.errors else ""), rows=3) }}
+                            {% if form.notes.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.notes.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <small class="form-text text-muted">Optional notes about why this stylist takes more or less time.</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="form-check">
+                                {{ form.is_active(class="form-check-input") }}
+                                {{ form.is_active.label(class="form-check-label") }}
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('appointments.manage_stylist_timings') }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Back to Stylist Timings
+                            </a>
+                            {{ form.submit(class="btn btn-primary") }}
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Auto-populate custom duration when service is selected
+document.addEventListener('DOMContentLoaded', function() {
+    const serviceSelect = document.getElementById('service_id');
+    const durationInput = document.getElementById('custom_duration');
+    
+    serviceSelect.addEventListener('change', function() {
+        const selectedOption = this.options[this.selectedIndex];
+        const serviceText = selectedOption.text;
+        
+        // Extract standard duration from service text (format: "Service Name (Standard: Xmin)")
+        const match = serviceText.match(/Standard: (\d+)min/);
+        if (match) {
+            durationInput.value = match[1];
+        }
+    });
+});
+</script>
+{% endblock %} 

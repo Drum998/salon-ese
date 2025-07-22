@@ -26,11 +26,21 @@
                                     <p class="card-text">{{ service.description }}</p>
                                 {% endif %}
                                 <div class="row">
-                                    <div class="col-6">
+                                    <div class="col-4">
                                         <strong>Duration:</strong><br>
-                                        <span class="text-muted">{{ service.duration }} minutes</span>
+                                        <span class="text-muted">{{ service.duration }} min</span>
                                     </div>
-                                    <div class="col-6">
+                                    <div class="col-4">
+                                        <strong>Waiting:</strong><br>
+                                        <span class="text-muted">
+                                            {% if service.waiting_time %}
+                                                {{ service.waiting_time }} min
+                                            {% else %}
+                                                None
+                                            {% endif %}
+                                        </span>
+                                    </div>
+                                    <div class="col-4">
                                         <strong>Price:</strong><br>
                                         <span class="text-muted">£{{ "%.2f"|format(service.price) }}</span>
                                     </div>

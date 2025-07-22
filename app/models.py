@@ -142,6 +142,37 @@ class Service(db.Model):
     def __repr__(self):
         return f'<Service {self.name}>'
 
+class StylistServiceTiming(db.Model):
+    """Stylist-specific timing for services"""
+    id = db.Column(db.Integer, primary_key=True)
+    stylist_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=False)
+    custom_duration = db.Column(db.Integer, nullable=False)  # Custom duration in minutes
+    notes = db.Column(db.Text)
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=uk_utcnow)
+    updated_at = db.Column(db.DateTime, default=uk_utcnow, onupdate=uk_utcnow)
+    
+    # Relationships
+    stylist = db.relationship('User', foreign_keys=[stylist_id], backref='service_timings')
+    service = db.relationship('Service', backref='stylist_timings')
+    
+    # Unique constraint to prevent duplicate stylist-service combinations
+    __table_args__ = (db.UniqueConstraint('stylist_id', 'service_id', name='_stylist_service_uc'),)
+    
+    def __repr__(self):
+        return f'<StylistServiceTiming {self.stylist_id}-{self.service_id}>'
+    
+    @classmethod
+    def get_stylist_duration(cls, stylist_id, service_id):
+        """Get custom duration for a stylist-service combination, or None if not set"""
+        timing = cls.query.filter_by(
+            stylist_id=stylist_id,
+            service_id=service_id,
+            is_active=True
+        ).first()
+        return timing.custom_duration if timing else None
+
 # Update Appointment model
 class Appointment(db.Model):
     id = db.Column(db.Integer, primary_key=True)

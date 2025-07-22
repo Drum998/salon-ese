@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, current_app
 from flask_login import current_user, login_required
 from app.models import User, Role, Service, Appointment, AppointmentStatus, AppointmentService
-from app.forms import AppointmentBookingForm, AppointmentManagementForm, AppointmentFilterForm, ServiceForm
+from app.forms import AppointmentBookingForm, AppointmentManagementForm, AppointmentFilterForm, ServiceForm, StylistServiceTimingForm
 from app.extensions import db
 from datetime import datetime, date, timedelta
 from functools import wraps
@@ -92,10 +92,21 @@ def book_appointment():
         
         # Create AppointmentService entries
         for idx, service_form in enumerate(form.services.entries):
+            # Check if stylist timing should be used
+            duration_to_use = service_form.duration.data
+            if service_form.use_stylist_timing.data:
+                from app.models import StylistServiceTiming
+                stylist_timing = StylistServiceTiming.get_stylist_duration(
+                    form.stylist_id.data, 
+                    service_form.service_id.data
+                )
+                if stylist_timing:
+                    duration_to_use = stylist_timing
+            
             appt_service = AppointmentService(
                 appointment_id=appointment.id,
                 service_id=service_form.service_id.data,
-                duration=service_form.duration.data,
+                duration=duration_to_use,
                 waiting_time=service_form.waiting_time.data or 0,
                 order=idx
             )
@@ -382,6 +393,7 @@ def new_service():
             name=form.name.data,
             description=form.description.data,
             duration=int(form.duration.data),
+            waiting_time=int(form.waiting_time.data) if form.waiting_time.data else None,
             price=float(form.price.data),
             is_active=form.is_active.data
         )
@@ -405,6 +417,7 @@ def edit_service(service_id):
         service.name = form.name.data
         service.description = form.description.data
         service.duration = int(form.duration.data)
+        service.waiting_time = int(form.waiting_time.data) if form.waiting_time.data else None
         service.price = float(form.price.data)
         service.is_active = form.is_active.data
         
@@ -416,6 +429,90 @@ def edit_service(service_id):
                          form=form,
                          service=service,
                          title='Edit Service')
+
+@bp.route('/stylist-timings')
+@login_required
+@roles_required('manager', 'owner')
+def manage_stylist_timings():
+    from app.models import StylistServiceTiming
+    timings = StylistServiceTiming.query.join(StylistServiceTiming.stylist).join(StylistServiceTiming.service).order_by(
+        StylistServiceTiming.stylist_id, StylistServiceTiming.service_id
+    ).all()
+    return render_template('appointments/stylist_timings.html',
+                         timings=timings,
+                         title='Manage Stylist Timings')
+
+@bp.route('/stylist-timings/new', methods=['GET', 'POST'])
+@login_required
+@roles_required('manager', 'owner')
+def new_stylist_timing():
+    from app.models import StylistServiceTiming
+    form = StylistServiceTimingForm()
+    
+    if form.validate_on_submit():
+        # Check if timing already exists for this stylist-service combination
+        existing_timing = StylistServiceTiming.query.filter_by(
+            stylist_id=form.stylist_id.data,
+            service_id=form.service_id.data
+        ).first()
+        
+        if existing_timing:
+            # Update existing timing
+            existing_timing.custom_duration = int(form.custom_duration.data)
+            existing_timing.notes = form.notes.data
+            existing_timing.is_active = form.is_active.data
+            flash('Stylist timing updated successfully!', 'success')
+        else:
+            # Create new timing
+            timing = StylistServiceTiming(
+                stylist_id=form.stylist_id.data,
+                service_id=form.service_id.data,
+                custom_duration=int(form.custom_duration.data),
+                notes=form.notes.data,
+                is_active=form.is_active.data
+            )
+            db.session.add(timing)
+            flash('Stylist timing created successfully!', 'success')
+        
+        db.session.commit()
+        return redirect(url_for('appointments.manage_stylist_timings'))
+    
+    return render_template('appointments/stylist_timing_form.html',
+                         form=form,
+                         title='New Stylist Timing')
+
+@bp.route('/stylist-timings/<int:timing_id>/edit', methods=['GET', 'POST'])
+@login_required
+@roles_required('manager', 'owner')
+def edit_stylist_timing(timing_id):
+    from app.models import StylistServiceTiming
+    timing = StylistServiceTiming.query.get_or_404(timing_id)
+    form = StylistServiceTimingForm(obj=timing)
+    
+    if form.validate_on_submit():
+        timing.custom_duration = int(form.custom_duration.data)
+        timing.notes = form.notes.data
+        timing.is_active = form.is_active.data
+        
+        db.session.commit()
+        flash('Stylist timing updated successfully!', 'success')
+        return redirect(url_for('appointments.manage_stylist_timings'))
+    
+    return render_template('appointments/stylist_timing_form.html',
+                         form=form,
+                         timing=timing,
+                         title='Edit Stylist Timing')
+
+@bp.route('/stylist-timings/<int:timing_id>/delete', methods=['POST'])
+@login_required
+@roles_required('manager', 'owner')
+def delete_stylist_timing(timing_id):
+    from app.models import StylistServiceTiming
+    timing = StylistServiceTiming.query.get_or_404(timing_id)
+    db.session.delete(timing)
+    db.session.commit()
+    flash('Stylist timing deleted successfully!', 'success')
+    return redirect(url_for('appointments.manage_stylist_timings'))
 
 # API endpoints for calendar data
 @bp.route('/api/appointments')
