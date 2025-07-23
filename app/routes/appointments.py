@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, current_app
 from flask_login import current_user, login_required
-from app.models import User, Role, Service, Appointment, AppointmentStatus, AppointmentService
-from app.forms import AppointmentBookingForm, AppointmentManagementForm, AppointmentFilterForm, ServiceForm, StylistServiceTimingForm
+from app.models import User, Role, Service, Appointment, AppointmentStatus, AppointmentService, StylistServiceAssociation
+from app.forms import AppointmentBookingForm, AppointmentManagementForm, AppointmentFilterForm, ServiceForm, StylistServiceTimingForm, StylistServiceAssociationForm
 from app.extensions import db
 from datetime import datetime, date, timedelta
 from functools import wraps
@@ -459,6 +459,7 @@ def new_stylist_timing():
         if existing_timing:
             # Update existing timing
             existing_timing.custom_duration = int(form.custom_duration.data)
+            existing_timing.custom_waiting_time = int(form.custom_waiting_time.data) if form.custom_waiting_time.data else None
             existing_timing.notes = form.notes.data
             existing_timing.is_active = form.is_active.data
             flash('Stylist timing updated successfully!', 'success')
@@ -468,6 +469,7 @@ def new_stylist_timing():
                 stylist_id=form.stylist_id.data,
                 service_id=form.service_id.data,
                 custom_duration=int(form.custom_duration.data),
+                custom_waiting_time=int(form.custom_waiting_time.data) if form.custom_waiting_time.data else None,
                 notes=form.notes.data,
                 is_active=form.is_active.data
             )
@@ -491,6 +493,7 @@ def edit_stylist_timing(timing_id):
     
     if form.validate_on_submit():
         timing.custom_duration = int(form.custom_duration.data)
+        timing.custom_waiting_time = int(form.custom_waiting_time.data) if form.custom_waiting_time.data else None
         timing.notes = form.notes.data
         timing.is_active = form.is_active.data
         
@@ -562,4 +565,154 @@ def api_appointments():
             'url': url_for('appointments.view_appointment', appointment_id=appointment.id)
         })
     
-    return jsonify(events) 
+    return jsonify(events)
+
+
+# Stylist-Service Association Management Routes
+@bp.route('/stylist-associations')
+@login_required
+@roles_required('manager', 'owner')
+def manage_stylist_associations():
+    """Manage which stylists can perform which services"""
+    associations = StylistServiceAssociation.query.join(
+        StylistServiceAssociation.stylist
+    ).join(
+        StylistServiceAssociation.service
+    ).order_by(
+        StylistServiceAssociation.stylist_id, 
+        StylistServiceAssociation.service_id
+    ).all()
+    
+    return render_template('appointments/stylist_associations.html',
+                         associations=associations,
+                         title='Manage Stylist-Service Associations')
+
+
+@bp.route('/stylist-associations/new', methods=['GET', 'POST'])
+@login_required
+@roles_required('manager', 'owner')
+def new_stylist_association():
+    """Create a new stylist-service association"""
+    form = StylistServiceAssociationForm()
+    
+    if form.validate_on_submit():
+        # Convert string values to integers
+        stylist_id = int(form.stylist_id.data)
+        service_id = int(form.service_id.data)
+        
+        # Check if association already exists for this stylist-service combination
+        existing_association = StylistServiceAssociation.query.filter_by(
+            stylist_id=stylist_id,
+            service_id=service_id
+        ).first()
+        
+        if existing_association:
+            # Update existing association
+            existing_association.is_allowed = form.is_allowed.data
+            existing_association.notes = form.notes.data
+            flash('Stylist association updated successfully!', 'success')
+        else:
+            # Create new association
+            association = StylistServiceAssociation(
+                stylist_id=stylist_id,
+                service_id=service_id,
+                is_allowed=form.is_allowed.data,
+                notes=form.notes.data
+            )
+            db.session.add(association)
+            flash('Stylist association created successfully!', 'success')
+        
+        db.session.commit()
+        return redirect(url_for('appointments.manage_stylist_associations'))
+    
+    return render_template('appointments/stylist_association_form.html',
+                         form=form,
+                         title='New Stylist-Service Association')
+
+
+@bp.route('/stylist-associations/<int:association_id>/edit', methods=['GET', 'POST'])
+@login_required
+@roles_required('manager', 'owner')
+def edit_stylist_association(association_id):
+    """Edit an existing stylist-service association"""
+    association = StylistServiceAssociation.query.get_or_404(association_id)
+    form = StylistServiceAssociationForm(obj=association)
+    
+    if form.validate_on_submit():
+        # Convert string values to integers
+        stylist_id = int(form.stylist_id.data)
+        service_id = int(form.service_id.data)
+        
+        # Update the association
+        association.stylist_id = stylist_id
+        association.service_id = service_id
+        association.is_allowed = form.is_allowed.data
+        association.notes = form.notes.data
+        
+        db.session.commit()
+        flash('Stylist association updated successfully!', 'success')
+        return redirect(url_for('appointments.manage_stylist_associations'))
+    
+    return render_template('appointments/stylist_association_form.html',
+                         form=form,
+                         association=association,
+                         title='Edit Stylist-Service Association')
+
+
+@bp.route('/stylist-associations/<int:association_id>/delete', methods=['POST'])
+@login_required
+@roles_required('manager', 'owner')
+def delete_stylist_association(association_id):
+    """Delete a stylist-service association"""
+    association = StylistServiceAssociation.query.get_or_404(association_id)
+    db.session.delete(association)
+    db.session.commit()
+    flash('Stylist association deleted successfully!', 'success')
+    return redirect(url_for('appointments.manage_stylist_associations'))
+
+
+@bp.route('/api/stylist-services/<int:stylist_id>')
+@login_required
+def api_stylist_services(stylist_id):
+    """API endpoint to get services a stylist can perform"""
+    if not current_user.has_role('manager') and not current_user.has_role('owner'):
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    stylist = User.query.get_or_404(stylist_id)
+    if not stylist.has_role('stylist'):
+        return jsonify({'error': 'User is not a stylist'}), 400
+    
+    # Get services the stylist is allowed to perform
+    allowed_services = StylistServiceAssociation.get_stylist_services(stylist_id)
+    
+    services_data = []
+    for service in allowed_services:
+        services_data.append({
+            'id': service.id,
+            'name': service.name,
+            'duration': service.duration,
+            'price': float(service.price),
+            'waiting_time': service.waiting_time
+        })
+    
+    return jsonify(services_data)
+
+
+@bp.route('/api/service/<int:service_id>')
+@login_required
+def api_service_details(service_id):
+    """API endpoint to get service details"""
+    if not current_user.has_role('manager') and not current_user.has_role('owner'):
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    service = Service.query.get_or_404(service_id)
+    
+    service_data = {
+        'id': service.id,
+        'name': service.name,
+        'duration': service.duration,
+        'waiting_time': service.waiting_time,
+        'price': float(service.price)
+    }
+    
+    return jsonify(service_data) 

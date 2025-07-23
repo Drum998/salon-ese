@@ -175,6 +175,7 @@ class StylistServiceTimingForm(FlaskForm):
     stylist_id = SelectField('Stylist', coerce=int, validators=[DataRequired()])
     service_id = SelectField('Service', coerce=int, validators=[DataRequired()])
     custom_duration = StringField('Custom Duration (minutes)', validators=[DataRequired()])
+    custom_waiting_time = StringField('Custom Waiting Time (minutes)', validators=[Optional()])
     notes = TextAreaField('Notes', validators=[Optional(), Length(max=500)])
     is_active = BooleanField('Active Timing', default=True)
     submit = SubmitField('Save Stylist Timing')
@@ -197,6 +198,12 @@ class StylistServiceTimingForm(FlaskForm):
         # Populate service choices (only active services)
         services = Service.query.filter_by(is_active=True).all()
         self.service_id.choices = [(s.id, f"{s.name} (Standard: {s.duration}min)") for s in services]
+        
+        # Set default waiting time based on selected service if not already set
+        if self.service_id.data and not self.custom_waiting_time.data:
+            service = Service.query.get(self.service_id.data)
+            if service and service.waiting_time:
+                self.custom_waiting_time.data = str(service.waiting_time)
     
     def validate_custom_duration(self, custom_duration):
         try:
@@ -205,6 +212,63 @@ class StylistServiceTimingForm(FlaskForm):
                 raise ValueError
         except ValueError:
             raise ValidationError('Please enter a valid duration in minutes (1-480).')
+    
+    def validate_custom_waiting_time(self, custom_waiting_time):
+        if custom_waiting_time.data and custom_waiting_time.data.strip():
+            try:
+                mins = int(custom_waiting_time.data)
+                if mins < 0 or mins > 240:  # Max 4 hours waiting time
+                    raise ValueError
+            except ValueError:
+                raise ValidationError('Please enter a valid waiting time in minutes (0-240).')
+
+
+class StylistServiceAssociationForm(FlaskForm):
+    """Form for managing stylist-service associations"""
+    stylist_id = SelectField('Stylist', validators=[DataRequired()])
+    service_id = SelectField('Service', validators=[DataRequired()])
+    is_allowed = BooleanField('Stylist can perform this service', default=True)
+    notes = TextAreaField('Notes', validators=[Optional(), Length(max=500)])
+    submit = SubmitField('Save Association')
+    
+    def validate_stylist_id(self, stylist_id):
+        if not stylist_id.data or stylist_id.data == '':
+            raise ValidationError('Please select a stylist.')
+        try:
+            int(stylist_id.data)
+        except (ValueError, TypeError):
+            raise ValidationError('Please select a valid stylist.')
+    
+    def validate_service_id(self, service_id):
+        if not service_id.data or service_id.data == '':
+            raise ValidationError('Please select a service.')
+        try:
+            int(service_id.data)
+        except (ValueError, TypeError):
+            raise ValidationError('Please select a valid service.')
+    
+    def __init__(self, *args, **kwargs):
+        super(StylistServiceAssociationForm, self).__init__(*args, **kwargs)
+        
+        # Populate stylist choices (only stylists, managers, owners)
+        from app.models import User, Role
+        stylists = User.query.join(User.roles).filter(
+            Role.name.in_(['stylist', 'manager', 'owner'])
+        ).order_by(User.first_name, User.last_name).all()
+        
+        self.stylist_id.choices = [('', 'Select stylist')] + [
+            (stylist.id, f"{stylist.first_name} {stylist.last_name} ({stylist.username})")
+            for stylist in stylists
+        ]
+        
+        # Populate service choices (only active services)
+        from app.models import Service
+        services = Service.query.filter_by(is_active=True).order_by(Service.name).all()
+        self.service_id.choices = [('', 'Select service')] + [
+            (service.id, f"{service.name} ({service.duration}min - £{service.price})")
+            for service in services
+        ]
+
 
 class AppointmentServiceForm(FlaskForm):
     service_id = SelectField('Service', coerce=int, validators=[DataRequired()])
@@ -216,9 +280,24 @@ class AppointmentServiceForm(FlaskForm):
         super(AppointmentServiceForm, self).__init__(*args, **kwargs)
         self.stylist_id = stylist_id
         # Populate service choices (only active services)
-        from app.models import Service
+        from app.models import Service, StylistServiceAssociation
         services = Service.query.filter_by(is_active=True).all()
-        self.service_id.choices = [(s.id, f"{s.name} (£{s.price}) - {s.duration}min") for s in services]
+        
+        # If stylist_id is provided, filter services based on stylist associations
+        if stylist_id:
+            # Get services the stylist is allowed to perform
+            allowed_services = StylistServiceAssociation.get_stylist_services(stylist_id)
+            # If no associations exist, allow all services (backward compatibility)
+            if not allowed_services:
+                self.service_id.choices = [(s.id, f"{s.name} (£{s.price}) - {s.duration}min") for s in services]
+            else:
+                # Only show services the stylist is allowed to perform
+                allowed_service_ids = [s.id for s in allowed_services]
+                filtered_services = [s for s in services if s.id in allowed_service_ids]
+                self.service_id.choices = [(s.id, f"{s.name} (£{s.price}) - {s.duration}min") for s in filtered_services]
+        else:
+            # No stylist selected, show all services
+            self.service_id.choices = [(s.id, f"{s.name} (£{s.price}) - {s.duration}min") for s in services]
         
         # Set default duration and waiting time based on selected service
         if self.service_id.data:
@@ -226,6 +305,17 @@ class AppointmentServiceForm(FlaskForm):
             if service:
                 self.duration.data = service.duration
                 self.waiting_time.data = service.waiting_time or 0
+                
+                # If stylist timing is enabled, check for custom timing
+                if self.stylist_id and self.use_stylist_timing.data:
+                    from app.models import StylistServiceTiming
+                    custom_duration = StylistServiceTiming.get_stylist_duration(self.stylist_id, service.id)
+                    custom_waiting_time = StylistServiceTiming.get_stylist_waiting_time(self.stylist_id, service.id)
+                    
+                    if custom_duration:
+                        self.duration.data = custom_duration
+                    if custom_waiting_time is not None:
+                        self.waiting_time.data = custom_waiting_time
 
 class AppointmentBookingForm(FlaskForm):
     stylist_id = SelectField('Stylist', coerce=int, validators=[DataRequired()])

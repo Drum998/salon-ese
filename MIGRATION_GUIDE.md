@@ -65,14 +65,20 @@ docker-compose up -d
 
 ### Step 5: Run Database Migrations
 
-Wait for the containers to be fully started, then run the migration scripts:
+Wait for the containers to be fully started, then run the migration scripts in order:
 
 ```bash
-# Run the multi-service appointment migration (if not already done)
+# 1. Run the multi-service appointment migration (if not already done)
 docker exec -it salon-ese-web-1 python migrate_appointments_multiservice.py
 
-# Run the stylist timings migration
+# 2. Run the stylist timings migration
 docker exec -it salon-ese-web-1 python migrate_stylist_timings.py
+
+# 3. Run the stylist-service associations migration
+docker exec -it salon-ese-web-1 python migrate_stylist_service_associations.py
+
+# 4. Run the stylist timing waiting time migration
+docker exec -it salon-ese-web-1 python migrate_stylist_timing_waiting_time.py
 ```
 
 ### Step 6: Verify Migration Success
@@ -82,16 +88,22 @@ Check that all migrations completed successfully. You should see output like:
 ```
 ✓ StylistServiceTiming table created
 ✓ waiting_time column added to Service table
+✓ StylistServiceAssociation table created
+✓ custom_waiting_time column added to StylistServiceTiming table
 ✓ Migration completed successfully!
 ```
+
+**Note:** Each migration script will show its own success messages. If any migration fails, check the error message and ensure the previous migrations completed successfully before retrying.
 
 ### Step 7: Test the Application
 
 1. **Access the application** at `http://localhost:5010`
 2. **Log in** with your existing credentials
 3. **Navigate to "Stylist Timings"** in the menu (for managers/owners)
-4. **Check "Services"** page to see waiting time fields
-5. **Test booking an appointment** with the new features
+4. **Navigate to "Stylist Associations"** in the menu (for managers/owners)
+5. **Check "Services"** page to see waiting time fields
+6. **Test booking an appointment** with the new features
+7. **Verify custom waiting times** work in stylist timing forms
 
 ## 🐛 Troubleshooting
 
@@ -155,15 +167,25 @@ After successful migration, verify these features work:
 
 ### ✅ Stylist Timing Management
 - [ ] "Stylist Timings" link appears in navigation (managers/owners)
-- [ ] Can add new stylist timing entries
+- [ ] Can add new stylist timing entries with custom waiting times
 - [ ] Can edit existing stylist timings
-- [ ] Stylist timings list shows time savings
+- [ ] Stylist timings list shows time savings and custom waiting times
+- [ ] Custom waiting time field auto-populates with service defaults
+
+### ✅ Stylist Service Associations
+- [ ] "Stylist Associations" link appears in navigation (managers/owners)
+- [ ] Can add new stylist-service associations
+- [ ] Can edit existing associations
+- [ ] Booking form filters services based on stylist permissions
+- [ ] API endpoint returns stylist-allowed services
 
 ### ✅ Appointment Booking
 - [ ] Booking form includes stylist timing checkbox
 - [ ] Can add multiple services to appointments
 - [ ] Waiting times are included in duration calculations
 - [ ] Stylist timing is used when checkbox is selected
+- [ ] Custom waiting times are applied when stylist timing is enabled
+- [ ] Service selection is filtered based on stylist permissions
 
 ### ✅ Multi-Service Appointments
 - [ ] Appointments can have multiple services
@@ -200,11 +222,25 @@ If you encounter issues during migration:
 
 This migration adds the following major features:
 
+### **v1.1.0 Features:**
 - **Service waiting times** for color processing and other services
 - **Stylist-specific service durations** for faster/slower stylists
 - **Enhanced appointment booking** with timing options
 - **Multi-service appointment support** (already implemented)
 - **Improved service management** interface
 - **Stylist timing management** system
+
+### **v1.2.0 Features:**
+- **Stylist-service associations** to control which stylists can perform which services
+- **Custom waiting times** for individual stylist-service combinations
+- **Dynamic service filtering** in booking forms based on stylist permissions
+- **API endpoints** for stylist-service data
+- **Enhanced booking experience** with permission-based service selection
+
+### **Migration Scripts Included:**
+1. `migrate_appointments_multiservice.py` - Multi-service appointment support
+2. `migrate_stylist_timings.py` - Stylist timing and service waiting time features
+3. `migrate_stylist_service_associations.py` - Stylist-service permission system
+4. `migrate_stylist_timing_waiting_time.py` - Custom waiting time for stylist timings
 
 For detailed information about the new features, see the updated project documentation. 

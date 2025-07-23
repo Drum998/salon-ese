@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title mb-0">
+                    {% if association %}
+                        <i class="fas fa-edit"></i> Edit Stylist-Service Association
+                    {% else %}
+                        <i class="fas fa-plus"></i> New Stylist-Service Association
+                    {% endif %}
+                </h3>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>Stylist-Service Associations</strong> control which stylists can perform which services. 
+                        Use this to restrict or allow specific stylists to perform specific services.
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                {{ form.stylist_id.label(class="form-label") }}
+                                {{ form.stylist_id(class="form-select" + (" is-invalid" if form.stylist_id.errors else "")) }}
+                                {% if form.stylist_id.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.stylist_id.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                <small class="form-text text-muted">
+                                    Select the stylist for this association
+                                </small>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                {{ form.service_id.label(class="form-label") }}
+                                {{ form.service_id(class="form-select" + (" is-invalid" if form.service_id.errors else "")) }}
+                                {% if form.service_id.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.service_id.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                <small class="form-text text-muted">
+                                    Select the service for this association
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            {{ form.is_allowed(class="form-check-input") }}
+                            {{ form.is_allowed.label(class="form-check-label") }}
+                        </div>
+                        <small class="form-text text-muted">
+                            Check this box to allow the stylist to perform this service. 
+                            Uncheck to restrict the stylist from performing this service.
+                        </small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.notes.label(class="form-label") }}
+                        {{ form.notes(class="form-control" + (" is-invalid" if form.notes.errors else ""), rows=3, placeholder="Optional notes about this association...") }}
+                        {% if form.notes.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.notes.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        <small class="form-text text-muted">
+                            Optional notes explaining why this association exists or any special considerations
+                        </small>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('appointments.manage_stylist_associations') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Back to Associations
+                        </a>
+                        {{ form.submit(class="btn btn-primary") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        {% if association %}
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-info-circle"></i> Association Details
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong>Stylist:</strong><br>
+                            {{ association.stylist.first_name }} {{ association.stylist.last_name }}<br>
+                            <small class="text-muted">{{ association.stylist.username }}</small>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Service:</strong><br>
+                            {{ association.service.name }}<br>
+                            <small class="text-muted">{{ association.service.duration }}min - £{{ "%.2f"|format(association.service.price) }}</small>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong>Created:</strong><br>
+                            <small class="text-muted">{{ association.created_at.strftime('%B %d, %Y at %I:%M %p') }}</small>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Last Updated:</strong><br>
+                            <small class="text-muted">{{ association.updated_at.strftime('%B %d, %Y at %I:%M %p') }}</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+.form-check-input:checked {
+    background-color: #198754;
+    border-color: #198754;
+}
+</style>
+{% endblock %} 

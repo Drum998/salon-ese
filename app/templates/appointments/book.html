@@ -204,6 +204,7 @@
 <script>
 // Set minimum date to today
 // Add/remove service rows dynamically
+// Update service choices based on selected stylist
 
 document.addEventListener('DOMContentLoaded', function() {
     const dateInput = document.querySelector('input[type="date"]');
@@ -222,6 +223,57 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     });
+    
+    // Update service choices when stylist is selected
+    const stylistSelect = document.querySelector('select[name="stylist_id"]');
+    if (stylistSelect) {
+        stylistSelect.addEventListener('change', function() {
+            const stylistId = this.value;
+            if (stylistId) {
+                updateServiceChoices(stylistId);
+            }
+        });
+    }
+    
+    function updateServiceChoices(stylistId) {
+        // Fetch services for the selected stylist
+        fetch(`/appointments/api/stylist-services/${stylistId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    console.error('Error fetching stylist services:', data.error);
+                    return;
+                }
+                
+                // Update all service select dropdowns
+                const serviceSelects = document.querySelectorAll('select[name*="service_id"]');
+                serviceSelects.forEach(select => {
+                    const currentValue = select.value;
+                    
+                    // Clear existing options
+                    select.innerHTML = '<option value="">Select service...</option>';
+                    
+                    // Add new options based on stylist permissions
+                    data.forEach(service => {
+                        const option = document.createElement('option');
+                        option.value = service.id;
+                        option.textContent = `${service.name} (£${service.price}) - ${service.duration}min`;
+                        select.appendChild(option);
+                    });
+                    
+                    // Try to restore the previously selected value if it's still available
+                    if (currentValue) {
+                        const option = select.querySelector(`option[value="${currentValue}"]`);
+                        if (option) {
+                            select.value = currentValue;
+                        }
+                    }
+                });
+            })
+            .catch(error => {
+                console.error('Error updating service choices:', error);
+            });
+    }
     
     addServiceBtn.addEventListener('click', function() {
         const lastRow = servicesList.querySelector('.service-row:last-of-type');

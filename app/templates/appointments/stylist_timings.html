@@ -36,6 +36,7 @@
                                         <th>Service</th>
                                         <th>Standard Duration</th>
                                         <th>Custom Duration</th>
+                                        <th>Custom Waiting</th>
                                         <th>Time Saved</th>
                                         <th>Notes</th>
                                         <th>Status</th>
@@ -54,6 +55,15 @@
                                                 <span class="badge bg-{{ 'success' if timing.custom_duration < timing.service.duration else 'warning' }}">
                                                     {{ timing.custom_duration }} min
                                                 </span>
+                                            </td>
+                                            <td>
+                                                {% if timing.custom_waiting_time %}
+                                                    <span class="badge bg-info">
+                                                        {{ timing.custom_waiting_time }} min
+                                                    </span>
+                                                {% else %}
+                                                    <span class="text-muted">Standard</span>
+                                                {% endif %}
                                             </td>
                                             <td>
                                                 {% set time_saved = timing.service.duration - timing.custom_duration %}

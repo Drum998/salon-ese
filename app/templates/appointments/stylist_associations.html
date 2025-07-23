@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>Manage Stylist-Service Associations</h2>
+            <a href="{{ url_for('appointments.new_stylist_association') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Add New Association
+            </a>
+        </div>
+        
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i>
+            <strong>Stylist-Service Associations</strong> control which stylists can perform which services. 
+            By default, all stylists can perform all services unless explicitly restricted.
+        </div>
+        
+        {% if associations %}
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Stylist</th>
+                            <th>Service</th>
+                            <th>Permission</th>
+                            <th>Notes</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for association in associations %}
+                            <tr>
+                                <td>
+                                    <strong>{{ association.stylist.first_name }} {{ association.stylist.last_name }}</strong>
+                                    <br>
+                                    <small class="text-muted">{{ association.stylist.username }}</small>
+                                </td>
+                                <td>
+                                    <strong>{{ association.service.name }}</strong>
+                                    <br>
+                                    <small class="text-muted">
+                                        {{ association.service.duration }}min - £{{ "%.2f"|format(association.service.price) }}
+                                    </small>
+                                </td>
+                                <td>
+                                    {% if association.is_allowed %}
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-check"></i> Allowed
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-danger">
+                                            <i class="fas fa-times"></i> Restricted
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if association.notes %}
+                                        <span class="text-muted">{{ association.notes[:50] }}{% if association.notes|length > 50 %}...{% endif %}</span>
+                                    {% else %}
+                                        <span class="text-muted">No notes</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <small class="text-muted">
+                                        {{ association.created_at.strftime('%B %d, %Y') }}
+                                    </small>
+                                </td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <a href="{{ url_for('appointments.edit_stylist_association', association_id=association.id) }}" 
+                                           class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-edit"></i> Edit
+                                        </a>
+                                        <button type="button" class="btn btn-sm btn-outline-danger" 
+                                                data-association-id="{{ association.id }}"
+                                                data-stylist-name="{{ association.stylist.first_name }} {{ association.stylist.last_name }}"
+                                                data-service-name="{{ association.service.name }}"
+                                                onclick="confirmDelete(this)">
+                                            <i class="fas fa-trash"></i> Delete
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-link fa-3x text-muted mb-3"></i>
+                <h4 class="text-muted">No Associations Found</h4>
+                <p class="text-muted">
+                    No stylist-service associations have been created yet. 
+                    By default, all stylists can perform all services.
+                </p>
+                <a href="{{ url_for('appointments.new_stylist_association') }}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Add Your First Association
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete the association between <strong id="deleteStylist"></strong> and <strong id="deleteService"></strong>?</p>
+                <p class="text-muted">This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="deleteForm" method="POST" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">Delete Association</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function confirmDelete(button) {
+    const associationId = button.getAttribute('data-association-id');
+    const stylistName = button.getAttribute('data-stylist-name');
+    const serviceName = button.getAttribute('data-service-name');
+    
+    document.getElementById('deleteStylist').textContent = stylistName;
+    document.getElementById('deleteService').textContent = serviceName;
+    document.getElementById('deleteForm').action = `/appointments/stylist-associations/${associationId}/delete`;
+    
+    var deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    deleteModal.show();
+}
+</script>
+
+<style>
+.table th {
+    border-top: none;
+}
+.badge {
+    font-size: 0.8em;
+}
+.btn-group .btn {
+    margin-right: 2px;
+}
+</style>
+{% endblock %} 

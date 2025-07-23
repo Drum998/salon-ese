@@ -56,17 +56,35 @@
                             </div>
                         </div>
 
-                        <div class="mb-3">
-                            {{ form.custom_duration.label(class="form-label") }}
-                            {{ form.custom_duration(class="form-control" + (" is-invalid" if form.custom_duration.errors else "")) }}
-                            {% if form.custom_duration.errors %}
-                                <div class="invalid-feedback">
-                                    {% for error in form.custom_duration.errors %}
-                                        {{ error }}
-                                    {% endfor %}
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.custom_duration.label(class="form-label") }}
+                                    {{ form.custom_duration(class="form-control" + (" is-invalid" if form.custom_duration.errors else "")) }}
+                                    {% if form.custom_duration.errors %}
+                                        <div class="invalid-feedback">
+                                            {% for error in form.custom_duration.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                    <small class="form-text text-muted">Enter the duration in minutes that this stylist typically takes for this service.</small>
                                 </div>
-                            {% endif %}
-                            <small class="form-text text-muted">Enter the duration in minutes that this stylist typically takes for this service.</small>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.custom_waiting_time.label(class="form-label") }}
+                                    {{ form.custom_waiting_time(class="form-control" + (" is-invalid" if form.custom_waiting_time.errors else "")) }}
+                                    {% if form.custom_waiting_time.errors %}
+                                        <div class="invalid-feedback">
+                                            {% for error in form.custom_waiting_time.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                    <small class="form-text text-muted">Enter the waiting time in minutes (e.g., for color processing). Leave empty to use service default.</small>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="mb-3">
@@ -103,10 +121,11 @@
 </div>
 
 <script>
-// Auto-populate custom duration when service is selected
+// Auto-populate custom duration and waiting time when service is selected
 document.addEventListener('DOMContentLoaded', function() {
     const serviceSelect = document.getElementById('service_id');
     const durationInput = document.getElementById('custom_duration');
+    const waitingTimeInput = document.getElementById('custom_waiting_time');
     
     serviceSelect.addEventListener('change', function() {
         const selectedOption = this.options[this.selectedIndex];
@@ -116,6 +135,23 @@ document.addEventListener('DOMContentLoaded', function() {
         const match = serviceText.match(/Standard: (\d+)min/);
         if (match) {
             durationInput.value = match[1];
+        }
+        
+        // Fetch service details to get waiting time
+        const serviceId = this.value;
+        if (serviceId) {
+            fetch(`/appointments/api/service/${serviceId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.waiting_time) {
+                        waitingTimeInput.value = data.waiting_time;
+                    } else {
+                        waitingTimeInput.value = '';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching service details:', error);
+                });
         }
     });
 });

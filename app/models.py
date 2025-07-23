@@ -148,6 +148,7 @@ class StylistServiceTiming(db.Model):
     stylist_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=False)
     custom_duration = db.Column(db.Integer, nullable=False)  # Custom duration in minutes
+    custom_waiting_time = db.Column(db.Integer)  # Custom waiting time in minutes (optional)
     notes = db.Column(db.Text)
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=uk_utcnow)
@@ -172,6 +173,70 @@ class StylistServiceTiming(db.Model):
             is_active=True
         ).first()
         return timing.custom_duration if timing else None
+    
+    @classmethod
+    def get_stylist_waiting_time(cls, stylist_id, service_id):
+        """Get custom waiting time for a stylist-service combination, or None if not set"""
+        timing = cls.query.filter_by(
+            stylist_id=stylist_id,
+            service_id=service_id,
+            is_active=True
+        ).first()
+        return timing.custom_waiting_time if timing else None
+
+
+class StylistServiceAssociation(db.Model):
+    """Association table for stylist-service permissions"""
+    id = db.Column(db.Integer, primary_key=True)
+    stylist_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=False)
+    is_allowed = db.Column(db.Boolean, default=True)  # Whether stylist can perform this service
+    notes = db.Column(db.Text)  # Optional notes about the association
+    created_at = db.Column(db.DateTime, default=uk_utcnow)
+    updated_at = db.Column(db.DateTime, default=uk_utcnow, onupdate=uk_utcnow)
+    
+    # Relationships
+    stylist = db.relationship('User', foreign_keys=[stylist_id], backref='service_associations')
+    service = db.relationship('Service', backref='stylist_associations')
+    
+    # Unique constraint to prevent duplicate stylist-service combinations
+    __table_args__ = (db.UniqueConstraint('stylist_id', 'service_id', name='_stylist_service_assoc_uc'),)
+    
+    def __repr__(self):
+        return f'<StylistServiceAssociation {self.stylist_id}:{self.service_id} (allowed: {self.is_allowed})>'
+    
+    @classmethod
+    def can_stylist_perform_service(cls, stylist_id, service_id):
+        """Check if a stylist is allowed to perform a specific service"""
+        association = cls.query.filter_by(
+            stylist_id=stylist_id,
+            service_id=service_id
+        ).first()
+        
+        # If no association exists, default to allowed (backward compatibility)
+        if association is None:
+            return True
+        
+        return association.is_allowed
+    
+    @classmethod
+    def get_stylist_services(cls, stylist_id):
+        """Get all services a stylist is allowed to perform"""
+        associations = cls.query.filter_by(
+            stylist_id=stylist_id,
+            is_allowed=True
+        ).all()
+        return [assoc.service for assoc in associations]
+    
+    @classmethod
+    def get_service_stylists(cls, service_id):
+        """Get all stylists who can perform a specific service"""
+        associations = cls.query.filter_by(
+            service_id=service_id,
+            is_allowed=True
+        ).all()
+        return [assoc.stylist for assoc in associations]
+
 
 # Update Appointment model
 class Appointment(db.Model):
