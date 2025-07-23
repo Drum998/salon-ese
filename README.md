@@ -51,7 +51,151 @@ location /static/ {
 
 The salon management system includes a comprehensive appointment booking and management feature that allows customers to book appointments with their preferred stylists and enables staff to manage schedules efficiently.
 
-## 🆕 Service Management Enhancements (Latest Release)
+## 🆕 Latest Release: v1.2.0 - Stylist Service Associations & Custom Waiting Times
+
+### 🎯 Overview
+The latest release introduces advanced stylist service management with permission controls and custom waiting time support. This builds upon the previous Service Management Enhancements to provide complete control over stylist-service relationships and timing flexibility.
+
+### ✨ New Features in v1.2.0
+
+#### 1. **Stylist-Service Associations**
+- **Purpose**: Control which stylists can perform which services
+- **Implementation**: New `StylistServiceAssociation` model for permission management
+- **Features**:
+  - Restrict stylist access to specific services
+  - Prevent booking incompatible stylist-service combinations
+  - Dynamic service filtering in booking forms
+  - Complete CRUD interface for association management
+- **API**: RESTful endpoint for getting stylist-allowed services
+
+#### 2. **Custom Waiting Times for Stylist Timings**
+- **Purpose**: Allow stylists to have custom waiting times per service
+- **Implementation**: Enhanced `StylistServiceTiming` model with `custom_waiting_time` field
+- **Features**:
+  - Override service default waiting times per stylist
+  - Auto-populate with service defaults in forms
+  - Visual display of custom waiting times in management interface
+  - Integration with booking system when stylist timing is enabled
+
+#### 3. **Enhanced Booking Experience**
+- **Dynamic Service Filtering**: Service selection filters based on stylist permissions
+- **Custom Waiting Time Integration**: Custom waiting times applied when stylist timing is enabled
+- **Improved Form Validation**: Better error handling and user experience
+- **Auto-Populated Fields**: Service defaults automatically populate form fields
+
+### 🔧 Technical Implementation
+
+#### New Database Schema Changes
+```sql
+-- New StylistServiceAssociation table
+CREATE TABLE stylist_service_association (
+    id SERIAL PRIMARY KEY,
+    stylist_id INTEGER REFERENCES user(id),
+    service_id INTEGER REFERENCES service(id),
+    is_allowed BOOLEAN DEFAULT TRUE,
+    notes TEXT,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW(),
+    UNIQUE(stylist_id, service_id)
+);
+
+-- Enhanced StylistServiceTiming table
+ALTER TABLE stylist_service_timing ADD COLUMN custom_waiting_time INTEGER;
+```
+
+#### New Models
+- **StylistServiceAssociation**: Manages stylist-service permission relationships
+- **Enhanced StylistServiceTiming**: Added custom_waiting_time field
+
+#### New Routes
+- `/stylist-associations` - List all stylist associations
+- `/stylist-associations/new` - Add new association
+- `/stylist-associations/<id>/edit` - Edit existing association
+- `/stylist-associations/<id>/delete` - Delete association
+- `/api/stylist-services/<stylist_id>` - Get services allowed for a stylist
+- `/api/service/<service_id>` - Get service details for form auto-population
+
+#### New Templates
+- `stylist_associations.html` - Management interface for associations
+- `stylist_association_form.html` - Add/edit association form
+- Enhanced `stylist_timing_form.html` - Added custom waiting time field
+- Enhanced `stylist_timings.html` - Shows custom waiting times
+- Enhanced `book.html` - Dynamic service filtering
+
+### 🎨 User Interface Enhancements
+
+#### Stylist Association Management
+- **Dedicated Page**: "Stylist Associations" link in navigation for managers/owners
+- **Permission Control**: Easy management of which stylists can perform which services
+- **Visual Indicators**: Clear display of association status
+- **Bulk Operations**: Efficient management of multiple associations
+
+#### Enhanced Stylist Timing Management
+- **Custom Waiting Time Field**: New field for stylist-specific waiting times
+- **Auto-Population**: Service defaults automatically populate the waiting time field
+- **Visual Display**: Custom waiting times shown in management interface
+- **Integration**: Seamless integration with booking system
+
+#### Enhanced Appointment Booking
+- **Dynamic Service Filtering**: Only shows services the selected stylist can perform
+- **Custom Waiting Time Support**: Uses custom waiting times when stylist timing is enabled
+- **Improved UX**: Better form validation and error handling
+
+### 📊 Business Benefits
+
+#### For Salon Owners/Managers
+- **Permission Control**: Ensure only qualified stylists perform specific services
+- **Quality Assurance**: Prevent booking errors and service mismatches
+- **Flexible Timing**: Allow stylists to set realistic waiting times
+- **Better Scheduling**: More accurate appointment planning
+
+#### For Stylists
+- **Service Clarity**: Clear understanding of which services they can perform
+- **Timing Flexibility**: Set custom waiting times based on their expertise
+- **Professional Development**: Focus on services they're qualified for
+
+#### For Customers
+- **Accurate Bookings**: Only qualified stylists available for services
+- **Better Experience**: More precise timing estimates
+- **Service Quality**: Ensured expertise for each service type
+
+### 🚀 Migration Guide
+
+For users updating from previous versions, see the comprehensive [Migration Guide](MIGRATION_GUIDE.md) for step-by-step instructions.
+
+### 🧪 Testing the New Features
+
+#### Stylist Association Testing
+```bash
+# 1. Create stylist-service associations
+- Navigate to Stylist Associations
+- Add associations to control which stylists can perform which services
+- Verify associations are saved correctly
+
+# 2. Test booking with service filtering
+- Book appointment and select a stylist
+- Verify only allowed services appear in service selection
+- Test with different stylists to ensure filtering works
+
+# 3. Test custom waiting times
+- Navigate to Stylist Timings
+- Add custom waiting time to a stylist-service combination
+- Verify waiting time auto-populates with service defaults
+- Test booking with custom waiting times
+```
+
+#### Verification Checklist
+- [ ] Stylist associations can be created and managed
+- [ ] Service filtering works based on stylist permissions
+- [ ] Custom waiting times can be added to stylist timings
+- [ ] Custom waiting times auto-populate with service defaults
+- [ ] Booking system uses custom waiting times when stylist timing is enabled
+- [ ] API endpoints return correct data
+- [ ] Navigation includes "Stylist Associations" link
+
+---
+
+## 🆕 Service Management Enhancements (v1.1.0)
 
 ### 🎯 Overview
 The latest release introduces comprehensive Service Management Enhancements that provide advanced control over service timing, stylist-specific durations, and waiting time management. These features address the core requirements for professional salon operations.
