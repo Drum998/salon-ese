@@ -164,6 +164,7 @@ def stylist_appointments():
     
     # Get filter parameters
     view_type = request.args.get('view_type', 'week')
+    calendar_view = request.args.get('calendar_view', 'personal')  # personal or global
     selected_date = request.args.get('date', date.today().isoformat())
     
     try:
@@ -179,20 +180,29 @@ def stylist_appointments():
         start_date = selected_date.replace(day=1)
         end_date = (start_date + timedelta(days=32)).replace(day=1) - timedelta(days=1)
     
-    # Get appointments for the stylist in the date range
-    appointments = Appointment.query.filter(
-        Appointment.stylist_id == current_user.id,
-        Appointment.appointment_date >= start_date,
-        Appointment.appointment_date <= end_date
-    ).order_by(Appointment.appointment_date, Appointment.start_time).all()
+    # Get appointments based on calendar view
+    if calendar_view == 'global':
+        # Show all appointments in the salon for the date range
+        appointments = Appointment.query.filter(
+            Appointment.appointment_date >= start_date,
+            Appointment.appointment_date <= end_date
+        ).order_by(Appointment.appointment_date, Appointment.start_time).all()
+    else:
+        # Show only the current stylist's appointments
+        appointments = Appointment.query.filter(
+            Appointment.stylist_id == current_user.id,
+            Appointment.appointment_date >= start_date,
+            Appointment.appointment_date <= end_date
+        ).order_by(Appointment.appointment_date, Appointment.start_time).all()
     
     # Log debug information
     current_app.logger.info(f"Stylist {current_user.id} ({current_user.first_name} {current_user.last_name}) calendar view:")
     current_app.logger.info(f"  Date range: {start_date} to {end_date}")
     current_app.logger.info(f"  View type: {view_type}")
+    current_app.logger.info(f"  Calendar view: {calendar_view}")
     current_app.logger.info(f"  Total appointments found: {len(appointments)}")
     for apt in appointments:
-        current_app.logger.info(f"    - {apt.appointment_date} at {apt.start_time}: {apt.customer.first_name} {apt.customer.last_name} ({apt.service.name})")
+        current_app.logger.info(f"    - {apt.appointment_date} at {apt.start_time}: {apt.customer.first_name} {apt.customer.last_name} ({apt.service.name}) - Stylist: {apt.stylist.first_name} {apt.stylist.last_name}")
     
     # Create a helper function to get appointments for a specific time slot
     def get_appointments_for_slot(appointments, target_date, target_hour, target_minute):
@@ -206,9 +216,10 @@ def stylist_appointments():
                          start_date=start_date,
                          end_date=end_date,
                          view_type=view_type,
+                         calendar_view=calendar_view,
                          selected_date=selected_date,
                          form=form,
-                         title='My Appointments',
+                         title='My Appointments' if calendar_view == 'personal' else 'Salon Schedule',
                          timedelta=timedelta,
                          calendar=calendar,
                          date=date,

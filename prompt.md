@@ -39,7 +39,13 @@ Welcome! This document is designed to quickly bring a new AI assistant, develope
 
 ---
 
-## 📚 Recent Major Enhancements (v1.2.0)
+## 📚 Recent Major Enhancements (v1.3.0)
+- **Stylist Calendar View Toggle**: Single-click switching between personal and global salon views
+- **Auto-submit functionality**: Calendar view changes happen instantly without manual form submission
+- **Enhanced user experience**: Loading indicators, tooltips, and intuitive interface design
+- **Visual feedback system**: Clear indicators for current view and transition states
+
+## 📚 Previous Major Enhancements (v1.2.0)
 - **StylistServiceAssociation model**: Control which stylists can perform which services
 - **Stylist association management UI**: Managers/owners can add/edit stylist-service permissions
 - **Dynamic service filtering**: Booking form automatically filters services based on stylist permissions
@@ -75,13 +81,15 @@ Welcome! This document is designed to quickly bring a new AI assistant, develope
 
 ---
 
-## 🚦 Current Status (as of v1.2.0) - COMPLETE & PRODUCTION READY
+## 🚦 Current Status (as of v1.3.0) - COMPLETE & PRODUCTION READY
 - **All major service and stylist timing features are implemented and documented.**
 - **Stylist-service associations are now implemented and functional.**
 - **Custom waiting time for stylist timings is now implemented and functional.**
+- **Stylist calendar view toggle is now implemented and functional.**
 - **Database schema is up to date** (run migration scripts after pulling latest code).
-- **UI/UX for service, stylist timing, stylist association, and custom waiting time management is live.**
+- **UI/UX for service, stylist timing, stylist association, custom waiting time, and calendar view management is live.**
 - **Multi-service booking with stylist restrictions and custom timing is working and tested.**
+- **Enhanced calendar interface with single-click view switching is working and tested.**
 - **Documentation is current and comprehensive.**
 - **All migration scripts are tested and working.**
 - **Form validation issues have been resolved.**
@@ -100,33 +108,39 @@ Welcome! This document is designed to quickly bring a new AI assistant, develope
 - [x] Fix form validation issues and PostgreSQL compatibility
 - [x] Complete migration scripts and documentation
 
-### 2. **Calendar & Availability Logic (NEXT PRIORITY)**
-- [ ] Allow stylists to toggle between personal and global salon view
+### 2. **Calendar & Availability Logic (COMPLETED - v1.3.0)**
+- [x] Allow stylists to toggle between personal and global salon view
+- [x] Single-click view switching with auto-submit functionality
+- [x] Enhanced user experience with loading indicators and tooltips
+- [x] Clean, intuitive interface design
+- [x] Visual feedback system for view transitions
+
+### 3. **Calendar & Availability Logic (NEXT PRIORITY)**
 - [ ] Enable stylists to extend their working hours for specific bookings
 - [ ] Real-time availability checking for multi-service appointments
 - [ ] Advanced calendar filtering and search capabilities
 
-### 3. **Customer Experience Improvements**
+### 4. **Customer Experience Improvements**
 - [ ] Show customers their previous services when booking
 - [ ] "Rebook last service" functionality
 - [ ] Prevent incompatible service combinations
 - [ ] Customer preference management
 - [ ] Appointment reminders and notifications
 
-### 4. **Reporting & Analytics**
+### 5. **Reporting & Analytics**
 - [ ] Holiday/absence reporting with booking values
 - [ ] Daily/weekly/monthly reports for management
 - [ ] Stylist performance analytics
 - [ ] Service popularity and revenue reports
 - [ ] Customer retention metrics
 
-### 5. **Testing & QA**
+### 6. **Testing & QA**
 - [ ] Comprehensive end-to-end testing of new features
 - [ ] User acceptance testing for all roles
 - [ ] Performance testing for large datasets
 - [ ] Security testing and vulnerability assessment
 
-### 6. **Advanced Features (Future Releases)**
+### 7. **Advanced Features (Future Releases)**
 - [ ] Mobile app integration
 - [ ] Online payment processing
 - [ ] Inventory management
@@ -167,18 +181,19 @@ Welcome! This document is designed to quickly bring a new AI assistant, develope
 
 5. **Test the application** using the checklists in `MIGRATION_GUIDE.md` and `README.md`.
 
-6. **Verify all v1.2.0 features are working:**
+6. **Verify all v1.3.0 features are working:**
    - **Stylist Associations**: Access "Stylist Associations" from navigation
    - **Custom Waiting Times**: Access "Stylist Timings" and test custom waiting time field
    - **Service Filtering**: Test booking appointments with service filtering
+   - **Calendar View Toggle**: Test single-click switching between Personal and Global views
    - **API Endpoints**: Verify `/api/stylist-services/<stylist_id>` and `/api/service/<service_id>` work
 
 7. **Pick up the next open task** from the list above and continue development!
 
 ### **Current Development Context:**
-- **Version**: v1.2.0 (Stylist Service Associations & Custom Waiting Times)
+- **Version**: v1.3.0 (Stylist Calendar View Toggle & Enhanced UX)
 - **Status**: All features implemented, tested, and documented
-- **Next Priority**: Calendar & Availability Logic enhancements
+- **Next Priority**: Emergency Hour Extension & Real-time Availability
 - **Database**: All migrations complete and tested
 - **Documentation**: README, CHANGELOG, and MIGRATION_GUIDE are current
 

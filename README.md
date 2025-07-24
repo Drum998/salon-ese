@@ -51,10 +51,116 @@ location /static/ {
 
 The salon management system includes a comprehensive appointment booking and management feature that allows customers to book appointments with their preferred stylists and enables staff to manage schedules efficiently.
 
-## 🆕 Latest Release: v1.2.0 - Stylist Service Associations & Custom Waiting Times
+## 🆕 Latest Release: v1.3.0 - Stylist Calendar View Toggle & Enhanced UX
 
 ### 🎯 Overview
-The latest release introduces advanced stylist service management with permission controls and custom waiting time support. This builds upon the previous Service Management Enhancements to provide complete control over stylist-service relationships and timing flexibility.
+The latest release introduces enhanced calendar functionality with single-click view switching and improved user experience. This builds upon the previous Service Management Enhancements to provide seamless stylist workflow and salon coordination.
+
+### ✨ New Features in v1.3.0
+
+#### 1. **Stylist Calendar View Toggle**
+- **Purpose**: Improve stylist workflow efficiency and salon coordination
+- **Implementation**: Single-click switching between personal and global salon views
+- **Features**:
+  - Instant view switching without manual form submission
+  - Auto-submit functionality for seamless transitions
+  - Visual loading indicators during view changes
+  - Enhanced user interface with tooltips and hints
+  - Clean, intuitive design with removed redundant buttons
+
+#### 2. **Enhanced User Experience**
+- **Loading Feedback**: Spinner overlay during view transitions
+- **Visual Indicators**: Clear badges showing current view state
+- **Helpful Hints**: Tooltips explaining Personal vs Global view differences
+- **Streamlined Interface**: Improved layout and responsive design
+- **Accessibility**: Better user guidance and clear labeling
+
+#### 3. **Technical Improvements**
+- **JavaScript Auto-Submit**: Seamless form submission on view change
+- **Enhanced Logging**: Better debugging and monitoring capabilities
+- **Responsive Design**: Optimized for all screen sizes
+- **Performance**: Reduced clicks and improved workflow efficiency
+
+### 🔧 Technical Implementation
+
+#### Enhanced Template Functionality
+```javascript
+// Auto-submit functionality for calendar view toggle
+document.addEventListener('DOMContentLoaded', function() {
+    const autoSubmitInputs = document.querySelectorAll('.auto-submit');
+    
+    autoSubmitInputs.forEach(function(input) {
+        input.addEventListener('change', function() {
+            // Get the form and submit automatically
+            const form = this.closest('form');
+            if (form) {
+                // Show loading indicator and submit
+                setTimeout(function() {
+                    form.submit();
+                }, 150);
+            }
+        });
+    });
+});
+```
+
+#### UI/UX Improvements
+- **Removed**: Redundant "Update View" button
+- **Enhanced**: Layout with better column distribution
+- **Added**: Visual indicators for current view state
+- **Improved**: Responsive design and accessibility
+
+### 🛣️ Enhanced Routes
+
+#### Stylist Calendar View
+- Enhanced `/appointments/stylist-appointments` route with improved parameter handling
+- Added `calendar_view` parameter support (personal/global)
+- Enhanced logging with stylist information for global view
+
+### 🎨 Enhanced Templates
+
+#### Stylist Calendar Interface
+- Updated `app/templates/appointments/stylist_calendar.html` with:
+  - Auto-submit radio buttons for view switching
+  - Loading indicator overlay
+  - Enhanced layout and styling
+  - Tooltips and helpful hints
+  - Visual feedback system
+
+### 📁 New Files Created
+
+#### Testing
+- `test_calendar_view.py` - Comprehensive test script for calendar view functionality
+
+### 🔄 Files Modified
+
+#### Core Application Files
+- `app/routes/appointments.py` - Enhanced stylist appointments route with view toggle support
+- `app/templates/appointments/stylist_calendar.html` - Complete UI/UX overhaul
+
+#### Dependencies
+- `requirements.txt` - Added requests library for testing
+
+### 🎨 User Interface Enhancements
+
+#### Calendar View Management
+- **Single-Click Switching**: Instant view changes without manual form submission
+- **Visual Feedback**: Loading indicators and clear state indicators
+- **Intuitive Design**: Clean interface with helpful hints and tooltips
+- **Responsive Layout**: Optimized for all device sizes
+
+#### Enhanced User Experience
+- **Loading Indicators**: Visual feedback during view transitions
+- **Tooltips**: Helpful information about each view type
+- **Streamlined Interface**: Removed redundant buttons and improved layout
+- **Accessibility**: Better user guidance and clear labeling
+
+---
+
+## 🆕 Previous Release: v1.2.0 - Stylist Service Associations & Custom Waiting Times
+
+### 🎯 Overview
+The previous release introduced advanced stylist service management with permission controls and custom waiting time support. This built upon the Service Management Enhancements to provide complete control over stylist-service relationships and timing flexibility.
 
 ### ✨ New Features in v1.2.0
 
@@ -190,6 +296,10 @@ For users updating from previous versions, see the comprehensive [Migration Guid
 - [ ] Custom waiting times can be added to stylist timings
 - [ ] Custom waiting times auto-populate with service defaults
 - [ ] Booking system uses custom waiting times when stylist timing is enabled
+- [ ] Calendar view toggle works with single-click switching
+- [ ] Loading indicators appear during view transitions
+- [ ] Personal view shows only stylist's appointments
+- [ ] Global view shows all salon appointments with stylist information
 - [ ] API endpoints return correct data
 - [ ] Navigation includes "Stylist Associations" link
 

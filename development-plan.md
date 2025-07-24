@@ -332,39 +332,45 @@ def get_customer_service_suggestions(customer_id):
     return sorted(service_counts.values(), key=lambda x: x['count'], reverse=True)
 ```
 
-### **Phase 4: Stylist View Enhancements**
+### **Phase 4: Stylist View Enhancements (COMPLETED - v1.3.0)**
 
-#### **Task 4.1: Global vs Personal View Toggle**
-**New Routes Required:**
-- `/appointments/stylist-view` - Stylist view with toggle
-- `/appointments/global-view` - Global salon view
-- `/api/stylist-availability` - AJAX endpoint for availability
+#### **Task 4.1: Global vs Personal View Toggle ✅ COMPLETED**
+**Implementation Completed:**
+- Enhanced `/appointments/stylist-appointments` route with `calendar_view` parameter
+- Single-click view switching with auto-submit functionality
+- Visual loading indicators and enhanced user experience
+- Clean, intuitive interface with tooltips and helpful hints
 
-**Implementation:**
+**Features Implemented:**
+- Personal view shows only stylist's appointments
+- Global view shows all salon appointments with stylist information
+- Auto-submit functionality for seamless transitions
+- Loading spinner overlay during view changes
+- Enhanced layout and responsive design
+- Removed redundant "Update View" button
+
+**Technical Implementation:**
 ```python
-@bp.route('/stylist-view')
+# Enhanced route with calendar_view parameter
+@bp.route('/stylist-appointments')
 @login_required
-@role_required('stylist')
-def stylist_view():
-    view_type = request.args.get('view', 'personal')  # personal or global
+@roles_required('stylist', 'manager', 'owner')
+def stylist_appointments():
+    calendar_view = request.args.get('calendar_view', 'personal')  # personal or global
     
-    if view_type == 'global':
-        # Show all stylists' appointments
+    if calendar_view == 'global':
+        # Show all appointments in the salon
         appointments = Appointment.query.filter(
-            Appointment.appointment_date >= date.today(),
-            Appointment.status.in_(['confirmed', 'completed'])
+            Appointment.appointment_date >= start_date,
+            Appointment.appointment_date <= end_date
         ).order_by(Appointment.appointment_date, Appointment.start_time).all()
     else:
         # Show only current stylist's appointments
         appointments = Appointment.query.filter(
             Appointment.stylist_id == current_user.id,
-            Appointment.appointment_date >= date.today(),
-            Appointment.status.in_(['confirmed', 'completed'])
+            Appointment.appointment_date >= start_date,
+            Appointment.appointment_date <= end_date
         ).order_by(Appointment.appointment_date, Appointment.start_time).all()
-    
-    return render_template('appointments/stylist_view.html', 
-                         appointments=appointments, 
-                         view_type=view_type)
 ```
 
 #### **Task 4.2: Cross-Stylist Booking**

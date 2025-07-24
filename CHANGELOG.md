@@ -1,5 +1,158 @@
 # Salon ESE Changelog
 
+## [1.3.0] - Stylist Calendar View Toggle & Enhanced UX - 2025-01-28
+
+### 🎯 Major Features Added
+
+#### Stylist Calendar View Toggle
+- **Added**: Single-click switching between personal and global salon views
+- **Purpose**: Improve stylist workflow efficiency and salon coordination
+- **Features**:
+  - Instant view switching without manual form submission
+  - Auto-submit functionality for seamless transitions
+  - Visual loading indicators during view changes
+  - Enhanced user interface with tooltips and hints
+  - Clean, intuitive design with removed redundant buttons
+
+#### Enhanced User Experience
+- **Added**: Loading spinner overlay during view transitions
+- **Added**: Tooltips explaining Personal vs Global view differences
+- **Added**: Visual feedback system for current view state
+- **Added**: Streamlined interface with improved layout
+- **Added**: Helpful hints and clear labeling
+
+### 🔧 Technical Changes
+
+#### Enhanced Template Functionality
+```javascript
+// Auto-submit functionality for calendar view toggle
+document.addEventListener('DOMContentLoaded', function() {
+    const autoSubmitInputs = document.querySelectorAll('.auto-submit');
+    
+    autoSubmitInputs.forEach(function(input) {
+        input.addEventListener('change', function() {
+            // Get the form and submit automatically
+            const form = this.closest('form');
+            if (form) {
+                // Show loading indicator
+                const loadingSpinner = document.createElement('div');
+                loadingSpinner.className = 'position-fixed top-50 start-50 translate-middle';
+                loadingSpinner.innerHTML = `
+                    <div class="d-flex align-items-center justify-content-center bg-white p-3 rounded shadow">
+                        <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <span class="text-primary">Updating view...</span>
+                    </div>
+                `;
+                document.body.appendChild(loadingSpinner);
+                
+                // Submit form after brief delay
+                setTimeout(function() {
+                    form.submit();
+                }, 150);
+            }
+        });
+    });
+});
+```
+
+#### UI/UX Improvements
+- **Removed**: Redundant "Update View" button
+- **Enhanced**: Layout with better column distribution
+- **Added**: Visual indicators for current view state
+- **Improved**: Responsive design and accessibility
+
+### 🛣️ Enhanced Routes
+
+#### Stylist Calendar View
+- Enhanced `/appointments/stylist-appointments` route with improved parameter handling
+- Added `calendar_view` parameter support (personal/global)
+- Enhanced logging with stylist information for global view
+
+### 🎨 Enhanced Templates
+
+#### Stylist Calendar Interface
+- Updated `app/templates/appointments/stylist_calendar.html` with:
+  - Auto-submit radio buttons for view switching
+  - Loading indicator overlay
+  - Enhanced layout and styling
+  - Tooltips and helpful hints
+  - Visual feedback system
+
+### 📁 New Files Created
+
+#### Testing
+- `test_calendar_view.py` - Comprehensive test script for calendar view functionality
+
+### 🔄 Files Modified
+
+#### Core Application Files
+- `app/routes/appointments.py` - Enhanced stylist appointments route with view toggle support
+- `app/templates/appointments/stylist_calendar.html` - Complete UI/UX overhaul
+
+#### Dependencies
+- `requirements.txt` - Added requests library for testing
+
+### 🚀 Migration Instructions
+
+For users updating from previous versions:
+
+1. **Stop the current container:**
+   ```bash
+   docker-compose down
+   ```
+
+2. **Rebuild with latest code:**
+   ```bash
+   docker-compose build --no-cache
+   docker-compose up -d
+   ```
+
+3. **Test the new features:**
+   - Navigate to stylist calendar view
+   - Test single-click switching between Personal and Global views
+   - Verify loading indicators appear during transitions
+   - Check that tooltips and hints are working
+
+### 🧪 Testing Checklist
+
+#### Calendar View Toggle
+- [ ] Personal view shows only stylist's appointments
+- [ ] Global view shows all salon appointments with stylist information
+- [ ] Single-click switching works without manual form submission
+- [ ] Loading indicator appears during view transitions
+- [ ] Tooltips provide helpful information
+- [ ] Interface is clean and intuitive
+
+#### Enhanced UX
+- [ ] No redundant "Update" button in interface
+- [ ] Visual feedback for current view state
+- [ ] Responsive design works on all screen sizes
+- [ ] Navigation preserves view state across page changes
+
+### 🐛 Bug Fixes
+
+#### User Experience Issues
+- **Fixed**: Redundant form submission requirement for view switching
+- **Fixed**: Unclear interface with multiple update buttons
+- **Fixed**: Lack of visual feedback during view transitions
+
+### 📊 Performance Improvements
+
+- **User Experience**: Reduced clicks required for view switching
+- **Interface Responsiveness**: Immediate visual feedback
+- **Code Efficiency**: Streamlined JavaScript implementation
+
+### 🔮 Future Enhancements Planned
+
+- **Advanced Calendar Features**: Emergency hour extension
+- **Real-time Updates**: Live availability checking
+- **Enhanced Filtering**: Advanced search and filter capabilities
+- **Mobile Optimization**: Touch-friendly interface improvements
+
+---
+
 ## [1.2.0] - Stylist Service Associations & Custom Waiting Times - 2025-01-28
 
 ### 🎯 Major Features Added
@@ -410,6 +563,7 @@ For users updating from previous versions:
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 1.3.0 | 2025-01-28 | Stylist Calendar View Toggle & Enhanced UX |
 | 1.2.0 | 2025-01-28 | Stylist Service Associations & Custom Waiting Times |
 | 1.1.0 | 2025-01-27 | Service Management Enhancements |
 | 1.0.0 | 2025-01-20 | Initial Release |

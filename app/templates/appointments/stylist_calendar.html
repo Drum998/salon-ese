@@ -4,24 +4,33 @@
 <div class="row">
     <div class="col-12">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2>My Schedule</h2>
+            <h2>{{ title }}</h2>
             <div class="d-flex gap-2">
-                <a href="{{ url_for('appointments.stylist_appointments', view_type='week', date=(selected_date - timedelta(days=7)).isoformat()) }}" 
+                <a href="{{ url_for('appointments.stylist_appointments', view_type='week', calendar_view=calendar_view, date=(selected_date - timedelta(days=7)).isoformat()) }}" 
                    class="btn btn-outline-secondary">
                     <i class="fas fa-chevron-left"></i> Previous
                 </a>
-                <a href="{{ url_for('appointments.stylist_appointments', view_type='week', date=(selected_date + timedelta(days=7)).isoformat()) }}" 
+                <a href="{{ url_for('appointments.stylist_appointments', view_type='week', calendar_view=calendar_view, date=(selected_date + timedelta(days=7)).isoformat()) }}" 
                    class="btn btn-outline-secondary">
                     Next <i class="fas fa-chevron-right"></i>
                 </a>
             </div>
         </div>
         
+        <!-- View Information Alert -->
+        {% if calendar_view == 'global' %}
+            <div class="alert alert-info mb-4">
+                <i class="fas fa-info-circle"></i>
+                <strong>Global Salon View:</strong> You are viewing all appointments across the entire salon. 
+                This includes appointments for all stylists, not just your own schedule.
+            </div>
+        {% endif %}
+        
         <!-- Filter Controls -->
         <div class="card mb-4">
             <div class="card-body">
                 <form method="GET" class="row g-3">
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         {{ form.view_type.label(class="form-label") }}
                         {{ form.view_type(class="form-select") }}
                     </div>
@@ -29,8 +38,27 @@
                         <label class="form-label">Date</label>
                         <input type="date" name="date" value="{{ selected_date.isoformat() }}" class="form-control">
                     </div>
-                    <div class="col-md-3 d-flex align-items-end">
-                        <button type="submit" class="btn btn-primary">Update View</button>
+                    <div class="col-md-5">
+                        <label class="form-label">Calendar View <small class="text-muted">(click to switch)</small></label>
+                        <div class="btn-group w-100" role="group">
+                            <input type="radio" class="btn-check auto-submit" name="calendar_view" id="personal" value="personal" 
+                                   {{ 'checked' if calendar_view == 'personal' else '' }}>
+                            <label class="btn btn-outline-primary" for="personal" title="View only your appointments">
+                                <i class="fas fa-user"></i> Personal
+                            </label>
+                            
+                            <input type="radio" class="btn-check auto-submit" name="calendar_view" id="global" value="global" 
+                                   {{ 'checked' if calendar_view == 'global' else '' }}>
+                            <label class="btn btn-outline-success" for="global" title="View all salon appointments">
+                                <i class="fas fa-globe"></i> Global Salon
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <a href="{{ url_for('appointments.stylist_appointments', view_type='week', calendar_view=calendar_view, date=date.today().isoformat()) }}" 
+                           class="btn btn-outline-secondary">
+                            <i class="fas fa-calendar-day"></i> Today
+                        </a>
                     </div>
                 </form>
             </div>
@@ -39,13 +67,26 @@
         <!-- Calendar View -->
         <div class="card">
             <div class="card-header">
-                <h5 class="card-title mb-0">
-                    {% if view_type == 'week' %}
-                        Week of {{ start_date.strftime('%B %d, %Y') }} - {{ end_date.strftime('%B %d, %Y') }}
-                    {% else %}
-                        {{ selected_date.strftime('%B %Y') }}
-                    {% endif %}
-                </h5>
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        {% if view_type == 'week' %}
+                            Week of {{ start_date.strftime('%B %d, %Y') }} - {{ end_date.strftime('%B %d, %Y') }}
+                        {% else %}
+                            {{ selected_date.strftime('%B %Y') }}
+                        {% endif %}
+                    </h5>
+                    <div class="d-flex align-items-center">
+                        {% if calendar_view == 'personal' %}
+                            <span class="badge bg-primary">
+                                <i class="fas fa-user"></i> Personal View
+                            </span>
+                        {% else %}
+                            <span class="badge bg-success">
+                                <i class="fas fa-globe"></i> Global Salon View
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
             </div>
             <div class="card-body p-0">
                 {% if view_type == 'week' %}
@@ -78,16 +119,21 @@
                                                 {% set current_date = start_date + timedelta(days=i) %}
                                                 {% set slot_appointments = get_appointments_for_slot(appointments, current_date, hour, minute) %}
                                                 <td class="position-relative" style="height: 80px; min-width: 120px;">
-                                                    {% for appointment in slot_appointments %}
-                                                        <div class="appointment-slot p-2 h-100">
-                                                            <div class="small fw-bold">{{ appointment.customer.first_name }} {{ appointment.customer.last_name }}</div>
-                                                            <div class="small">{{ appointment.service.name }}</div>
-                                                            <div class="small text-muted">{{ appointment.start_time.strftime('%I:%M') }} - {{ appointment.end_time.strftime('%I:%M') }}</div>
-                                                            <span class="badge bg-{{ 'success' if appointment.status == 'confirmed' else 'secondary' if appointment.status == 'completed' else 'danger' if appointment.status == 'cancelled' else 'warning' }} position-absolute top-0 end-0 m-1">
-                                                                {{ appointment.status[:3]|upper }}
-                                                            </span>
-                                                        </div>
-                                                    {% endfor %}
+                                                                                                    {% for appointment in slot_appointments %}
+                                                    <div class="appointment-slot p-2 h-100">
+                                                        <div class="small fw-bold">{{ appointment.customer.first_name }} {{ appointment.customer.last_name }}</div>
+                                                        <div class="small">{{ appointment.service.name }}</div>
+                                                        {% if calendar_view == 'global' %}
+                                                            <div class="small text-info">
+                                                                <i class="fas fa-user-tie"></i> {{ appointment.stylist.first_name }} {{ appointment.stylist.last_name }}
+                                                            </div>
+                                                        {% endif %}
+                                                        <div class="small text-muted">{{ appointment.start_time.strftime('%I:%M') }} - {{ appointment.end_time.strftime('%I:%M') }}</div>
+                                                        <span class="badge bg-{{ 'success' if appointment.status == 'confirmed' else 'secondary' if appointment.status == 'completed' else 'danger' if appointment.status == 'cancelled' else 'warning' }} position-absolute top-0 end-0 m-1">
+                                                            {{ appointment.status[:3]|upper }}
+                                                        </span>
+                                                    </div>
+                                                {% endfor %}
                                                 </td>
                                             {% endfor %}
                                         </tr>
@@ -132,6 +178,9 @@
                                                         {% for appointment in day_appointments[:3] %}
                                                             <div class="small mb-1 p-1 rounded" style="background-color: #e3f2fd;">
                                                                 <div class="fw-bold">{{ appointment.customer.first_name }}</div>
+                                                                {% if calendar_view == 'global' %}
+                                                                    <div class="text-info small">{{ appointment.stylist.first_name }}</div>
+                                                                {% endif %}
                                                                 <div class="text-muted">{{ appointment.start_time.strftime('%I:%M') }}</div>
                                                             </div>
                                                         {% endfor %}
@@ -165,6 +214,9 @@
                                 <tr>
                                     <th>Date & Time</th>
                                     <th>Customer</th>
+                                    {% if calendar_view == 'global' %}
+                                        <th>Stylist</th>
+                                    {% endif %}
                                     <th>Service</th>
                                     <th>Duration</th>
                                     <th>Status</th>
@@ -179,6 +231,13 @@
                                             <div class="small text-muted">{{ appointment.start_time.strftime('%I:%M %p') }} - {{ appointment.end_time.strftime('%I:%M %p') }}</div>
                                         </td>
                                         <td>{{ appointment.customer.first_name }} {{ appointment.customer.last_name }}</td>
+                                        {% if calendar_view == 'global' %}
+                                            <td>
+                                                <span class="badge bg-info">
+                                                    <i class="fas fa-user-tie"></i> {{ appointment.stylist.first_name }} {{ appointment.stylist.last_name }}
+                                                </span>
+                                            </td>
+                                        {% endif %}
                                         <td>
                                             {% if appointment.services_link %}
                                                 {% set service_names = appointment.services_link|map(attribute='service.name')|list %}
@@ -234,5 +293,64 @@
 .appointment-slot:hover {
     background-color: #bbdefb;
 }
+
+.btn-check:checked + .btn-outline-primary {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+    color: white;
+}
+
+.btn-check:checked + .btn-outline-success {
+    background-color: #198754;
+    border-color: #198754;
+    color: white;
+}
+
+.btn-group .btn {
+    border-radius: 0.375rem;
+}
+
+.btn-group .btn:first-child {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.btn-group .btn:last-child {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
 </style>
+
+<script>
+// Auto-submit functionality for calendar view toggle
+document.addEventListener('DOMContentLoaded', function() {
+    const autoSubmitInputs = document.querySelectorAll('.auto-submit');
+    
+    autoSubmitInputs.forEach(function(input) {
+        input.addEventListener('change', function() {
+            // Get the form
+            const form = this.closest('form');
+            if (form) {
+                // Show loading indicator
+                const loadingSpinner = document.createElement('div');
+                loadingSpinner.className = 'position-fixed top-50 start-50 translate-middle';
+                loadingSpinner.innerHTML = `
+                    <div class="d-flex align-items-center justify-content-center bg-white p-3 rounded shadow">
+                        <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <span class="text-primary">Updating view...</span>
+                    </div>
+                `;
+                document.body.appendChild(loadingSpinner);
+                
+                // Add a small delay to show the visual feedback
+                setTimeout(function() {
+                    form.submit();
+                }, 150);
+            }
+        });
+    });
+});
+</script>
 {% endblock %} 
