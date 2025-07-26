@@ -19,6 +19,22 @@ def migrate_stylist_timing_waiting_time():
         print("Starting StylistServiceTiming custom_waiting_time migration...")
         
         try:
+            # Check if column already exists
+            print("Checking if custom_waiting_time column exists...")
+            result = db.engine.execute("""
+                SELECT column_name FROM information_schema.columns 
+                WHERE table_name = 'stylist_service_timing' AND column_name = 'custom_waiting_time'
+            """).fetchone()
+            
+            if result:
+                print("✓ custom_waiting_time column already exists!")
+                print("\nMigration completed successfully!")
+                print("\nNext steps:")
+                print("1. Test the stylist timing form to ensure custom waiting time works")
+                print("2. Verify that existing stylist timings still work correctly")
+                print("3. Test booking appointments with custom waiting times")
+                return True
+            
             # Add the new column
             print("Adding custom_waiting_time column...")
             db.engine.execute("""

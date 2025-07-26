@@ -156,6 +156,166 @@ docker logs salon-ese-db-1
 docker-compose restart db
 ```
 
+## 🗑️ Nuclear Option: Complete Database Reset
+
+**⚠️ WARNING: This will completely delete all data in your database!**
+
+If migrations fail repeatedly or you encounter persistent database issues, you can perform a complete database reset. This is especially useful for fresh installations or when you don't need to preserve existing data.
+
+---
+
+### Step 1: Stop All Containers
+Stop the application and database containers.
+```bash
+# In your salon-ese project directory:
+docker-compose down
+```
+
+---
+
+### Step 2: Remove the Database Volume
+This deletes ALL data in the PostgreSQL database.
+```bash
+# Remove the database volume (named 'salon-ese_postgres_data'):
+docker volume rm salon-ese_postgres_data
+
+# (Optional) Verify the volume is gone:
+docker volume ls | grep salon-ese
+```
+
+---
+
+### Step 3: Clean Up Docker Resources (Optional)
+Remove stopped containers, unused images, and unused volumes. Only do this if you are sure you don't need them for other projects.
+```bash
+# Remove stopped containers:
+docker container prune -f
+
+# Remove unused images:
+docker image prune -f
+
+# Remove unused volumes:
+docker volume prune -f
+```
+
+---
+
+### Step 4: Rebuild and Start Fresh Containers
+Build everything from scratch and start the containers.
+```bash
+# Rebuild containers with no cache:
+docker-compose build --no-cache
+
+# Start containers in the background:
+docker-compose up -d
+```
+
+---
+
+### Step 5: Wait for Database Initialization
+Wait for the database to be ready before proceeding.
+```bash
+# Watch the database logs until you see:
+# "database system is ready to accept connections"
+docker-compose logs -f db
+```
+
+---
+
+### Step 6: Run Database Migrations
+Run the migration scripts to create all tables with the correct schema:
+```bash
+# Run each migration in order (these will create tables with the correct schema):
+docker exec -it salon-ese-web-1 python migrate_appointments_multiservice.py
+docker exec -it salon-ese-web-1 python migrate_stylist_timings.py
+docker exec -it salon-ese-web-1 python migrate_stylist_service_associations.py
+docker exec -it salon-ese-web-1 python migrate_stylist_timing_waiting_time.py
+```
+
+**Note:** The migration scripts will create all necessary tables with the correct schema, including the `booked_by_id` and `waiting_time` columns.
+
+---
+
+### Step 7: Add Sample Data
+Populate the database with sample services and test users.
+```bash
+# Add sample services:
+docker exec -it salon-ese-web-1 python init_services.py
+
+# (Optional) Add test users:
+docker exec -it salon-ese-web-1 python add_test_users.py
+```
+
+---
+
+### Step 8: Verify Fresh Installation
+1. Open your browser and go to: http://localhost:5010
+2. Log in with test credentials:
+   - Manager: `manager_1` / `12345678`
+   - Stylist: `stylist_1` / `12345678`
+   - Customer: `cust_1` / `12345678`
+3. Check that the app works as expected.
+
+---
+
+### Troubleshooting Nuclear Reset
+
+#### Database Won't Start
+```bash
+# Check if port 5432 is in use:
+netstat -an | grep 5432
+
+# (Linux/Mac) Kill any process using port 5432:
+sudo lsof -ti:5432 | xargs kill -9
+
+# Restart containers:
+docker-compose down
+docker-compose up -d
+```
+
+#### Permission Issues
+```bash
+# (Linux/Mac) Fix volume permissions:
+sudo chown -R 999:999 /var/lib/docker/volumes/salon-ese_postgres_data
+
+# (Windows) Run Docker Desktop as Administrator
+```
+
+#### Container Health Check Fails
+```bash
+# Check database logs for errors:
+docker-compose logs db
+
+# Manually test DB connection:
+docker exec -it salon-ese-db-1 psql -U salon_user -d salon_ese -c "SELECT 1;"
+```
+
+---
+
+### When to Use Nuclear Reset
+- ✅ Fresh install or development
+- ✅ Migrations fail repeatedly
+- ✅ No data to preserve
+- ❌ Not for production or if you need to keep data
+
+---
+
+### Alternative: Selective Table Reset
+If you only want to drop specific tables:
+```bash
+# Connect to the database:
+docker exec -it salon-ese-db-1 psql -U salon_user -d salon_ese
+
+# Drop a table (replace table_name):
+DROP TABLE IF EXISTS table_name CASCADE;
+
+# Exit psql:
+\q
+
+# Rerun the relevant migration script:
+docker exec -it salon-ese-web-1 python migrate_specific_table.py
+```
+
 ## 📊 Post-Migration Verification
 
 After successful migration, verify these features work:
