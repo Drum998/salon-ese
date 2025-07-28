@@ -12,6 +12,320 @@ A comprehensive, role-based authentication and management system for hair salons
 - **Containerization**: Docker with docker-compose
 - **Testing**: pytest with coverage reporting
 - **Timezone**: pytz for UK timezone support (BST/GMT)
+- **UI**: Modern sidebar navigation with responsive design
+
+---
+
+## 🆕 Latest Release: v1.4.0 - Modern Sidebar Navigation System
+
+### 🎯 Overview
+The latest release introduces a modern, responsive sidebar navigation system that provides better organization and scalability for the growing application. This replaces the traditional top navigation with a collapsible sidebar that adapts to different screen sizes and user roles.
+
+### ✨ New Features in v1.4.0
+
+#### 1. **Modern Sidebar Navigation**
+- **Purpose**: Improve navigation organization and scalability for future features
+- **Implementation**: Fixed sidebar with collapsible functionality
+- **Features**:
+  - Fixed sidebar on the left side of the screen
+  - Collapsible sidebar for more content space
+  - Role-based menu organization
+  - Responsive design for mobile devices
+  - Smooth animations and transitions
+  - Active page highlighting
+
+#### 2. **Enhanced User Experience**
+- **Top Bar**: User information and sidebar toggle button
+- **Page Titles**: Dynamic page titles in the top bar
+- **Flash Messages**: Fixed position notifications with auto-hide
+- **Mobile Overlay**: Touch-friendly mobile navigation
+- **Visual Feedback**: Hover effects and active states
+
+#### 3. **Responsive Design**
+- **Desktop**: Full sidebar with collapse/expand functionality
+- **Tablet**: Adaptive sidebar with touch support
+- **Mobile**: Overlay sidebar with backdrop
+- **Breakpoints**: Optimized for all screen sizes
+
+#### 4. **Services Matrix Interface** ✅ **COMPLETED**
+- **Purpose**: Streamline stylist-service assignment management
+- **Implementation**: Matrix layout with checkboxes for easy assignment
+- **Features**:
+  - Stylists in first column, services along top
+  - Checkbox interface for quick assignments
+  - Bulk save functionality
+  - Change tracking and visual feedback
+  - Service details displayed in headers
+  - Responsive design for all screen sizes
+
+#### 5. **Calendar View Improvements** ✅ **COMPLETED**
+- **Purpose**: Better organization for viewing all appointments with stylist names along the top
+- **Implementation**: Redesigned week view with stylists as columns
+- **Features**:
+  - Stylist names as column headers
+  - Days as row headers with time slots
+  - Appointment counts per stylist per day
+  - Color-coded appointment status
+  - Enhanced visual organization
+  - Maintains existing month view and filters
+
+### 🔧 Technical Implementation
+
+#### CSS Variables for Theming
+```css
+:root {
+    --sidebar-width: 280px;
+    --sidebar-collapsed-width: 70px;
+    --primary-color: #d63384;
+    --secondary-color: #9b7bb7;
+    --sidebar-bg: #2c3e50;
+    --sidebar-hover: #34495e;
+    --sidebar-text: #ecf0f1;
+    --sidebar-active: #3498db;
+}
+```
+
+#### JavaScript Functionality
+```javascript
+// Sidebar toggle functionality
+sidebarToggle.addEventListener('click', function() {
+    sidebar.classList.toggle('collapsed');
+    mainContent.classList.toggle('expanded');
+});
+
+// Services matrix bulk save
+function saveAllAssociations() {
+    // Collect checkbox states and send to server
+    const associations = [];
+    checkboxes.forEach(checkbox => {
+        associations.push({
+            stylist_id: parseInt(checkbox.dataset.stylistId),
+            service_id: parseInt(checkbox.dataset.serviceId),
+            is_allowed: checkbox.checked
+        });
+    });
+    // Send to bulk update endpoint
+}
+
+// Calendar view improvements
+// - Stylists as column headers for better organization
+// - Day-based layout with time slots
+// - Appointment counts and status indicators
+// - Responsive design for all screen sizes
+```
+
+### 🎨 Navigation Structure
+
+#### Main Section
+- **Home**: Landing page
+- **Services**: Public services page
+- **Dashboard**: User dashboard (authenticated users)
+
+#### Appointments Section
+- **Book Appointment**: Appointment booking
+- **My Appointments**: Customer appointments
+- **My Schedule**: Stylist schedule
+- **All Appointments**: Admin view
+
+#### Management Section (Managers/Owners)
+- **Services**: Service management with matrix interface
+- **Stylist Timings**: Custom timing management
+- **Stylist Associations**: Service permissions
+- **Admin Panel**: Full admin access
+
+#### Account Section
+- **My Profile**: User profile management
+- **Login/Register**: Authentication (guests)
+- **Logout**: Session termination
+
+#### Information Section
+- **About**: Salon information
+- **Contact**: Contact details
+
+### 🛣️ Enhanced Templates
+
+#### Base Template Updates
+- **New Sidebar Structure**: Organized navigation sections
+- **Top Bar**: User info and navigation controls
+- **Content Wrapper**: Proper spacing and layout
+- **Flash Messages**: Fixed position notifications
+
+#### Services Matrix Template
+- **Matrix Table**: Stylists vs services with checkboxes
+- **Service Headers**: Duration, price, and waiting time info
+- **Stylist Info**: Names, usernames, and role badges
+- **Bulk Save**: Single button to save all assignments
+- **Change Tracking**: Visual feedback for unsaved changes
+
+#### Page Title Integration
+- **Dynamic Titles**: Page titles in top bar
+- **Consistent Branding**: Logo and branding in sidebar
+- **User Context**: Current user and role display
+
+### 📁 Files Modified
+
+#### Core Template
+- `app/templates/base.html` - Complete navigation redesign
+
+#### Services Management
+- `app/templates/appointments/services.html` - Matrix interface implementation
+- `app/routes/appointments.py` - Enhanced manage_services route and bulk update endpoint
+
+#### Calendar View
+- `app/templates/appointments/admin_calendar.html` - Redesigned with stylists as columns
+- `app/routes/appointments.py` - Enhanced admin_appointments route with stylists data
+- `test_calendar_view.py` - Calendar view test script
+
+#### Page Templates
+- `app/templates/main/index.html` - Added page title
+- `app/templates/main/services.html` - Added page title
+- `app/templates/main/customer_dashboard.html` - Added page title
+- `app/templates/appointments/book.html` - Added page title
+- `app/templates/appointments/my_appointments.html` - Added page title
+- `app/templates/admin/dashboard.html` - Added page title
+
+#### Testing
+- `test_sidebar_navigation.py` - Navigation system test script
+- `test_services_matrix.py` - Services matrix test script
+
+### 🎨 User Interface Enhancements
+
+#### Modern Design
+- **Dark Sidebar**: Professional dark theme
+- **Color Scheme**: Consistent brand colors
+- **Typography**: Modern font stack
+- **Icons**: Font Awesome icons throughout
+
+#### Services Matrix Features
+- **Matrix Layout**: Stylists vs services table
+- **Checkbox Interface**: Easy assignment management
+- **Service Details**: Duration, price, waiting time in headers
+- **Stylist Information**: Names, usernames, role badges
+- **Bulk Operations**: Save all assignments at once
+- **Change Tracking**: Visual feedback for modifications
+
+#### Calendar View Features
+- **Stylist Columns**: Stylist names as column headers
+- **Day Organization**: Days as row headers with time slots
+- **Appointment Counts**: Visual counts per stylist per day
+- **Status Indicators**: Color-coded appointment status
+- **Time Slots**: Clear time-based organization
+- **Responsive Design**: Works on all screen sizes
+
+#### Interactive Elements
+- **Hover Effects**: Visual feedback on navigation
+- **Active States**: Current page highlighting
+- **Smooth Transitions**: CSS animations
+- **Loading States**: Visual feedback during actions
+
+#### Accessibility
+- **Keyboard Navigation**: Full keyboard support
+- **Screen Reader**: Proper ARIA labels
+- **Focus Management**: Logical tab order
+- **High Contrast**: Readable color combinations
+
+### 🔧 New API Endpoints
+
+#### Services Management
+- `POST /appointments/services/bulk-update-associations` - Bulk update stylist-service associations
+
+#### Enhanced Routes
+- `GET /appointments/services` - Enhanced with matrix interface and stylist data
+
+### 🚀 Migration Instructions
+
+For users updating from previous versions:
+
+1. **Stop the current container:**
+   ```bash
+   docker-compose down
+   ```
+
+2. **Update the codebase:**
+   ```bash
+   git pull origin main
+   ```
+
+3. **Rebuild and start:**
+   ```bash
+   docker-compose up --build
+   ```
+
+4. **Test the new features:**
+   - Verify sidebar navigation works
+   - Test services matrix interface
+   - Check responsive design
+
+### 🧪 Testing the New Features
+
+#### Sidebar Navigation Testing
+```bash
+# 1. Test sidebar functionality
+- Visit any page and verify sidebar appears
+- Test collapse/expand button
+- Verify responsive behavior on mobile
+- Check role-based menu visibility
+
+# 2. Test navigation links
+- Verify all navigation links work
+- Check active page highlighting
+- Test mobile overlay functionality
+```
+
+#### Services Matrix Testing
+```bash
+# 1. Test matrix interface
+- Navigate to Services management
+- Verify matrix table appears
+- Test checkbox functionality
+- Check service details in headers
+
+# 2. Test bulk operations
+- Make changes to assignments
+- Click "Save All Assignments"
+- Verify progress modal appears
+- Check success/error handling
+
+# 3. Test change tracking
+- Make changes and verify button state
+- Test unsaved changes warning
+- Verify changes are saved to database
+```
+
+#### Calendar View Testing
+```bash
+# 1. Test new calendar layout
+- Navigate to All Appointments
+- Verify stylist names as column headers
+- Check day-based organization
+- Test time slot display
+
+# 2. Test appointment display
+- Verify appointments appear in correct cells
+- Check appointment counts in date headers
+- Test color coding for status
+- Verify responsive design
+
+# 3. Test existing functionality
+- Verify filters still work
+- Check month view is preserved
+- Test navigation controls
+- Verify appointment list view
+```
+
+#### Verification Checklist
+- [x] Sidebar navigation appears and functions correctly
+- [x] Services matrix displays stylists and services
+- [x] Checkboxes work for assignment management
+- [x] Bulk save functionality works
+- [x] Change tracking and visual feedback work
+- [x] Responsive design works on all screen sizes
+- [x] All existing functionality still works
+- [x] Navigation links point to correct pages
+- [x] Role-based menu visibility is correct
+- [x] Calendar view shows stylists as columns
+- [x] Appointment counts display correctly
+- [x] Color coding for appointment status works
 
 ---
 

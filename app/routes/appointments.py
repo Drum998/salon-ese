@@ -250,6 +250,11 @@ def admin_appointments():
         start_date = selected_date.replace(day=1)
         end_date = (start_date + timedelta(days=32)).replace(day=1) - timedelta(days=1)
     
+    # Get all stylists for the calendar columns
+    stylists = User.query.join(User.roles).filter(
+        Role.name.in_(['stylist', 'manager', 'owner'])
+    ).order_by(User.first_name, User.last_name).all()
+    
     # Build query
     query = Appointment.query.filter(
         Appointment.appointment_date >= start_date,
@@ -279,6 +284,7 @@ def admin_appointments():
     
     return render_template('appointments/admin_calendar.html',
                          appointments=appointments,
+                         stylists=stylists,
                          start_date=start_date,
                          end_date=end_date,
                          view_type=view_type,
@@ -388,10 +394,77 @@ def cancel_appointment(appointment_id):
 @login_required
 @roles_required('manager', 'owner')
 def manage_services():
+    """Enhanced services management with stylist-service matrix"""
     services = Service.query.order_by(Service.name).all()
+    stylists = User.query.join(User.roles).filter(
+        Role.name.in_(['stylist', 'manager', 'owner'])
+    ).order_by(User.first_name, User.last_name).all()
+    
+    # Get existing associations for the matrix
+    associations = StylistServiceAssociation.query.all()
+    stylist_service_associations = {}
+    
+    for association in associations:
+        stylist_service_associations[(association.stylist_id, association.service_id)] = association
+    
     return render_template('appointments/services.html',
                          services=services,
+                         stylists=stylists,
+                         stylist_service_associations=stylist_service_associations,
                          title='Manage Services')
+
+
+@bp.route('/services/bulk-update-associations', methods=['POST'])
+@login_required
+@roles_required('manager', 'owner')
+def bulk_update_associations():
+    """Bulk update stylist-service associations from matrix"""
+    try:
+        data = request.get_json()
+        associations_data = data.get('associations', [])
+        
+        if not associations_data:
+            return jsonify({'success': False, 'error': 'No associations data provided'})
+        
+        # Process each association
+        for assoc_data in associations_data:
+            stylist_id = assoc_data.get('stylist_id')
+            service_id = assoc_data.get('service_id')
+            is_allowed = assoc_data.get('is_allowed', False)
+            
+            if not stylist_id or not service_id:
+                continue
+            
+            # Check if association exists
+            existing_association = StylistServiceAssociation.query.filter_by(
+                stylist_id=stylist_id,
+                service_id=service_id
+            ).first()
+            
+            if existing_association:
+                # Update existing association
+                existing_association.is_allowed = is_allowed
+            else:
+                # Create new association only if it's allowed (to avoid unnecessary restrictions)
+                if is_allowed:
+                    new_association = StylistServiceAssociation(
+                        stylist_id=stylist_id,
+                        service_id=service_id,
+                        is_allowed=True
+                    )
+                    db.session.add(new_association)
+        
+        db.session.commit()
+        
+        # Log the bulk update
+        current_app.logger.info(f"Bulk stylist-service associations updated by user {current_user.id} ({current_user.username})")
+        
+        return jsonify({'success': True})
+        
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error in bulk_update_associations: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)})
 
 @bp.route('/services/new', methods=['GET', 'POST'])
 @login_required

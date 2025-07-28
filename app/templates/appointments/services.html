@@ -1,22 +1,103 @@
 {% extends "base.html" %}
 
+{% block page_title %}Services Management{% endblock %}
+
 {% block content %}
 <div class="row">
     <div class="col-12">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2>Manage Services</h2>
+            <h2><i class="fas fa-cogs"></i> Services Management</h2>
             <div>
-                <a href="{{ url_for('appointments.manage_stylist_associations') }}" class="btn btn-outline-secondary me-2">
-                    <i class="fas fa-link"></i> Stylist Associations
-                </a>
+                <button type="button" class="btn btn-success me-2" onclick="saveAllAssociations()">
+                    <i class="fas fa-save"></i> Save All Assignments
+                </button>
                 <a href="{{ url_for('appointments.new_service') }}" class="btn btn-primary">
                     <i class="fas fa-plus"></i> Add New Service
                 </a>
             </div>
         </div>
         
-        {% if services %}
-            <div class="row">
+        <!-- Information Alert -->
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i>
+            <strong>Services Matrix:</strong> Use the checkboxes below to assign which stylists can perform which services. 
+            Check a box to allow a stylist to perform a service, uncheck to restrict access.
+        </div>
+        
+        {% if services and stylists %}
+            <!-- Services Matrix -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-table"></i> Stylist-Service Assignment Matrix</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover" id="servicesMatrix">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th style="min-width: 200px;">Stylist</th>
+                                    {% for service in services %}
+                                        <th class="text-center" style="min-width: 150px;">
+                                            <div class="service-header">
+                                                <strong>{{ service.name }}</strong>
+                                                <br>
+                                                <small class="text-muted">
+                                                    {{ service.duration }}min - £{{ "%.2f"|format(service.price) }}
+                                                </small>
+                                                <br>
+                                                <small class="text-info">
+                                                    {% if service.waiting_time %}
+                                                        Wait: {{ service.waiting_time }}min
+                                                    {% else %}
+                                                        No wait time
+                                                    {% endif %}
+                                                </small>
+                                            </div>
+                                        </th>
+                                    {% endfor %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for stylist in stylists %}
+                                    <tr>
+                                        <td class="stylist-cell">
+                                            <div class="stylist-info">
+                                                <strong>{{ stylist.first_name }} {{ stylist.last_name }}</strong>
+                                                <br>
+                                                <small class="text-muted">{{ stylist.username }}</small>
+                                                <br>
+                                                <span class="badge bg-primary">{{ stylist.roles[0].name.title() if stylist.roles else 'No Role' }}</span>
+                                            </div>
+                                        </td>
+                                        {% for service in services %}
+                                            <td class="text-center">
+                                                {% set association = stylist_service_associations.get((stylist.id, service.id)) %}
+                                                <div class="form-check d-flex justify-content-center">
+                                                    <input class="form-check-input association-checkbox" 
+                                                           type="checkbox" 
+                                                           id="stylist_{{ stylist.id }}_service_{{ service.id }}"
+                                                           data-stylist-id="{{ stylist.id }}"
+                                                           data-service-id="{{ service.id }}"
+                                                           data-stylist-name="{{ stylist.first_name }} {{ stylist.last_name }}"
+                                                           data-service-name="{{ service.name }}"
+                                                           {% if association and association.is_allowed %}checked{% endif %}
+                                                           style="transform: scale(1.5);">
+                                                </div>
+                                            </td>
+                                        {% endfor %}
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Service Management Cards -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <h4><i class="fas fa-list"></i> Service Details</h4>
+                </div>
                 {% for service in services %}
                     <div class="col-md-6 col-lg-4 mb-4">
                         <div class="card h-100">
@@ -74,13 +155,47 @@
         {% else %}
             <div class="text-center py-5">
                 <i class="fas fa-cut fa-3x text-muted mb-3"></i>
-                <h4 class="text-muted">No Services Found</h4>
-                <p class="text-muted">You haven't created any services yet.</p>
-                <a href="{{ url_for('appointments.new_service') }}" class="btn btn-primary">
-                    <i class="fas fa-plus"></i> Add Your First Service
-                </a>
+                <h4 class="text-muted">No Services or Stylists Found</h4>
+                <p class="text-muted">
+                    {% if not services %}
+                        You haven't created any services yet.
+                    {% endif %}
+                    {% if not stylists %}
+                        {% if not services %}<br>{% endif %}
+                        No stylists are available for assignment.
+                    {% endif %}
+                </p>
+                <div class="d-flex justify-content-center gap-2">
+                    <a href="{{ url_for('appointments.new_service') }}" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Add Your First Service
+                    </a>
+                    {% if not stylists %}
+                        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-users"></i> Manage Users
+                        </a>
+                    {% endif %}
+                </div>
             </div>
         {% endif %}
+    </div>
+</div>
+
+<!-- Success Modal -->
+<div class="modal fade" id="successModal" tabindex="-1" aria-labelledby="successModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="successModalLabel">Success!</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                <p>Stylist-service assignments have been saved successfully!</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -92,5 +207,183 @@
     transform: translateY(-2px);
     box-shadow: 0 4px 8px rgba(0,0,0,0.1);
 }
+
+.service-header {
+    padding: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.stylist-cell {
+    background-color: #f8f9fa;
+    vertical-align: middle;
+}
+
+.stylist-info {
+    padding: 0.5rem;
+}
+
+.association-checkbox:checked {
+    background-color: #198754;
+    border-color: #198754;
+}
+
+.association-checkbox:focus {
+    border-color: #198754;
+    box-shadow: 0 0 0 0.25rem rgba(25, 135, 84, 0.25);
+}
+
+#servicesMatrix {
+    font-size: 0.9rem;
+}
+
+#servicesMatrix th {
+    vertical-align: middle;
+    text-align: center;
+}
+
+#servicesMatrix td {
+    vertical-align: middle;
+}
+
+.form-check {
+    margin: 0;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .table-responsive {
+        font-size: 0.8rem;
+    }
+    
+    .service-header {
+        font-size: 0.8rem;
+    }
+    
+    .stylist-info {
+        font-size: 0.8rem;
+    }
+}
 </style>
+
+<script>
+let hasChanges = false;
+let saveInProgress = false;
+
+// Track changes to checkboxes
+document.addEventListener('DOMContentLoaded', function() {
+    const checkboxes = document.querySelectorAll('.association-checkbox');
+    
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            hasChanges = true;
+            updateSaveButton();
+        });
+    });
+    
+    // Initial state
+    updateSaveButton();
+});
+
+function updateSaveButton() {
+    const saveButton = document.querySelector('button[onclick="saveAllAssociations()"]');
+    if (saveButton) {
+        if (hasChanges && !saveInProgress) {
+            saveButton.disabled = false;
+            saveButton.innerHTML = '<i class="fas fa-save"></i> Save All Assignments';
+        } else if (saveInProgress) {
+            saveButton.disabled = true;
+            saveButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+        } else {
+            saveButton.disabled = true;
+            saveButton.innerHTML = '<i class="fas fa-save"></i> No Changes';
+        }
+    }
+}
+
+function saveAllAssociations() {
+    if (saveInProgress) return;
+    
+    saveInProgress = true;
+    updateSaveButton();
+    
+    // Collect all checkbox states
+    const associations = [];
+    const checkboxes = document.querySelectorAll('.association-checkbox');
+    
+    checkboxes.forEach(checkbox => {
+        associations.push({
+            stylist_id: parseInt(checkbox.dataset.stylistId),
+            service_id: parseInt(checkbox.dataset.serviceId),
+            is_allowed: checkbox.checked
+        });
+    });
+    
+    // Send to server
+    fetch('{{ url_for("appointments.bulk_update_associations") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            associations: associations
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            hasChanges = false;
+            updateSaveButton();
+            
+            // Show success modal
+            const successModal = new bootstrap.Modal(document.getElementById('successModal'));
+            successModal.show();
+            
+            // Show flash message
+            showFlashMessage('Stylist-service assignments updated successfully!', 'success');
+        } else {
+            showFlashMessage('Error saving assignments: ' + (data.error || 'Unknown error'), 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showFlashMessage('Error saving assignments. Please try again.', 'error');
+    })
+    .finally(() => {
+        saveInProgress = false;
+        updateSaveButton();
+    });
+}
+
+function showFlashMessage(message, type) {
+    // Create flash message element
+    const flashDiv = document.createElement('div');
+    flashDiv.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show`;
+    flashDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    // Add to flash messages container
+    const flashContainer = document.querySelector('.flash-messages');
+    if (flashContainer) {
+        flashContainer.appendChild(flashDiv);
+        
+        // Auto-hide after 5 seconds
+        setTimeout(() => {
+            flashDiv.style.opacity = '0';
+            setTimeout(() => {
+                flashDiv.remove();
+            }, 300);
+        }, 5000);
+    }
+}
+
+// Warn user before leaving if there are unsaved changes
+window.addEventListener('beforeunload', function(e) {
+    if (hasChanges && !saveInProgress) {
+        e.preventDefault();
+        e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+    }
+});
+</script>
 {% endblock %} 

@@ -15,157 +15,567 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     
     <style>
-        .navbar-brand {
+        :root {
+            --sidebar-width: 280px;
+            --sidebar-collapsed-width: 70px;
+            --primary-color: #d63384;
+            --secondary-color: #9b7bb7;
+            --sidebar-bg: #2c3e50;
+            --sidebar-hover: #34495e;
+            --sidebar-text: #ecf0f1;
+            --sidebar-active: #3498db;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            width: var(--sidebar-width);
+            background: var(--sidebar-bg);
+            transition: all 0.3s ease;
+            z-index: 1000;
+            overflow-y: auto;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+        }
+
+        .sidebar.collapsed {
+            width: var(--sidebar-collapsed-width);
+        }
+
+        .sidebar-header {
+            padding: 1rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            text-align: center;
+        }
+
+        .sidebar-header .logo {
+            height: 40px;
+            margin-bottom: 0.5rem;
+        }
+
+        .sidebar-header .brand-text {
+            color: var(--sidebar-text);
             font-weight: bold;
-            color: #d63384 !important;
+            font-size: 1.2rem;
+            margin: 0;
+            transition: opacity 0.3s ease;
         }
+
+        .sidebar.collapsed .brand-text {
+            opacity: 0;
+            display: none;
+        }
+
+        .sidebar-nav {
+            padding: 1rem 0;
+        }
+
+        .nav-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .nav-section-title {
+            color: var(--sidebar-text);
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding: 0.5rem 1rem;
+            margin-bottom: 0.5rem;
+            opacity: 0.7;
+            transition: opacity 0.3s ease;
+        }
+
+        .sidebar.collapsed .nav-section-title {
+            opacity: 0;
+            display: none;
+        }
+
+        .nav-item {
+            margin-bottom: 0.25rem;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            color: var(--sidebar-text);
+            text-decoration: none;
+            transition: all 0.3s ease;
+            border-radius: 0;
+            position: relative;
+        }
+
+        .nav-link:hover {
+            background: var(--sidebar-hover);
+            color: var(--sidebar-text);
+            text-decoration: none;
+        }
+
+        .nav-link.active {
+            background: var(--sidebar-active);
+            color: white;
+        }
+
+        .nav-link i {
+            width: 20px;
+            margin-right: 0.75rem;
+            text-align: center;
+            transition: margin 0.3s ease;
+        }
+
+        .sidebar.collapsed .nav-link i {
+            margin-right: 0;
+        }
+
+        .nav-link span {
+            transition: opacity 0.3s ease;
+        }
+
+        .sidebar.collapsed .nav-link span {
+            opacity: 0;
+            display: none;
+        }
+
+        .nav-link .badge {
+            margin-left: auto;
+            transition: opacity 0.3s ease;
+        }
+
+        .sidebar.collapsed .nav-link .badge {
+            opacity: 0;
+            display: none;
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            transition: margin-left 0.3s ease;
+            min-height: 100vh;
+            background: #f8f9fa;
+        }
+
+        .main-content.expanded {
+            margin-left: var(--sidebar-collapsed-width);
+        }
+
+        .content-wrapper {
+            padding: 2rem;
+        }
+
+        /* Top Bar */
+        .top-bar {
+            background: white;
+            padding: 1rem 2rem;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .sidebar-toggle {
+            background: none;
+            border: none;
+            color: var(--primary-color);
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 0.25rem;
+            transition: background 0.3s ease;
+        }
+
+        .sidebar-toggle:hover {
+            background: #f8f9fa;
+        }
+
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .user-info {
+            text-align: right;
+        }
+
+        .user-name {
+            font-weight: 600;
+            color: var(--primary-color);
+            margin: 0;
+        }
+
+        .user-role {
+            font-size: 0.8rem;
+            color: #6c757d;
+            margin: 0;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .sidebar.mobile-open {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .main-content.expanded {
+                margin-left: 0;
+            }
+
+            .content-wrapper {
+                padding: 1rem;
+            }
+
+            .top-bar {
+                padding: 1rem;
+            }
+        }
+
+        /* Button Styles */
         .btn-primary {
-            background-color: #d63384;
-            border-color: #d63384;
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
         }
+
         .btn-primary:hover {
             background-color: #b02a37;
             border-color: #b02a37;
         }
+
+        /* Card Styles */
         .card {
             box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+            border: none;
+            border-radius: 0.5rem;
         }
+
+        /* Footer */
         .footer {
             background-color: #f8f9fa;
             padding: 2rem 0;
             margin-top: 3rem;
+            border-top: 1px solid #e9ecef;
+        }
+
+        /* Flash Messages */
+        .flash-messages {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            z-index: 1050;
+            max-width: 400px;
+        }
+
+        /* Overlay for mobile */
+        .sidebar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+            display: none;
+        }
+
+        .sidebar-overlay.show {
+            display: block;
         }
     </style>
     
     {% block extra_css %}{% endblock %}
 </head>
 <body>
-    <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-light bg-light">
-        <div class="container">
-            <a class="navbar-brand d-flex align-items-center" href="{{ url_for('main.index') }}">
-                <img src="{{ url_for('static', filename='images/logo_4.svg') }}" alt="Salon Ease Logo" style="height: 40px; margin-right: 10px;">
-                <span style="color: #9b7bb7; font-weight: bold; font-size: 1.5rem;">Salon Ease</span>
-            </a>
-            
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('main.index') }}">Home</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('main.services') }}">Services</a>
-                    </li>
-                    {% if current_user.is_authenticated %}
-                        {% if current_user.has_role('customer') %}
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ url_for('appointments.book_appointment') }}"><strong>Book Appointment</strong></a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ url_for('appointments.my_appointments') }}">My Appointments</a>
-                            </li>
-                        {% elif current_user.has_role('stylist') %}
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ url_for('appointments.book_appointment') }}"><strong>Book Appointment</strong></a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ url_for('appointments.stylist_appointments') }}">My Schedule</a>
-                            </li>
-                        {% elif current_user.has_role('manager') or current_user.has_role('owner') %}
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ url_for('appointments.book_appointment') }}"><strong>Book Appointment</strong></a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ url_for('appointments.admin_appointments') }}">All Appointments</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ url_for('appointments.manage_services') }}">Services</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ url_for('appointments.manage_stylist_timings') }}">Stylist Timings</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ url_for('appointments.manage_stylist_associations') }}">Stylist Associations</a>
-                            </li>
-                        {% endif %}
-                    {% endif %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('main.about') }}">About</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('main.contact') }}">Contact</a>
-                    </li>
-                </ul>
-                
-                <ul class="navbar-nav">
-                    {% if current_user.is_authenticated %}
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
-                                <i class="fas fa-user"></i> {{ current_user.first_name }}
+    <!-- Sidebar Overlay for Mobile -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- Sidebar Navigation -->
+    <nav class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <img src="{{ url_for('static', filename='images/logo_4.svg') }}" alt="Salon Ease Logo" class="logo">
+            <h5 class="brand-text">Salon Ease</h5>
+        </div>
+        
+        <div class="sidebar-nav">
+            <!-- Main Navigation -->
+            <div class="nav-section">
+                <div class="nav-section-title">Main</div>
+                <div class="nav-item">
+                    <a class="nav-link" href="{{ url_for('main.index') }}">
+                        <i class="fas fa-home"></i>
+                        <span>Home</span>
+                    </a>
+                </div>
+                <div class="nav-item">
+                    <a class="nav-link" href="{{ url_for('main.services') }}">
+                        <i class="fas fa-cut"></i>
+                        <span>Services</span>
+                    </a>
+                </div>
+                {% if current_user.is_authenticated %}
+                    <div class="nav-item">
+                        <a class="nav-link" href="{{ url_for('main.dashboard') }}">
+                            <i class="fas fa-tachometer-alt"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Appointments Section -->
+            {% if current_user.is_authenticated %}
+                <div class="nav-section">
+                    <div class="nav-section-title">Appointments</div>
+                    <div class="nav-item">
+                        <a class="nav-link" href="{{ url_for('appointments.book_appointment') }}">
+                            <i class="fas fa-calendar-plus"></i>
+                            <span>Book Appointment</span>
+                        </a>
+                    </div>
+                    
+                    {% if current_user.has_role('customer') %}
+                        <div class="nav-item">
+                            <a class="nav-link" href="{{ url_for('appointments.my_appointments') }}">
+                                <i class="fas fa-calendar-check"></i>
+                                <span>My Appointments</span>
                             </a>
-                            <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="{{ url_for('main.dashboard') }}">Dashboard</a></li>
-                                <li><a class="dropdown-item" href="{{ url_for('profile.view_profile') }}">My Profile</a></li>
-                                {% if current_user.can_access('manager') %}
-                                    <li><a class="dropdown-item" href="{{ url_for('admin.dashboard') }}">Admin</a></li>
-                                {% endif %}
-                                <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}">Logout</a></li>
-                            </ul>
-                        </li>
-                    {% else %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('auth.login') }}">Login</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('auth.register') }}">Register</a>
-                        </li>
+                        </div>
+                    {% elif current_user.has_role('stylist') %}
+                        <div class="nav-item">
+                            <a class="nav-link" href="{{ url_for('appointments.stylist_appointments') }}">
+                                <i class="fas fa-calendar-alt"></i>
+                                <span>My Schedule</span>
+                            </a>
+                        </div>
+                    {% elif current_user.has_role('manager') or current_user.has_role('owner') %}
+                        <div class="nav-item">
+                            <a class="nav-link" href="{{ url_for('appointments.admin_appointments') }}">
+                                <i class="fas fa-calendar-week"></i>
+                                <span>All Appointments</span>
+                            </a>
+                        </div>
                     {% endif %}
-                </ul>
+                </div>
+
+                <!-- Management Section -->
+                {% if current_user.has_role('manager') or current_user.has_role('owner') %}
+                    <div class="nav-section">
+                        <div class="nav-section-title">Management</div>
+                        <div class="nav-item">
+                            <a class="nav-link" href="{{ url_for('appointments.manage_services') }}">
+                                <i class="fas fa-cogs"></i>
+                                <span>Services</span>
+                            </a>
+                        </div>
+                        <div class="nav-item">
+                            <a class="nav-link" href="{{ url_for('appointments.manage_stylist_timings') }}">
+                                <i class="fas fa-clock"></i>
+                                <span>Stylist Timings</span>
+                            </a>
+                        </div>
+                        <div class="nav-item">
+                            <a class="nav-link" href="{{ url_for('appointments.manage_stylist_associations') }}">
+                                <i class="fas fa-link"></i>
+                                <span>Stylist Associations</span>
+                            </a>
+                        </div>
+                        <div class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin.dashboard') }}">
+                                <i class="fas fa-users-cog"></i>
+                                <span>Admin Panel</span>
+                            </a>
+                        </div>
+                    </div>
+                {% endif %}
+
+                <!-- Profile Section -->
+                <div class="nav-section">
+                    <div class="nav-section-title">Account</div>
+                    <div class="nav-item">
+                        <a class="nav-link" href="{{ url_for('profile.view_profile') }}">
+                            <i class="fas fa-user"></i>
+                            <span>My Profile</span>
+                        </a>
+                    </div>
+                    <div class="nav-item">
+                        <a class="nav-link" href="{{ url_for('auth.logout') }}">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>Logout</span>
+                        </a>
+                    </div>
+                </div>
+            {% else %}
+                <!-- Guest Section -->
+                <div class="nav-section">
+                    <div class="nav-section-title">Account</div>
+                    <div class="nav-item">
+                        <a class="nav-link" href="{{ url_for('auth.login') }}">
+                            <i class="fas fa-sign-in-alt"></i>
+                            <span>Login</span>
+                        </a>
+                    </div>
+                    <div class="nav-item">
+                        <a class="nav-link" href="{{ url_for('auth.register') }}">
+                            <i class="fas fa-user-plus"></i>
+                            <span>Register</span>
+                        </a>
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- Information Section -->
+            <div class="nav-section">
+                <div class="nav-section-title">Information</div>
+                <div class="nav-item">
+                    <a class="nav-link" href="{{ url_for('main.about') }}">
+                        <i class="fas fa-info-circle"></i>
+                        <span>About</span>
+                    </a>
+                </div>
+                <div class="nav-item">
+                    <a class="nav-link" href="{{ url_for('main.contact') }}">
+                        <i class="fas fa-envelope"></i>
+                        <span>Contact</span>
+                    </a>
+                </div>
             </div>
         </div>
     </nav>
 
-    <!-- Flash Messages -->
-    <div class="container mt-3">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
-    </div>
-
     <!-- Main Content -->
-    <main class="container mt-4">
-        {% block content %}{% endblock %}
-    </main>
-
-    <!-- Footer -->
-    <footer class="footer">
-        <div class="container">
-            <div class="row">
-                <div class="col-md-6">
-                    <h5>Salon Ease</h5>
-                    <p>Professional hair styling and beauty services</p>
+    <div class="main-content" id="mainContent">
+        <!-- Top Bar -->
+        <div class="top-bar">
+            <div class="d-flex align-items-center">
+                <button class="sidebar-toggle" id="sidebarToggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <h4 class="mb-0 ms-3">{% block page_title %}{% endblock %}</h4>
+            </div>
+            
+            {% if current_user.is_authenticated %}
+                <div class="user-menu">
+                    <div class="user-info">
+                        <p class="user-name">{{ current_user.first_name }} {{ current_user.last_name }}</p>
+                        <p class="user-role">
+                            {% if current_user.has_role('owner') %}Owner
+                            {% elif current_user.has_role('manager') %}Manager
+                            {% elif current_user.has_role('stylist') %}Stylist
+                            {% elif current_user.has_role('customer') %}Customer
+                            {% else %}Guest{% endif %}
+                        </p>
+                    </div>
                 </div>
-                <div class="col-md-6 text-md-end">
-                    <p>&copy; 2025 Salon Ease. All rights reserved.</p>
+            {% endif %}
+        </div>
+
+        <!-- Content Wrapper -->
+        <div class="content-wrapper">
+            <!-- Flash Messages -->
+            <div class="flash-messages">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+            </div>
+
+            <!-- Main Content Area -->
+            {% block content %}{% endblock %}
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="container">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5>Salon Ease</h5>
+                        <p>Professional hair styling and beauty services</p>
+                    </div>
+                    <div class="col-md-6 text-md-end">
+                        <p>&copy; 2025 Salon Ease. All rights reserved.</p>
+                    </div>
                 </div>
             </div>
-        </div>
-    </footer>
+        </footer>
+    </div>
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Sidebar Toggle Functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('mainContent');
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            const sidebarOverlay = document.getElementById('sidebarOverlay');
+            
+            // Toggle sidebar
+            sidebarToggle.addEventListener('click', function() {
+                sidebar.classList.toggle('collapsed');
+                mainContent.classList.toggle('expanded');
+            });
+            
+            // Mobile sidebar toggle
+            function toggleMobileSidebar() {
+                sidebar.classList.toggle('mobile-open');
+                sidebarOverlay.classList.toggle('show');
+            }
+            
+            sidebarToggle.addEventListener('click', toggleMobileSidebar);
+            sidebarOverlay.addEventListener('click', toggleMobileSidebar);
+            
+            // Set active nav link based on current page
+            const currentPath = window.location.pathname;
+            const navLinks = document.querySelectorAll('.nav-link');
+            
+            navLinks.forEach(link => {
+                if (link.getAttribute('href') === currentPath) {
+                    link.classList.add('active');
+                }
+            });
+            
+            // Auto-hide flash messages after 5 seconds
+            const flashMessages = document.querySelectorAll('.alert');
+            flashMessages.forEach(message => {
+                setTimeout(() => {
+                    message.style.opacity = '0';
+                    setTimeout(() => {
+                        message.remove();
+                    }, 300);
+                }, 5000);
+            });
+            
+            // Responsive behavior
+            function handleResize() {
+                if (window.innerWidth <= 768) {
+                    sidebar.classList.remove('collapsed');
+                    mainContent.classList.remove('expanded');
+                }
+            }
+            
+            window.addEventListener('resize', handleResize);
+            handleResize(); // Initial check
+        });
+    </script>
     
     {% block extra_js %}{% endblock %}
 </body>
