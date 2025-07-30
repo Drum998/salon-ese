@@ -1,6 +1,515 @@
 # Salon ESE Changelog
 
-## [1.3.0] - Stylist Calendar View Toggle & Enhanced UX - 2025-01-28
+## [1.9.0] - Services Page Layout Improvements - 2025-01-28
+### 🎯 **Services Page Layout Enhancement**
+#### Improved Information Hierarchy
+- **✅ COMPLETED**: Services now appear above the matrix for better visibility
+- **Layout**: Service cards prominently displayed at the top of the page
+- **Matrix**: Assignment matrix moved below service information
+- **Benefits**: Better information hierarchy and user experience
+
+#### Compact Stylist Matrix Rows
+- **Stylist Display**: Reduced to username only (removed full names and roles)
+- **Space Efficiency**: Much more compact rows for better space utilization
+- **Visual Clarity**: Cleaner matrix with less visual clutter
+- **Data Preservation**: Full names still available in data attributes
+
+#### Matrix Optimization
+- **Column Widths**: Reduced from 150px to 120px for better space usage
+- **Padding**: Compact padding (0.25rem) for tighter layout
+- **Font Sizes**: Smaller fonts (0.85rem) for more efficient display
+- **Headers**: Simplified service headers (removed waiting time display)
+
+#### Technical Implementation
+```html
+<!-- Service cards above matrix -->
+<div class="row mb-4">
+    <div class="col-12">
+        <h4><i class="fas fa-list"></i> Service Details</h4>
+    </div>
+    <!-- Service cards here -->
+</div>
+
+<!-- Compact matrix below -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-table"></i> Stylist-Service Assignment Matrix</h5>
+    </div>
+    <!-- Compact matrix with username-only stylist rows -->
+</div>
+```
+
+#### CSS Enhancements
+```css
+.stylist-cell {
+    background-color: #f8f9fa;
+    vertical-align: middle;
+    min-width: 150px;
+}
+
+.stylist-info {
+    padding: 0.25rem 0.5rem;
+    text-align: center;
+}
+
+.service-header {
+    padding: 0.25rem;
+    font-size: 0.85rem;
+}
+```
+
+### 🧪 **Testing & Verification**
+- **New Test Script**: `test_services_layout.py`
+- **Comprehensive Validation**: Verifies layout changes, compact styling, and functionality
+- **Visual Verification Guide**: Step-by-step manual testing checklist
+- **Layout Benefits Documentation**: Clear explanation of improvements
+
+## [1.8.0] - Single Appointment Block Spanning (CSS Method) - 2025-01-28
+
+### 🎯 **Single Appointment Block Spanning - FINAL SOLUTION**
+
+#### CSS-Based Height Calculation
+- **✅ COMPLETED**: Appointments now display as single blocks spanning full duration
+- **Method**: CSS height calculation using `calc(rowspan * 20px)`
+- **Formula**: `appointment_duration // 5 = rowspan` (integer division)
+- **Rendering**: Appointments rendered only once at their start time
+- **Visual**: Clean single blocks covering entire appointment duration
+- **Examples**: 
+  - 30-minute appointment: 6 rows, 120px height
+  - 60-minute appointment: 12 rows, 240px height
+  - 90-minute appointment: 18 rows, 360px height
+  - 135-minute appointment: 27 rows, 540px height
+- **Benefits**: Cleaner calendar, no duplicate blocks, maintains all functionality
+- **Technical**: Preserves working appointment detection logic while adding visual spanning
+
+#### Technical Implementation
+```jinja2
+<!-- Duration and rowspan calculation -->
+{% set appointment_duration = appointment_end - appointment_start %}
+{% set rowspan = appointment_duration // 5 %}
+{% set is_start = (current_time >= appointment_start and current_time < appointment_start + 5) %}
+
+<!-- Conditional rendering at start time only -->
+{% if is_start %}
+    <div class="appointment-slot" style="height: calc({{ rowspan }} * 20px);">
+        <!-- Single appointment block content -->
+    </div>
+{% endif %}
+```
+
+#### CSS Styling
+```css
+.appointment-slot {
+    height: calc(rowspan * 20px);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 10;
+}
+```
+
+### 🧪 **Testing & Verification**
+- **New Test Script**: `test_single_block_css.py`
+- **Comprehensive Validation**: Verifies CSS calculation, start detection, and visual styling
+- **Visual Verification Guide**: Step-by-step manual testing checklist
+- **Calculation Examples**: Clear examples of height calculations for different durations
+
+## [1.7.0] - Appointment Block Display Improvements - 2025-01-28
+
+### 🎯 **Appointment Block Display Enhancement**
+
+#### Single Appointment Blocks
+- **Improved**: Appointment display now shows single blocks spanning full duration
+- **Before**: Appointments appeared as multiple separate blocks (one per 5-minute slot)
+- **After**: Each appointment appears as ONE block covering all its time slots
+- **Example**: 9:00-11:15 appointment now shows as one block spanning 27 rows
+
+#### Visual Improvements
+- **Rowspan Implementation**: Uses HTML `rowspan` attribute to span multiple table rows
+- **Cleaner Layout**: Eliminates visual clutter from duplicate appointment blocks
+- **Better Proportions**: Appointment blocks have proper height to cover their duration
+- **Enhanced Styling**: Improved padding, font sizes, and visual hierarchy
+
+#### Click Behavior Separation
+- **Appointment Blocks**: Clicking opens the edit appointment page
+- **Empty Slots**: Clicking opens the new booking page
+- **No Interference**: Appointment blocks don't prevent clicking on empty slots
+- **Clear Visual Feedback**: Different hover states for appointments vs empty slots
+
+### 🔧 **Technical Implementation**
+
+#### Template Logic Updates
+```jinja2
+<!-- New appointment block rendering logic -->
+{% if appointment_for_slot and is_appointment_start %}
+    <td class="appointment-block" rowspan="{{ appointment_rowspan }}">
+        <!-- Single appointment block content -->
+    </td>
+{% elif appointment_for_slot and not is_appointment_start %}
+    <!-- Skip rendering for covered slots -->
+{% else %}
+    <!-- Empty slot for booking -->
+{% endif %}
+```
+
+#### JavaScript Functions
+```javascript
+// New appointment click handler
+function handleAppointmentClick(element) {
+    const appointmentId = element.getAttribute('data-appointment-id');
+    const editUrl = `/appointments/appointment/${appointmentId}/edit`;
+    window.location.href = editUrl;
+}
+
+// Existing time slot click handler (for empty slots)
+function handleTimeSlotClick(element) {
+    // Opens booking page for new appointments
+}
+```
+
+#### CSS Enhancements
+```css
+/* Appointment block styling */
+.appointment-block {
+    background-color: transparent !important;
+    border: none !important;
+    vertical-align: top;
+}
+
+.appointment-slot {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 8px;
+}
+```
+
+### 📊 **User Experience Improvements**
+
+#### Visual Clarity
+- **Single Source of Truth**: Each appointment appears exactly once
+- **Duration Visualization**: Clear visual representation of appointment length
+- **Reduced Confusion**: No duplicate blocks to confuse users
+- **Better Information Density**: More appointment details visible in each block
+
+#### Interaction Improvements
+- **Intuitive Clicking**: Click appointment to edit, click empty slot to book
+- **No Double-Clicking**: Eliminates accidental double-booking attempts
+- **Clear Visual Cues**: Different styling for appointments vs available slots
+- **Smooth Navigation**: Direct links to edit pages from calendar
+
+#### Performance Benefits
+- **Reduced DOM Elements**: Fewer HTML elements to render
+- **Cleaner HTML**: Simpler table structure
+- **Better Accessibility**: Clearer semantic structure
+- **Mobile Friendly**: Better responsive behavior
+
+### 🧪 **Testing & Verification**
+
+#### Automated Tests
+- **New Test Script**: `test_appointment_block_display.py`
+- **Comprehensive Checks**: Verifies all new functionality
+- **Visual Verification**: Step-by-step manual testing guide
+- **Regression Testing**: Ensures existing features still work
+
+#### Test Coverage
+- [ ] Appointment blocks span correct number of rows
+- [ ] Appointments only render once at start time
+- [ ] Clicking appointment blocks opens edit page
+- [ ] Empty slots remain clickable for new bookings
+- [ ] Visual styling is consistent and attractive
+- [ ] Calendar navigation still works correctly
+
+### 🚀 **Migration Notes**
+
+#### For Existing Users
+- **No Data Changes**: All appointment data remains intact
+- **No Configuration**: Automatic visual improvements
+- **Backward Compatible**: All existing functionality preserved
+- **Enhanced Experience**: Better visual clarity and interaction
+
+#### For Developers
+- **Template Changes**: Updated Jinja2 logic in calendar template
+- **CSS Updates**: New styles for appointment blocks
+- **JavaScript Addition**: New click handler function
+- **Testing**: New test script for verification
+
+---
+
+## [1.6.0] - Code Cleanup & Redundant Feature Removal - 2025-01-28
+
+### 🧹 **Code Cleanup**
+
+#### Removed Redundant Stylist Associations Page
+- **Removed**: Standalone Stylist Associations management page
+- **Reason**: Functionality is better covered by the Services Matrix on the services page
+- **Benefits**: 
+  - Reduced code complexity
+  - Eliminated duplicate functionality
+  - Streamlined user interface
+  - Better user experience with matrix interface
+
+#### Files Removed
+- `app/templates/appointments/stylist_associations.html` - Redundant management page
+- `app/templates/appointments/stylist_association_form.html` - Redundant form page
+
+#### Code Cleanup
+- **Removed**: `StylistServiceAssociationForm` class from `app/forms.py`
+- **Removed**: All stylist association routes from `app/routes/appointments.py`
+- **Removed**: Navigation link from `app/templates/base.html`
+- **Cleaned**: Import statements and unused code
+
+### 🔧 **Technical Changes**
+
+#### Routes Removed
+```python
+# Removed from app/routes/appointments.py
+@bp.route('/stylist-associations')
+@bp.route('/stylist-associations/new')
+@bp.route('/stylist-associations/<int:association_id>/edit')
+@bp.route('/stylist-associations/<int:association_id>/delete')
+```
+
+#### Form Class Removed
+```python
+# Removed from app/forms.py
+class StylistServiceAssociationForm(FlaskForm):
+    # ... entire class removed
+```
+
+#### Navigation Updated
+```html
+<!-- Removed from app/templates/base.html -->
+<a class="nav-link" href="{{ url_for('appointments.manage_stylist_associations') }}">
+    <i class="fas fa-link"></i>
+    <span>Stylist Associations</span>
+</a>
+```
+
+### 🎯 **User Experience Improvements**
+
+#### Streamlined Interface
+- **Single Point of Management**: All stylist-service associations now managed through Services page
+- **Better Matrix Interface**: More intuitive checkbox-based management
+- **Reduced Confusion**: No duplicate functionality to confuse users
+- **Cleaner Navigation**: Fewer menu items, more focused interface
+
+#### Maintained Functionality
+- **Services Matrix**: Still provides full stylist-service association management
+- **Bulk Operations**: Matrix interface supports bulk updates
+- **Visual Feedback**: Clear indication of associations with checkboxes
+- **API Endpoints**: Stylist service filtering still works for booking
+
+### 📊 **Impact Assessment**
+
+#### Positive Impacts
+- **Code Reduction**: ~200 lines of code removed
+- **Maintenance**: Fewer files to maintain and test
+- **User Experience**: Less confusion, more intuitive interface
+- **Performance**: Slightly reduced application size
+
+#### No Negative Impact
+- **Functionality**: All features preserved through Services Matrix
+- **Data**: No data loss, associations still stored in database
+- **API**: All existing API endpoints remain functional
+- **Booking**: Stylist service filtering still works correctly
+
+### 🚀 **Migration Instructions**
+
+For users updating from previous versions:
+
+1. **No Action Required**: All functionality is preserved through the Services page
+2. **Navigation**: Stylist Associations link removed from sidebar
+3. **Management**: Use Services page matrix interface for all association management
+4. **Data**: All existing associations remain intact
+
+### 🧪 **Testing Checklist**
+
+#### Functionality Verification
+- [ ] Services Matrix still allows stylist-service association management
+- [ ] Bulk update functionality works correctly
+- [ ] Stylist service filtering works in booking forms
+- [ ] API endpoints return correct stylist services
+- [ ] No broken links in navigation
+
+#### Code Quality
+- [ ] No import errors after cleanup
+- [ ] All routes removed successfully
+- [ ] Template files deleted
+- [ ] Navigation updated correctly
+- [ ] No orphaned references
+
+---
+
+## [1.5.0] - Click-to-Book Calendar with 5-Minute Time Slots - 2025-01-28
+
+### 🎯 Major Features Added
+
+#### Click-to-Book Calendar Functionality
+- **Added**: Click-to-book functionality on calendar time slots
+- **Purpose**: Streamline appointment booking process with direct calendar interaction
+- **Features**:
+  - Click any time slot on the calendar to initiate booking
+  - Modal confirmation dialog with appointment details
+  - Pre-filled booking form with selected date, time, and stylist
+  - Visual feedback with hover and click animations
+  - Keyboard support (Escape key to close modal)
+
+#### 5-Minute Time Slot Intervals
+- **Changed**: Calendar time slots from 30-minute to 5-minute intervals
+- **Purpose**: Provide more granular booking options for precise appointment scheduling
+- **Features**:
+  - 5-minute intervals throughout the day (9:00 AM to 6:00 PM)
+  - Consistent time slots across calendar and booking forms
+  - Improved precision for appointment scheduling
+  - Better utilization of stylist availability
+
+#### Enhanced User Experience
+- **Added**: Visual indicators for empty time slots with plus icons
+- **Added**: Hover effects and click animations for time slots
+- **Added**: Pre-filled parameter indicator in booking form
+- **Added**: Responsive modal design with clear call-to-action buttons
+- **Added**: Improved calendar layout with smaller, more precise time slots
+
+### 🔧 Technical Changes
+
+#### Updated Time Slot Generation
+```python
+# Changed from 30-minute to 5-minute intervals
+for hour in range(9, 18):
+    for minute in range(0, 60, 5):  # 5-minute intervals
+        time_slots.append((f"{hour:02d}:{minute:02d}", f"{hour:02d}:{minute:02d}"))
+```
+
+#### Enhanced Calendar Template
+```html
+<!-- Clickable time slots with data attributes -->
+<td class="position-relative calendar-time-slot" 
+    data-date="{{ current_date.isoformat() }}"
+    data-time="{{ "%02d:%02d"|format(hour, minute) }}"
+    data-stylist-id="{{ stylist.id }}"
+    onclick="handleTimeSlotClick(this)">
+```
+
+#### JavaScript Click-to-Book Implementation
+```javascript
+function handleTimeSlotClick(element) {
+    const date = element.getAttribute('data-date');
+    const time = element.getAttribute('data-time');
+    const stylistId = element.getAttribute('data-stylist-id');
+    showBookingModal(date, time, stylistId, stylistName);
+}
+```
+
+### 🛣️ Enhanced Routes
+
+#### Booking Form Pre-fill Support
+- Enhanced `/appointments/book` route to handle URL parameters
+- Added support for pre-filling date, time, and stylist from calendar clicks
+- Improved form validation for pre-filled parameters
+
+### 🎨 Enhanced Templates
+
+#### Calendar Interface
+- Updated `app/templates/appointments/admin_calendar.html` with:
+  - 5-minute time slot intervals
+  - Clickable time slots with data attributes
+  - Visual feedback and hover effects
+  - Modal dialog for booking confirmation
+  - Empty slot indicators with plus icons
+
+#### Booking Form
+- Updated `app/templates/appointments/book.html` with:
+  - Pre-filled parameter indicator
+  - Visual feedback for calendar-initiated bookings
+  - Enhanced user experience for quick booking
+
+### 📁 New Files Created
+
+#### Testing
+- `test_click_to_book.py` - Comprehensive test script for click-to-book functionality
+
+### 🔄 Files Modified
+
+#### Core Application Files
+- `app/forms.py` - Updated AppointmentBookingForm with 5-minute time slots
+- `app/routes/appointments.py` - Enhanced booking route with pre-fill support
+- `app/templates/appointments/admin_calendar.html` - Complete click-to-book implementation
+- `app/templates/appointments/book.html` - Added pre-fill indicators
+
+### 🚀 Migration Instructions
+
+For users updating from previous versions:
+
+1. **Stop the current container:**
+   ```bash
+   docker-compose down
+   ```
+
+2. **Rebuild with latest code:**
+   ```bash
+   docker-compose build --no-cache
+   docker-compose up -d
+   ```
+
+3. **Test the new features:**
+   - Navigate to admin calendar view
+   - Click on any empty time slot
+   - Verify modal appears with booking details
+   - Test pre-filled booking form
+   - Verify 5-minute time slot intervals
+
+### 🧪 Testing Checklist
+
+#### Click-to-Book Functionality
+- [ ] Time slots are clickable and show visual feedback
+- [ ] Modal appears with correct appointment details
+- [ ] Pre-filled booking form loads with selected parameters
+- [ ] Modal can be closed with Escape key or Cancel button
+- [ ] Booking form shows pre-filled indicator
+
+#### 5-Minute Time Slots
+- [ ] Calendar shows 5-minute intervals (09:00, 09:05, 09:10, etc.)
+- [ ] Booking form time dropdown has 5-minute intervals
+- [ ] Time slots are consistent across calendar and forms
+- [ ] Appointments display correctly in 5-minute slots
+
+#### User Experience
+- [ ] Empty slots show plus icons
+- [ ] Hover effects work on time slots
+- [ ] Click animations provide visual feedback
+- [ ] Modal is responsive and accessible
+- [ ] Pre-filled parameters are clearly indicated
+
+### 🐛 Bug Fixes
+
+#### Previous Issues Resolved
+- **Time Precision**: Improved from 30-minute to 5-minute intervals
+- **Booking Workflow**: Streamlined with direct calendar interaction
+- **User Experience**: Enhanced with visual feedback and pre-fill support
+
+### 📊 Performance Improvements
+
+- **Booking Efficiency**: Reduced clicks required for appointment booking
+- **Time Precision**: More granular scheduling options
+- **User Interface**: Improved visual feedback and interaction design
+
+### 🔮 Future Enhancements Planned
+
+- **Real-time Availability**: Live checking of stylist availability
+- **Drag-and-Drop Booking**: Visual appointment rescheduling
+- **Bulk Booking**: Multiple appointment creation from calendar
+- **Mobile Optimization**: Touch-friendly calendar interface
+- **Advanced Filtering**: Time slot filtering by service type
+
+---
+
+## [1.4.0] - Modern Sidebar Navigation & Services Matrix - 2025-01-28
 
 ### 🎯 Major Features Added
 
@@ -563,6 +1072,10 @@ For users updating from previous versions:
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 1.7.0 | 2025-01-28 | Appointment Block Display Improvements |
+| 1.6.0 | 2025-01-28 | Code Cleanup & Redundant Feature Removal |
+| 1.5.0 | 2025-01-28 | Click-to-Book Calendar with 5-Minute Time Slots |
+| 1.4.0 | 2025-01-28 | Modern Sidebar Navigation & Services Matrix |
 | 1.3.0 | 2025-01-28 | Stylist Calendar View Toggle & Enhanced UX |
 | 1.2.0 | 2025-01-28 | Stylist Service Associations & Custom Waiting Times |
 | 1.1.0 | 2025-01-27 | Service Management Enhancements |

@@ -25,81 +25,13 @@
         </div>
         
         {% if services and stylists %}
-            <!-- Services Matrix -->
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0"><i class="fas fa-table"></i> Stylist-Service Assignment Matrix</h5>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-bordered table-hover" id="servicesMatrix">
-                            <thead class="table-dark">
-                                <tr>
-                                    <th style="min-width: 200px;">Stylist</th>
-                                    {% for service in services %}
-                                        <th class="text-center" style="min-width: 150px;">
-                                            <div class="service-header">
-                                                <strong>{{ service.name }}</strong>
-                                                <br>
-                                                <small class="text-muted">
-                                                    {{ service.duration }}min - £{{ "%.2f"|format(service.price) }}
-                                                </small>
-                                                <br>
-                                                <small class="text-info">
-                                                    {% if service.waiting_time %}
-                                                        Wait: {{ service.waiting_time }}min
-                                                    {% else %}
-                                                        No wait time
-                                                    {% endif %}
-                                                </small>
-                                            </div>
-                                        </th>
-                                    {% endfor %}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for stylist in stylists %}
-                                    <tr>
-                                        <td class="stylist-cell">
-                                            <div class="stylist-info">
-                                                <strong>{{ stylist.first_name }} {{ stylist.last_name }}</strong>
-                                                <br>
-                                                <small class="text-muted">{{ stylist.username }}</small>
-                                                <br>
-                                                <span class="badge bg-primary">{{ stylist.roles[0].name.title() if stylist.roles else 'No Role' }}</span>
-                                            </div>
-                                        </td>
-                                        {% for service in services %}
-                                            <td class="text-center">
-                                                {% set association = stylist_service_associations.get((stylist.id, service.id)) %}
-                                                <div class="form-check d-flex justify-content-center">
-                                                    <input class="form-check-input association-checkbox" 
-                                                           type="checkbox" 
-                                                           id="stylist_{{ stylist.id }}_service_{{ service.id }}"
-                                                           data-stylist-id="{{ stylist.id }}"
-                                                           data-service-id="{{ service.id }}"
-                                                           data-stylist-name="{{ stylist.first_name }} {{ stylist.last_name }}"
-                                                           data-service-name="{{ service.name }}"
-                                                           {% if association and association.is_allowed %}checked{% endif %}
-                                                           style="transform: scale(1.5);">
-                                                </div>
-                                            </td>
-                                        {% endfor %}
-                                    </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-            
             <!-- Service Management Cards -->
-            <div class="row mt-4">
+            <div class="row mb-4">
                 <div class="col-12">
                     <h4><i class="fas fa-list"></i> Service Details</h4>
                 </div>
                 {% for service in services %}
-                    <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="col-md-6 col-lg-4 mb-3">
                         <div class="card h-100">
                             <div class="card-header d-flex justify-content-between align-items-center">
                                 <h5 class="card-title mb-0">{{ service.name }}</h5>
@@ -151,6 +83,62 @@
                         </div>
                     </div>
                 {% endfor %}
+            </div>
+            
+            <!-- Services Matrix -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-table"></i> Stylist-Service Assignment Matrix</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover" id="servicesMatrix">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th style="min-width: 150px;">Stylist</th>
+                                    {% for service in services %}
+                                        <th class="text-center" style="min-width: 120px;">
+                                            <div class="service-header">
+                                                <strong>{{ service.name }}</strong>
+                                                <br>
+                                                <small class="text-muted">
+                                                    {{ service.duration }}min - £{{ "%.2f"|format(service.price) }}
+                                                </small>
+                                            </div>
+                                        </th>
+                                    {% endfor %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for stylist in stylists %}
+                                    <tr>
+                                        <td class="stylist-cell">
+                                            <div class="stylist-info">
+                                                <strong>{{ stylist.username }}</strong>
+                                            </div>
+                                        </td>
+                                        {% for service in services %}
+                                            <td class="text-center">
+                                                {% set association = stylist_service_associations.get((stylist.id, service.id)) %}
+                                                <div class="form-check d-flex justify-content-center">
+                                                    <input class="form-check-input association-checkbox" 
+                                                           type="checkbox" 
+                                                           id="stylist_{{ stylist.id }}_service_{{ service.id }}"
+                                                           data-stylist-id="{{ stylist.id }}"
+                                                           data-service-id="{{ service.id }}"
+                                                           data-stylist-name="{{ stylist.first_name }} {{ stylist.last_name }}"
+                                                           data-service-name="{{ service.name }}"
+                                                           {% if association and association.is_allowed %}checked{% endif %}
+                                                           style="transform: scale(1.5);">
+                                                </div>
+                                            </td>
+                                        {% endfor %}
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         {% else %}
             <div class="text-center py-5">
@@ -209,17 +197,19 @@
 }
 
 .service-header {
-    padding: 0.5rem;
-    font-size: 0.9rem;
+    padding: 0.25rem;
+    font-size: 0.85rem;
 }
 
 .stylist-cell {
     background-color: #f8f9fa;
     vertical-align: middle;
+    min-width: 150px;
 }
 
 .stylist-info {
-    padding: 0.5rem;
+    padding: 0.25rem 0.5rem;
+    text-align: center;
 }
 
 .association-checkbox:checked {

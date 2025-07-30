@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, current_app
 from flask_login import current_user, login_required
 from app.models import User, Role, Service, Appointment, AppointmentStatus, AppointmentService, StylistServiceAssociation
-from app.forms import AppointmentBookingForm, AppointmentManagementForm, AppointmentFilterForm, ServiceForm, StylistServiceTimingForm, StylistServiceAssociationForm
+from app.forms import AppointmentBookingForm, AppointmentManagementForm, AppointmentFilterForm, ServiceForm, StylistServiceTimingForm
 from app.extensions import db
 from datetime import datetime, date, timedelta
 from functools import wraps
@@ -28,6 +28,31 @@ def roles_required(*role_names):
 @roles_required('customer', 'stylist', 'manager', 'owner')
 def book_appointment():
     form = AppointmentBookingForm()
+    
+    # Handle pre-filled parameters from click-to-book
+    if request.method == 'GET':
+        # Pre-fill date if provided
+        if request.args.get('date'):
+            try:
+                pre_filled_date = datetime.strptime(request.args.get('date'), '%Y-%m-%d').date()
+                form.appointment_date.data = pre_filled_date
+            except ValueError:
+                pass
+        
+        # Pre-fill time if provided
+        if request.args.get('time'):
+            pre_filled_time = request.args.get('time')
+            if pre_filled_time in [choice[0] for choice in form.start_time.choices]:
+                form.start_time.data = pre_filled_time
+        
+        # Pre-fill stylist if provided
+        if request.args.get('stylist_id'):
+            try:
+                pre_filled_stylist_id = int(request.args.get('stylist_id'))
+                if pre_filled_stylist_id in [choice[0] for choice in form.stylist_id.choices]:
+                    form.stylist_id.data = pre_filled_stylist_id
+            except ValueError:
+                pass
     
     # Populate service choices for each subform
     services = Service.query.filter_by(is_active=True).all()
@@ -652,107 +677,7 @@ def api_appointments():
     return jsonify(events)
 
 
-# Stylist-Service Association Management Routes
-@bp.route('/stylist-associations')
-@login_required
-@roles_required('manager', 'owner')
-def manage_stylist_associations():
-    """Manage which stylists can perform which services"""
-    associations = StylistServiceAssociation.query.join(
-        StylistServiceAssociation.stylist
-    ).join(
-        StylistServiceAssociation.service
-    ).order_by(
-        StylistServiceAssociation.stylist_id, 
-        StylistServiceAssociation.service_id
-    ).all()
-    
-    return render_template('appointments/stylist_associations.html',
-                         associations=associations,
-                         title='Manage Stylist-Service Associations')
 
-
-@bp.route('/stylist-associations/new', methods=['GET', 'POST'])
-@login_required
-@roles_required('manager', 'owner')
-def new_stylist_association():
-    """Create a new stylist-service association"""
-    form = StylistServiceAssociationForm()
-    
-    if form.validate_on_submit():
-        # Convert string values to integers
-        stylist_id = int(form.stylist_id.data)
-        service_id = int(form.service_id.data)
-        
-        # Check if association already exists for this stylist-service combination
-        existing_association = StylistServiceAssociation.query.filter_by(
-            stylist_id=stylist_id,
-            service_id=service_id
-        ).first()
-        
-        if existing_association:
-            # Update existing association
-            existing_association.is_allowed = form.is_allowed.data
-            existing_association.notes = form.notes.data
-            flash('Stylist association updated successfully!', 'success')
-        else:
-            # Create new association
-            association = StylistServiceAssociation(
-                stylist_id=stylist_id,
-                service_id=service_id,
-                is_allowed=form.is_allowed.data,
-                notes=form.notes.data
-            )
-            db.session.add(association)
-            flash('Stylist association created successfully!', 'success')
-        
-        db.session.commit()
-        return redirect(url_for('appointments.manage_stylist_associations'))
-    
-    return render_template('appointments/stylist_association_form.html',
-                         form=form,
-                         title='New Stylist-Service Association')
-
-
-@bp.route('/stylist-associations/<int:association_id>/edit', methods=['GET', 'POST'])
-@login_required
-@roles_required('manager', 'owner')
-def edit_stylist_association(association_id):
-    """Edit an existing stylist-service association"""
-    association = StylistServiceAssociation.query.get_or_404(association_id)
-    form = StylistServiceAssociationForm(obj=association)
-    
-    if form.validate_on_submit():
-        # Convert string values to integers
-        stylist_id = int(form.stylist_id.data)
-        service_id = int(form.service_id.data)
-        
-        # Update the association
-        association.stylist_id = stylist_id
-        association.service_id = service_id
-        association.is_allowed = form.is_allowed.data
-        association.notes = form.notes.data
-        
-        db.session.commit()
-        flash('Stylist association updated successfully!', 'success')
-        return redirect(url_for('appointments.manage_stylist_associations'))
-    
-    return render_template('appointments/stylist_association_form.html',
-                         form=form,
-                         association=association,
-                         title='Edit Stylist-Service Association')
-
-
-@bp.route('/stylist-associations/<int:association_id>/delete', methods=['POST'])
-@login_required
-@roles_required('manager', 'owner')
-def delete_stylist_association(association_id):
-    """Delete a stylist-service association"""
-    association = StylistServiceAssociation.query.get_or_404(association_id)
-    db.session.delete(association)
-    db.session.commit()
-    flash('Stylist association deleted successfully!', 'success')
-    return redirect(url_for('appointments.manage_stylist_associations'))
 
 
 @bp.route('/api/stylist-services/<int:stylist_id>')

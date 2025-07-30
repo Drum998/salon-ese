@@ -223,51 +223,7 @@ class StylistServiceTimingForm(FlaskForm):
                 raise ValidationError('Please enter a valid waiting time in minutes (0-240).')
 
 
-class StylistServiceAssociationForm(FlaskForm):
-    """Form for managing stylist-service associations"""
-    stylist_id = SelectField('Stylist', validators=[DataRequired()])
-    service_id = SelectField('Service', validators=[DataRequired()])
-    is_allowed = BooleanField('Stylist can perform this service', default=True)
-    notes = TextAreaField('Notes', validators=[Optional(), Length(max=500)])
-    submit = SubmitField('Save Association')
-    
-    def validate_stylist_id(self, stylist_id):
-        if not stylist_id.data or stylist_id.data == '':
-            raise ValidationError('Please select a stylist.')
-        try:
-            int(stylist_id.data)
-        except (ValueError, TypeError):
-            raise ValidationError('Please select a valid stylist.')
-    
-    def validate_service_id(self, service_id):
-        if not service_id.data or service_id.data == '':
-            raise ValidationError('Please select a service.')
-        try:
-            int(service_id.data)
-        except (ValueError, TypeError):
-            raise ValidationError('Please select a valid service.')
-    
-    def __init__(self, *args, **kwargs):
-        super(StylistServiceAssociationForm, self).__init__(*args, **kwargs)
-        
-        # Populate stylist choices (only stylists, managers, owners)
-        from app.models import User, Role
-        stylists = User.query.join(User.roles).filter(
-            Role.name.in_(['stylist', 'manager', 'owner'])
-        ).order_by(User.first_name, User.last_name).all()
-        
-        self.stylist_id.choices = [('', 'Select stylist')] + [
-            (stylist.id, f"{stylist.first_name} {stylist.last_name} ({stylist.username})")
-            for stylist in stylists
-        ]
-        
-        # Populate service choices (only active services)
-        from app.models import Service
-        services = Service.query.filter_by(is_active=True).order_by(Service.name).all()
-        self.service_id.choices = [('', 'Select service')] + [
-            (service.id, f"{service.name} ({service.duration}min - £{service.price})")
-            for service in services
-        ]
+
 
 
 class AppointmentServiceForm(FlaskForm):
@@ -361,10 +317,10 @@ class AppointmentBookingForm(FlaskForm):
         for service_form in self.services:
             service_form.stylist_id = self.stylist_id.data if self.stylist_id.data else None
         
-        # Populate time slots (9 AM to 6 PM, 30-minute intervals)
+        # Populate time slots (9 AM to 6 PM, 5-minute intervals)
         time_slots = []
         for hour in range(9, 18):
-            for minute in [0, 30]:
+            for minute in range(0, 60, 5):
                 time_slots.append((f"{hour:02d}:{minute:02d}", f"{hour:02d}:{minute:02d}"))
         self.start_time.choices = time_slots
     

@@ -21,6 +21,30 @@
                         <p>There are currently no services available for booking. Please contact the salon administrator to set up services.</p>
                     </div>
                 {% else %}
+                    {# Show pre-filled parameters indicator #}
+                    {% if request.args.get('date') or request.args.get('time') or request.args.get('stylist_id') %}
+                        <div class="alert alert-info">
+                            <h6><i class="fas fa-calendar-check"></i> Pre-filled from Calendar</h6>
+                            <div class="row">
+                                {% if request.args.get('date') %}
+                                    <div class="col-md-4">
+                                        <strong>Date:</strong> {{ request.args.get('date') }}
+                                    </div>
+                                {% endif %}
+                                {% if request.args.get('time') %}
+                                    <div class="col-md-4">
+                                        <strong>Time:</strong> {{ request.args.get('time') }}
+                                    </div>
+                                {% endif %}
+                                {% if request.args.get('stylist_id') %}
+                                    <div class="col-md-4">
+                                        <strong>Stylist:</strong> Pre-selected
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endif %}
+                    
                     <form method="POST">
                         {{ form.hidden_tag() }}
                         <div class="row">

@@ -16,12 +16,63 @@ A comprehensive, role-based authentication and management system for hair salons
 
 ---
 
-## 🆕 Latest Release: v1.4.0 - Modern Sidebar Navigation System
+## 🆕 Latest Release: v1.9.0 - Services Page Layout Improvements
 
 ### 🎯 Overview
-The latest release introduces a modern, responsive sidebar navigation system that provides better organization and scalability for the growing application. This replaces the traditional top navigation with a collapsible sidebar that adapts to different screen sizes and user roles.
+The latest release focuses on improving the Services page layout and user experience. Services are now prominently displayed above the assignment matrix, and stylist rows have been made more compact for better space efficiency and visual clarity.
 
-### ✨ New Features in v1.4.0
+### ✨ New Features in v1.9.0
+
+#### 1. **Services Page Layout Enhancement**
+- **Purpose**: Improve information hierarchy and space efficiency
+- **Implementation**: Services cards moved above matrix, compact stylist rows
+- **Features**:
+  - Service cards prominently displayed at top of page
+  - Compact stylist matrix rows (username only)
+  - Reduced column widths and padding for better space usage
+  - Simplified service headers in matrix
+  - Maintained all existing functionality
+  - Better responsive design for smaller screens
+
+#### 2. **Improved Information Hierarchy**
+- **Service Cards**: Detailed service information displayed first
+- **Matrix**: Assignment matrix moved below for secondary focus
+- **Visual Flow**: Natural top-to-bottom information flow
+- **User Experience**: Easier to review services before managing assignments
+
+#### 3. **Compact Matrix Design**
+- **Stylist Display**: Username only (removed full names and roles)
+- **Space Efficiency**: Much more compact rows for better space utilization
+- **Visual Clarity**: Cleaner matrix with less visual clutter
+- **Data Preservation**: Full names still available in data attributes
+
+#### 4. **Enhanced Responsive Design**
+- **Column Widths**: Reduced from 150px to 120px
+- **Padding**: Compact padding (0.25rem) for tighter layout
+- **Font Sizes**: Smaller fonts (0.85rem) for more efficient display
+- **Mobile Friendly**: Better behavior on smaller screens
+
+### ✨ Previous Major Features
+
+#### **v1.8.0 - Click-to-Book Calendar with Single Block Spanning**
+- **Purpose**: Direct calendar interaction for booking appointments
+- **Features**:
+  - 5-minute time slot granularity
+  - Click-to-book functionality on calendar time slots
+  - Pre-filled booking form with selected parameters
+  - Day navigation buttons for easy week navigation
+  - Sticky stylist header for better usability
+  - Single appointment block spanning (CSS method)
+  - Narrower time slot display (10px height)
+  - Appointment duration blocking (prevents double-booking)
+
+#### **v1.4.0 - Modern Sidebar Navigation System**
+- **Purpose**: Improve navigation organization and scalability
+- **Features**:
+  - Fixed sidebar with collapsible functionality
+  - Role-based menu organization
+  - Responsive design for mobile devices
+  - Smooth animations and transitions
 
 #### 1. **Modern Sidebar Navigation**
 - **Purpose**: Improve navigation organization and scalability for future features

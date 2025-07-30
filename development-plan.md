@@ -29,12 +29,49 @@ Based on the new client requirements in `new requirements.txt`, we need to **pri
 
 **Priority: HIGH** - These features enhance the core appointment functionality.
 
-#### **Task 1.1: Click-to-Book Calendar**
+#### **Task 1.1: Click-to-Book Calendar** ✅ **COMPLETED**
 - **Requirement**: "Ability to click a time on the calendar to book"
 - **Implementation**: Add click handlers to calendar time slots and integrate with booking system
-- **Status**: 🔄 **NEXT PRIORITY**
+- **Status**: ✅ **COMPLETED** - v1.8.0 Click-to-Book Calendar with Single Block Spanning
+- **Features Added**:
+  - Click-to-book functionality on calendar time slots
+  - 5-minute time slot intervals for precise scheduling
+  - Pre-filled booking form with selected parameters
+  - Visual feedback and hover animations
+  - Day navigation buttons for easy week navigation
+  - Sticky stylist header for better usability
+  - Single appointment block spanning (CSS method)
+  - Narrower time slot display (10px height)
+  - Appointment duration blocking (prevents double-booking)
+  - Clean visual layout with no duplicate blocks
+- **Technical Achievements**:
+  - CSS height calculation: `calc(rowspan * 20px)`
+  - Duration formula: `appointment_duration // 5 = rowspan`
+  - Start detection logic for single-block rendering
+  - Preserved working appointment detection system
+  - Enhanced visual layout with flexbox styling
 
-#### **Task 1.2: HR System Integration**
+#### **Task 1.2: Services Page Enhancement** ✅ **COMPLETED**
+- **Requirement**: "Services to appear above the matrix, compact stylist rows with username only"
+- **Implementation**: 
+  - Moved service cards above the assignment matrix
+  - Reduced stylist rows to show only username
+  - Optimized matrix layout with compact styling
+  - Improved information hierarchy and space efficiency
+- **Status**: ✅ **COMPLETED** - v1.9.0 Services Page Layout Improvements
+- **Features Added**:
+  - Service cards prominently displayed at top of page
+  - Compact stylist matrix rows (username only)
+  - Reduced column widths and padding for better space usage
+  - Simplified service headers in matrix
+  - Maintained all existing functionality
+- **Technical Achievements**:
+  - Improved CSS styling for compact layout
+  - Better responsive design for smaller screens
+  - Preserved data attributes for full functionality
+  - Enhanced visual hierarchy and user experience
+
+#### **Task 1.3: HR System Integration**
 - **Requirement**: "HR Side: Input for start/end dates, rates of pay, calculation of money made per appointment (rate * time + product cost + arbitrary other costs)"
 - **Implementation**: 
   - Add start/end dates and rates of pay to employment details
@@ -90,11 +127,12 @@ Based on the new client requirements in `new requirements.txt`, we need to **pri
 3. **Calendar View Improvements** - Stylists as columns for better organization
 
 ### 🔄 **Current Priority**
-- **Click-to-Book Calendar** - Add click handlers to calendar time slots
+- **HR System Integration** - Add cost calculations and financial tracking
+- **Work Patterns Admin Page** - Create admin interface for managing stylist work patterns
 
 ### 📋 **Next Steps**
-1. Implement click-to-book functionality
-2. Enhance HR system with cost calculations
+1. Enhance HR system with cost calculations
+2. Complete Work Patterns admin page
 3. Complete remaining admin pages from original plan
 
 ---

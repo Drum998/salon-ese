@@ -134,10 +134,30 @@
             </div>
             <div class="card-body p-0">
                 {% if view_type == 'week' %}
+                    <!-- Day Navigation Buttons -->
+                    <div class="day-navigation p-3 border-bottom">
+                        <div class="row">
+                            {% for i in range(7) %}
+                                {% set current_date = start_date + timedelta(days=i) %}
+                                <div class="col">
+                                    <button class="btn btn-outline-primary w-100 day-nav-btn" 
+                                            data-day="{{ i }}"
+                                            onclick="scrollToDay({{ i }})">
+                                        <div class="fw-bold">{{ current_date.strftime('%A') }}</div>
+                                        <div class="small">{{ current_date.strftime('%B %d') }}</div>
+                                        {% if current_date == date.today() %}
+                                            <span class="badge bg-primary">Today</span>
+                                        {% endif %}
+                                    </button>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
                     <!-- Week View with Stylists as Columns -->
-                    <div class="table-responsive">
+                    <div class="table-responsive calendar-container">
                         <table class="table table-bordered mb-0">
-                            <thead class="table-dark">
+                            <thead class="table-dark sticky-header">
                                 <tr>
                                     <th style="width: 120px;">Day/Time</th>
                                     {% for stylist in stylists %}
@@ -157,7 +177,7 @@
                                 {% for i in range(7) %}
                                     {% set current_date = start_date + timedelta(days=i) %}
                                     <!-- Date Header Row -->
-                                    <tr class="table-light">
+                                    <tr class="table-light day-section" data-day="{{ i }}">
                                         <td class="text-center fw-bold" style="background-color: #e9ecef;">
                                             <div>{{ current_date.strftime('%A') }}</div>
                                             <div class="small">{{ current_date.strftime('%B %d') }}</div>
@@ -177,7 +197,7 @@
                                     
                                     <!-- Time Slots for this Day -->
                                     {% for hour in range(9, 18) %}
-                                        {% for minute in [0, 30] %}
+                                        {% for minute in range(0, 60, 5) %}
                                             <tr>
                                                 <td class="text-center align-middle" style="background-color: #f8f9fa; font-size: 0.9rem;">
                                                     <strong>{{ "%02d:%02d"|format(hour, minute) }}</strong>
@@ -185,34 +205,78 @@
                                                 {% for stylist in stylists %}
                                                     {% set slot_appointments = [] %}
                                                     {% for appointment in appointments %}
-                                                        {% if appointment.appointment_date == current_date and appointment.start_time.hour == hour and appointment.start_time.minute == minute and appointment.stylist_id == stylist.id %}
-                                                            {% set _ = slot_appointments.append(appointment) %}
+                                                        {% if appointment.appointment_date == current_date and appointment.stylist_id == stylist.id %}
+                                                            {% set appointment_start = appointment.start_time.hour * 60 + appointment.start_time.minute %}
+                                                            {% set appointment_end = appointment.end_time.hour * 60 + appointment.end_time.minute %}
+                                                            {% set current_time = hour * 60 + minute %}
+                                                            {% if current_time >= appointment_start and current_time < appointment_end %}
+                                                                {% set _ = slot_appointments.append(appointment) %}
+                                                            {% endif %}
                                                         {% endif %}
                                                     {% endfor %}
-                                                    <td class="position-relative" style="height: 80px; min-width: 150px;">
+                                                    
+                                                    <td class="position-relative calendar-time-slot" 
+                                                        style="height: 20px; min-width: 150px; cursor: pointer;"
+                                                        data-date="{{ current_date.isoformat() }}"
+                                                        data-time="{{ "%02d:%02d"|format(hour, minute) }}"
+                                                        data-stylist-id="{{ stylist.id }}"
+                                                        data-stylist-name="{{ stylist.first_name }} {{ stylist.last_name }}"
+                                                        onclick="{% if slot_appointments %}handleAppointmentClick(this){% else %}handleTimeSlotClick(this){% endif %}">
                                                         {% for appointment in slot_appointments %}
-                                                            <div class="appointment-slot p-2 h-100" style="background-color: {% if appointment.status == 'confirmed' %}#e3f2fd{% elif appointment.status == 'completed' %}#c8e6c9{% elif appointment.status == 'cancelled' %}#ffcdd2{% else %}#fff3e0{% endif %};">
-                                                                <div class="small fw-bold">{{ appointment.customer.first_name }} {{ appointment.customer.last_name }}</div>
-                                                                <div class="small">
-                                                                    {% if appointment.services_link %}
-                                                                        {% set service_names = appointment.services_link|map(attribute='service.name')|list %}
-                                                                        {% if service_names|length == 1 %}
-                                                                            {{ service_names[0] }}
-                                                                        {% else %}
-                                                                            {{ service_names|length }} services
-                                                                        {% endif %}
-                                                                    {% else %}
-                                                                        {{ appointment.service.name if appointment.service else 'No service' }}
-                                                                    {% endif %}
-                                                                </div>
-                                                                <div class="small text-muted">
-                                                                    {{ appointment.start_time.strftime('%I:%M') }} - {{ appointment.end_time.strftime('%I:%M') }}
-                                                                </div>
-                                                                <span class="badge bg-{{ 'success' if appointment.status == 'confirmed' else 'secondary' if appointment.status == 'completed' else 'danger' if appointment.status == 'cancelled' else 'warning' }} position-absolute top-0 end-0 m-1">
-                                                                    {{ appointment.status[:3]|upper }}
-                                                                </span>
-                                                            </div>
+                                                            {% if loop.first %}
+                                                                {% set appointment_start = appointment.start_time.hour * 60 + appointment.start_time.minute %}
+                                                                {% set appointment_end = appointment.end_time.hour * 60 + appointment.end_time.minute %}
+                                                                {% set appointment_duration = appointment_end - appointment_start %}
+                                                                {% set rowspan = appointment_duration // 5 %}
+                                                                {% set current_time = hour * 60 + minute %}
+                                                                {% set is_start = (current_time >= appointment_start and current_time < appointment_start + 5) %}
+                                                                
+                                                                {% if is_start %}
+                                                                    <div class="appointment-slot p-2" 
+                                                                         style="background-color: {% if appointment.status == 'confirmed' %}#e3f2fd{% elif appointment.status == 'completed' %}#c8e6c9{% elif appointment.status == 'cancelled' %}#ffcdd2{% else %}#fff3e0{% endif %}; 
+                                                                                border-left: 4px solid #2196f3; 
+                                                                                font-size: 0.8rem; 
+                                                                        overflow: hidden;
+                                                                        height: calc({{ rowspan }} * 20px);
+                                                                        display: flex;
+                                                                        flex-direction: column;
+                                                                        justify-content: space-between;
+                                                                        position: absolute;
+                                                                        top: 0;
+                                                                        left: 0;
+                                                                        right: 0;
+                                                                        z-index: 10;"
+                                                                         data-appointment-id="{{ appointment.id }}">
+                                                                        <div>
+                                                                            <div class="fw-bold">{{ appointment.customer.first_name }} {{ appointment.customer.last_name }}</div>
+                                                                            <div class="small">
+                                                                                {% if appointment.services_link %}
+                                                                                    {% set service_names = appointment.services_link|map(attribute='service.name')|list %}
+                                                                                    {% if service_names|length == 1 %}
+                                                                                        {{ service_names[0] }}
+                                                                                    {% else %}
+                                                                                        {{ service_names|length }} services
+                                                                                    {% endif %}
+                                                                                {% else %}
+                                                                                    {{ appointment.service.name if appointment.service else 'No service' }}
+                                                                                {% endif %}
+                                                                            </div>
+                                                                            <div class="small text-muted">
+                                                                                {{ appointment.start_time.strftime('%I:%M') }} - {{ appointment.end_time.strftime('%I:%M') }}
+                                                                            </div>
+                                                                        </div>
+                                                                        <span class="badge bg-{{ 'success' if appointment.status == 'confirmed' else 'secondary' if appointment.status == 'completed' else 'danger' if appointment.status == 'cancelled' else 'warning' }} position-absolute top-0 end-0 m-1">
+                                                                            {{ appointment.status[:3]|upper }}
+                                                                        </span>
+                                                                    </div>
+                                                                {% endif %}
+                                                            {% endif %}
                                                         {% endfor %}
+                                                        {% if slot_appointments|length == 0 %}
+                                                            <div class="empty-slot h-100 d-flex align-items-center justify-content-center text-muted" style="font-size: 0.6rem;">
+                                                                <i class="fas fa-plus"></i>
+                                                            </div>
+                                                        {% endif %}
                                                     </td>
                                                 {% endfor %}
                                             </tr>
@@ -340,20 +404,348 @@
 </div>
 
 <style>
+/* Appointment Display Styles */
 .appointment-slot {
-    border-radius: 4px;
-    border-left: 4px solid #2196f3;
+    border-radius: 2px;
+    border-left: 3px solid #2196f3;
     font-size: 0.8rem;
     overflow: hidden;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 8px;
 }
 
 .appointment-slot:hover {
-    opacity: 0.8;
+    opacity: 0.9;
+    transform: scale(1.02);
+    transition: all 0.2s ease;
+}
+
+.appointment-slot .small {
+    font-size: 0.75rem;
+    line-height: 1.2;
+}
+
+.appointment-slot .badge {
+    font-size: 0.6rem;
+    padding: 2px 4px;
+}
+
+/* Appointment Block Styles */
+.appointment-block {
+    background-color: transparent !important;
+    border: none !important;
+}
+
+.appointment-block:hover {
+    background-color: transparent !important;
+}
+
+/* Time Slot Styles */
+.calendar-time-slot {
+    transition: background-color 0.2s ease;
+    border: 1px solid transparent;
+    position: relative;
+    min-height: 20px;
+}
+
+.calendar-time-slot:hover {
+    background-color: #e3f2fd !important;
+    border-color: #2196f3;
+}
+
+.calendar-time-slot.clicked {
+    background-color: #bbdefb !important;
+    border-color: #1976d2;
+}
+
+.empty-slot {
+    opacity: 0.3;
+    transition: opacity 0.2s ease;
+    font-size: 0.6rem;
+}
+
+.calendar-time-slot:hover .empty-slot {
+    opacity: 0.7;
+}
+
+/* Table Header Adjustments */
+.table th {
+    padding: 0.25rem;
+    font-size: 0.9rem;
+}
+
+.table td {
+    padding: 0.25rem;
+    vertical-align: middle;
+}
+
+/* Day Section Styles */
+.day-section {
+    scroll-margin-top: 80px;
+}
+
+.day-section:target {
+    background-color: #fff3cd;
 }
 
 .stylist-header {
     padding: 0.5rem;
     font-size: 0.9rem;
 }
+
+.calendar-time-slot {
+    transition: background-color 0.2s ease;
+    border: 1px solid transparent;
+    position: relative;
+    min-height: 20px;
+}
+
+.calendar-time-slot:hover {
+    background-color: #e3f2fd !important;
+    border-color: #2196f3;
+}
+
+.calendar-time-slot.clicked {
+    background-color: #bbdefb !important;
+    border-color: #1976d2;
+}
+
+.empty-slot {
+    opacity: 0.3;
+    transition: opacity 0.2s ease;
+    font-size: 0.6rem;
+}
+
+.calendar-time-slot:hover .empty-slot {
+    opacity: 0.7;
+}
+
+.click-to-book-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1050;
+}
+
+.click-to-book-modal {
+    background: white;
+    border-radius: 8px;
+    padding: 2rem;
+    max-width: 500px;
+    width: 90%;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.click-to-book-modal h4 {
+    color: #2196f3;
+    margin-bottom: 1rem;
+}
+
+.click-to-book-modal .btn {
+    margin: 0.25rem;
+}
+
+/* Sticky Header Styles */
+.calendar-container {
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+.sticky-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background-color: #343a40 !important;
+}
+
+.sticky-header th {
+    background-color: #343a40 !important;
+    border-color: #495057 !important;
+}
+
+/* Day Navigation Styles */
+.day-navigation {
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.day-nav-btn {
+    transition: all 0.2s ease;
+    border-radius: 8px;
+    padding: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.day-nav-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.day-nav-btn.active {
+    background-color: #2196f3;
+    border-color: #2196f3;
+    color: white;
+}
+
+/* Table Header Adjustments */
+.table th {
+    padding: 0.25rem;
+    font-size: 0.9rem;
+}
+
+.table td {
+    padding: 0.25rem;
+    vertical-align: middle;
+}
 </style>
+
+<script>
+function handleTimeSlotClick(element) {
+    // Get the data from the clicked time slot
+    const date = element.getAttribute('data-date');
+    const time = element.getAttribute('data-time');
+    const stylistId = element.getAttribute('data-stylist-id');
+    const stylistName = element.getAttribute('data-stylist-name');
+    
+    // Add visual feedback
+    element.classList.add('clicked');
+    
+    // Show the booking modal
+    showBookingModal(date, time, stylistId, stylistName);
+    
+    // Remove the clicked class after a short delay
+    setTimeout(() => {
+        element.classList.remove('clicked');
+    }, 300);
+}
+
+function showBookingModal(date, time, stylistId, stylistName) {
+    // Create the modal HTML
+    const modalHTML = `
+        <div class="click-to-book-overlay" onclick="closeBookingModal()">
+            <div class="click-to-book-modal" onclick="event.stopPropagation()">
+                <h4><i class="fas fa-calendar-plus"></i> Book Appointment</h4>
+                <div class="mb-3">
+                    <strong>Date:</strong> ${formatDate(date)}<br>
+                    <strong>Time:</strong> ${time}<br>
+                    <strong>Stylist:</strong> ${stylistName}
+                </div>
+                <div class="d-flex justify-content-between">
+                    <button class="btn btn-primary" onclick="redirectToBooking('${date}', '${time}', '${stylistId}')">
+                        <i class="fas fa-calendar-check"></i> Book Now
+                    </button>
+                    <button class="btn btn-secondary" onclick="closeBookingModal()">
+                        <i class="fas fa-times"></i> Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Add the modal to the page
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+}
+
+function closeBookingModal() {
+    const overlay = document.querySelector('.click-to-book-overlay');
+    if (overlay) {
+        overlay.remove();
+    }
+}
+
+function redirectToBooking(date, time, stylistId) {
+    // Redirect to the booking page with pre-filled data
+    const bookingUrl = `{{ url_for('appointments.book_appointment') }}?date=${date}&time=${time}&stylist_id=${stylistId}`;
+    window.location.href = bookingUrl;
+}
+
+function formatDate(dateString) {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-GB', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+    });
+}
+
+// Close modal when pressing Escape key
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        closeBookingModal();
+    }
+});
+
+function handleAppointmentClick(element) {
+    // Find the appointment slot div within this element
+    const appointmentSlot = element.querySelector('.appointment-slot');
+    if (appointmentSlot) {
+        const appointmentId = appointmentSlot.getAttribute('data-appointment-id');
+        if (appointmentId) {
+            // Redirect to the edit appointment page
+            const editUrl = `/appointments/appointment/${appointmentId}/edit`;
+            window.location.href = editUrl;
+        }
+    }
+}
+
+function scrollToDay(dayIndex) {
+    const daySection = document.querySelector(`.day-section[data-day="${dayIndex}"]`);
+    if (daySection) {
+        // Update active button
+        document.querySelectorAll('.day-nav-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        document.querySelector(`.day-nav-btn[data-day="${dayIndex}"]`).classList.add('active');
+        
+        // Scroll to the day section
+        daySection.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'start' 
+        });
+    }
+}
+
+// Highlight current day on page load
+document.addEventListener('DOMContentLoaded', function() {
+    const today = new Date();
+    const startDate = new Date('{{ start_date.isoformat() }}');
+    const dayDiff = Math.floor((today - startDate) / (1000 * 60 * 60 * 24));
+    
+    if (dayDiff >= 0 && dayDiff < 7) {
+        // Today is within the displayed week
+        document.querySelector(`.day-nav-btn[data-day="${dayDiff}"]`).classList.add('active');
+    }
+});
+
+// Update active day button when scrolling
+document.addEventListener('scroll', function() {
+    const calendarContainer = document.querySelector('.calendar-container');
+    if (calendarContainer && calendarContainer.contains(event.target)) {
+        const daySections = document.querySelectorAll('.day-section');
+        const containerTop = calendarContainer.scrollTop;
+        
+        daySections.forEach((section, index) => {
+            const sectionTop = section.offsetTop - calendarContainer.offsetTop;
+            const sectionHeight = section.offsetHeight;
+            
+            if (containerTop >= sectionTop - 100 && containerTop < sectionTop + sectionHeight - 100) {
+                document.querySelectorAll('.day-nav-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                document.querySelector(`.day-nav-btn[data-day="${index}"]`).classList.add('active');
+            }
+        });
+    }
+});
+</script>
 {% endblock %} 
