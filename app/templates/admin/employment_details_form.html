@@ -61,6 +61,37 @@
                             </div>
                         </div>
 
+                        <!-- HR System Integration - New Fields -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.start_date.label(class="form-label") }}
+                                    {{ form.start_date(class="form-control", type="date") }}
+                                    {% if form.start_date.errors %}
+                                        <div class="text-danger">
+                                            {% for error in form.start_date.errors %}
+                                                <small>{{ error }}</small>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.end_date.label(class="form-label") }}
+                                    {{ form.end_date(class="form-control", type="date") }}
+                                    <div class="form-text">Leave blank for current employees</div>
+                                    {% if form.end_date.errors %}
+                                        <div class="text-danger">
+                                            {% for error in form.end_date.errors %}
+                                                <small>{{ error }}</small>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
@@ -83,6 +114,55 @@
                                     {% if form.billing_method.errors %}
                                         <div class="text-danger">
                                             {% for error in form.billing_method.errors %}
+                                                <small>{{ error }}</small>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Employment Type Specific Fields -->
+                        <div class="row" id="employed-fields" style="display: none;">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.hourly_rate.label(class="form-label") }}
+                                    {{ form.hourly_rate(class="form-control", placeholder="e.g., 12.50") }}
+                                    <div class="form-text">Hourly rate for employed staff</div>
+                                    {% if form.hourly_rate.errors %}
+                                        <div class="text-danger">
+                                            {% for error in form.hourly_rate.errors %}
+                                                <small>{{ error }}</small>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.base_salary.label(class="form-label") }}
+                                    {{ form.base_salary(class="form-control", placeholder="e.g., 2000.00") }}
+                                    <div class="form-text">Monthly base salary for employed staff</div>
+                                    {% if form.base_salary.errors %}
+                                        <div class="text-danger">
+                                            {% for error in form.base_salary.errors %}
+                                                <small>{{ error }}</small>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row" id="self-employed-fields" style="display: none;">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.commission_rate.label(class="form-label") }}
+                                    {{ form.commission_rate(class="form-control", placeholder="e.g., 70.00") }}
+                                    <div class="form-text">Commission rate for self-employed staff (0-100%)</div>
+                                    {% if form.commission_rate.errors %}
+                                        <div class="text-danger">
+                                            {% for error in form.commission_rate.errors %}
                                                 <small>{{ error }}</small>
                                             {% endfor %}
                                         </div>
@@ -123,9 +203,22 @@ document.addEventListener('DOMContentLoaded', function() {
     const commissionLabel = commissionField.previousElementSibling;
     const commissionHelp = commissionField.nextElementSibling;
     
-    function toggleCommissionField() {
+    // New HR fields
+    const employedFields = document.getElementById('employed-fields');
+    const selfEmployedFields = document.getElementById('self-employed-fields');
+    const hourlyRateField = document.getElementById('hourly_rate');
+    const baseSalaryField = document.getElementById('base_salary');
+    const commissionRateField = document.getElementById('commission_rate');
+    
+    function toggleEmploymentFields() {
         const isSelfEmployed = employmentTypeSelect.value === 'self_employed';
+        const isEmployed = employmentTypeSelect.value === 'employed';
         
+        // Show/hide employment type specific fields
+        if (employedFields) employedFields.style.display = isEmployed ? 'flex' : 'none';
+        if (selfEmployedFields) selfEmployedFields.style.display = isSelfEmployed ? 'flex' : 'none';
+        
+        // Toggle commission percentage field (legacy)
         commissionField.disabled = !isSelfEmployed;
         commissionLabel.classList.toggle('text-muted', !isSelfEmployed);
         commissionHelp.classList.toggle('text-muted', !isSelfEmployed);
@@ -133,13 +226,36 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!isSelfEmployed) {
             commissionField.value = '';
         }
+        
+        // Toggle new commission rate field
+        if (commissionRateField) {
+            commissionRateField.disabled = !isSelfEmployed;
+            if (!isSelfEmployed) {
+                commissionRateField.value = '';
+            }
+        }
+        
+        // Toggle employed fields
+        if (hourlyRateField) {
+            hourlyRateField.disabled = !isEmployed;
+            if (!isEmployed) {
+                hourlyRateField.value = '';
+            }
+        }
+        
+        if (baseSalaryField) {
+            baseSalaryField.disabled = !isEmployed;
+            if (!isEmployed) {
+                baseSalaryField.value = '';
+            }
+        }
     }
     
     // Initial state
-    toggleCommissionField();
+    toggleEmploymentFields();
     
     // Event listener
-    employmentTypeSelect.addEventListener('change', toggleCommissionField);
+    employmentTypeSelect.addEventListener('change', toggleEmploymentFields);
     
     // Commission percentage validation
     commissionField.addEventListener('blur', function() {
@@ -162,6 +278,78 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     });
+    
+    // Commission rate validation
+    if (commissionRateField) {
+        commissionRateField.addEventListener('blur', function() {
+            if (this.value && employmentTypeSelect.value === 'self_employed') {
+                const percentage = parseFloat(this.value);
+                if (isNaN(percentage) || percentage < 0 || percentage > 100) {
+                    this.classList.add('is-invalid');
+                    if (!this.nextElementSibling.nextElementSibling || !this.nextElementSibling.nextElementSibling.classList.contains('invalid-feedback')) {
+                        const feedback = document.createElement('div');
+                        feedback.className = 'invalid-feedback';
+                        feedback.textContent = 'Please enter a valid percentage between 0 and 100.';
+                        this.parentNode.appendChild(feedback);
+                    }
+                } else {
+                    this.classList.remove('is-invalid');
+                    const feedback = this.parentNode.querySelector('.invalid-feedback');
+                    if (feedback) {
+                        feedback.remove();
+                    }
+                }
+            }
+        });
+    }
+    
+    // Hourly rate validation
+    if (hourlyRateField) {
+        hourlyRateField.addEventListener('blur', function() {
+            if (this.value && employmentTypeSelect.value === 'employed') {
+                const rate = parseFloat(this.value);
+                if (isNaN(rate) || rate < 0) {
+                    this.classList.add('is-invalid');
+                    if (!this.nextElementSibling.nextElementSibling || !this.nextElementSibling.nextElementSibling.classList.contains('invalid-feedback')) {
+                        const feedback = document.createElement('div');
+                        feedback.className = 'invalid-feedback';
+                        feedback.textContent = 'Please enter a valid hourly rate.';
+                        this.parentNode.appendChild(feedback);
+                    }
+                } else {
+                    this.classList.remove('is-invalid');
+                    const feedback = this.parentNode.querySelector('.invalid-feedback');
+                    if (feedback) {
+                        feedback.remove();
+                    }
+                }
+            }
+        });
+    }
+    
+    // Base salary validation
+    if (baseSalaryField) {
+        baseSalaryField.addEventListener('blur', function() {
+            if (this.value && employmentTypeSelect.value === 'employed') {
+                const salary = parseFloat(this.value);
+                if (isNaN(salary) || salary < 0) {
+                    this.classList.add('is-invalid');
+                    if (!this.nextElementSibling.nextElementSibling || !this.nextElementSibling.nextElementSibling.classList.contains('invalid-feedback')) {
+                        const feedback = document.createElement('div');
+                        feedback.className = 'invalid-feedback';
+                        feedback.textContent = 'Please enter a valid base salary.';
+                        this.parentNode.appendChild(feedback);
+                    }
+                } else {
+                    this.classList.remove('is-invalid');
+                    const feedback = this.parentNode.querySelector('.invalid-feedback');
+                    if (feedback) {
+                        feedback.remove();
+                    }
+                }
+            }
+        });
+    }
 });
 </script>
 

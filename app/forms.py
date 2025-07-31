@@ -868,76 +868,94 @@ class EmploymentDetailsForm(FlaskForm):
         ('stylist_bills', 'Stylist Bills')
     ], validators=[DataRequired()])
     job_role = StringField('Job Role', validators=[Optional(), Length(max=100)])
+    
+    # HR System Integration - New Fields
+    start_date = DateField('Start Date', validators=[DataRequired()])
+    end_date = DateField('End Date', validators=[Optional()])
+    hourly_rate = StringField('Hourly Rate (£)', validators=[Optional()])
+    commission_rate = StringField('Commission Rate (%)', validators=[Optional()])
+    base_salary = StringField('Base Salary (£)', validators=[Optional()])
+    
     submit = SubmitField('Save Employment Details')
-
+    
     def __init__(self, employment_details=None, *args, **kwargs):
-        super(EmploymentDetailsForm, self).__init__(*args, **kwargs)
-        self.employment_details = employment_details
-        try:
-            from app.models import User, Role
-            stylist_role = Role.query.filter_by(name='stylist').first()
-            manager_role = Role.query.filter_by(name='manager').first()
-            if stylist_role and manager_role:
-                staff = User.query.join(User.roles).filter(
-                    User.is_active == True,
-                    User.roles.contains(stylist_role) | User.roles.contains(manager_role)
-                ).all()
-                self.user_id.choices = [(s.id, f"{s.first_name} {s.last_name} ({s.username})") for s in staff]
-            else:
-                self.user_id.choices = []
-        except Exception:
-            self.user_id.choices = []
+        super().__init__(*args, **kwargs)
+        
+        # Populate user choices (only stylists)
+        from app.models import User, Role
+        stylists = User.query.join(User.roles).filter(Role.name == 'stylist').all()
+        self.user_id.choices = [('', 'Select staff member')] + [
+            (user.id, f"{user.first_name} {user.last_name}") 
+            for user in stylists
+        ]
+        
+        # Pre-populate form if editing
         if employment_details:
             self.user_id.data = employment_details.user_id
             self.employment_type.data = employment_details.employment_type
             self.commission_percentage.data = str(employment_details.commission_percentage) if employment_details.commission_percentage else ''
             self.billing_method.data = employment_details.billing_method
             self.job_role.data = employment_details.job_role
-        
-        # If form data was provided, ensure employment_type is set for validation
-        if 'data' in kwargs and kwargs['data']:
-            self.employment_type.data = kwargs['data'].get('employment_type', self.employment_type.data)
-
+            self.start_date.data = employment_details.start_date
+            self.end_date.data = employment_details.end_date
+            self.hourly_rate.data = str(employment_details.hourly_rate) if employment_details.hourly_rate else ''
+            self.commission_rate.data = str(employment_details.commission_rate) if employment_details.commission_rate else ''
+            self.base_salary.data = str(employment_details.base_salary) if employment_details.base_salary else ''
+    
     def validate_commission_percentage(self, field):
-        employment_type = self.employment_type.data
-        if employment_type == 'self_employed' and field.data:
+        if field.data:
             try:
                 percentage = float(field.data)
                 if percentage < 0 or percentage > 100:
                     raise ValueError
             except ValueError:
-                raise ValidationError('Please enter a valid percentage between 0 and 100.')
-        elif employment_type == 'employed' and field.data:
-            raise ValidationError('Commission percentage is not applicable for employed staff.')
-
+                raise ValidationError('Commission percentage must be between 0 and 100.')
+    
     def validate_user_id(self, field):
-        try:
+        if field.data:
             from app.models import EmploymentDetails
-            if self.employment_details and field.data == self.employment_details.user_id:
-                return
             existing = EmploymentDetails.query.filter_by(user_id=field.data).first()
-            if existing:
-                raise ValidationError('This staff member already has employment details. Please edit the existing record.')
-        except Exception as e:
-            if "database" not in str(e).lower() and "connection" not in str(e).lower():
-                raise
-
+            if existing and not self.employment_details:
+                raise ValidationError('This staff member already has employment details.')
+    
     def validate(self):
-        """Custom validation method to ensure all validators are called."""
         if not super().validate():
             return False
         
-        # Call custom validators manually
-        try:
-            self.validate_commission_percentage(self.commission_percentage)
-        except ValidationError as e:
-            self.commission_percentage.errors.append(str(e))
-            return False
+        # Validate employment type specific fields
+        if self.employment_type.data == 'employed':
+            if not self.hourly_rate.data and not self.base_salary.data:
+                raise ValidationError('Employed staff must have either hourly rate or base salary.')
+        elif self.employment_type.data == 'self_employed':
+            if not self.commission_rate.data:
+                raise ValidationError('Self-employed staff must have a commission rate.')
         
-        try:
-            self.validate_user_id(self.user_id)
-        except ValidationError as e:
-            self.user_id.errors.append(str(e))
-            return False
+        # Validate date range
+        if self.start_date.data and self.end_date.data:
+            if self.start_date.data > self.end_date.data:
+                raise ValidationError('End date must be after start date.')
         
         return True 
+
+class HRDashboardFilterForm(FlaskForm):
+    """Form for filtering HR dashboard data"""
+    date_from = DateField('From Date', validators=[Optional()])
+    date_to = DateField('To Date', validators=[Optional()])
+    stylist_id = SelectField('Stylist', coerce=int, validators=[Optional()])
+    employment_type = SelectField('Employment Type', choices=[
+        ('', 'All Types'),
+        ('employed', 'Employed'),
+        ('self_employed', 'Self-Employed')
+    ], validators=[Optional()])
+    submit = SubmitField('Filter')
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # Populate stylist choices
+        from app.models import User, Role
+        stylists = User.query.join(User.roles).filter(Role.name == 'stylist').all()
+        self.stylist_id.choices = [('', 'All Stylists')] + [
+            (user.id, f"{user.first_name} {user.last_name}") 
+            for user in stylists
+        ] 

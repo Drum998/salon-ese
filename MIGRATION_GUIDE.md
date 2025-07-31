@@ -68,16 +68,19 @@ docker-compose up -d
 Wait for the containers to be fully started, then run the migration scripts in order:
 
 ```bash
-# 1. Run the multi-service appointment migration (if not already done)
+# 1. Run the HR system migration (NEW)
+docker exec -it salon-ese-web-1 python migrate_hr_system.py
+
+# 2. Run the multi-service appointment migration (if not already done)
 docker exec -it salon-ese-web-1 python migrate_appointments_multiservice.py
 
-# 2. Run the stylist timings migration
+# 3. Run the stylist timings migration
 docker exec -it salon-ese-web-1 python migrate_stylist_timings.py
 
-# 3. Run the stylist-service associations migration
+# 4. Run the stylist-service associations migration
 docker exec -it salon-ese-web-1 python migrate_stylist_service_associations.py
 
-# 4. Run the stylist timing waiting time migration
+# 5. Run the stylist timing waiting time migration
 docker exec -it salon-ese-web-1 python migrate_stylist_timing_waiting_time.py
 ```
 
@@ -320,6 +323,27 @@ docker exec -it salon-ese-web-1 python migrate_specific_table.py
 
 After successful migration, verify these features work:
 
+### ✅ HR System Integration
+- [ ] "HR Dashboard" link appears in navigation (managers/owners)
+- [ ] Employment details form includes new HR fields (start_date, end_date, rates)
+- [ ] Can create employment details with different employment types
+- [ ] Form validation works for employment-specific fields
+- [ ] Date validation works for employment periods
+
+### ✅ Appointment Cost Tracking
+- [ ] Appointment costs are calculated automatically when appointments are booked
+- [ ] Cost breakdowns show in appointment view (Service Revenue, Stylist Cost, Salon Profit)
+- [ ] Appointment costs page displays detailed breakdowns with filtering
+- [ ] Profit margin calculations are accurate
+- [ ] Calculation methods (hourly vs commission) work correctly
+
+### ✅ HR Dashboard & Reports
+- [ ] HR Dashboard displays financial summary cards correctly
+- [ ] Employment summary shows stylist counts and employment types
+- [ ] Filtering by date range and stylist works
+- [ ] Stylist earnings reports display with rankings
+- [ ] Date range filtering works in all reports
+
 ### ✅ Service Management
 - [ ] Can add/edit services with waiting times
 - [ ] Services page shows waiting time information
@@ -382,13 +406,13 @@ If you encounter issues during migration:
 
 This migration adds the following major features:
 
-### **v1.1.0 Features:**
-- **Service waiting times** for color processing and other services
-- **Stylist-specific service durations** for faster/slower stylists
-- **Enhanced appointment booking** with timing options
-- **Multi-service appointment support** (already implemented)
-- **Improved service management** interface
-- **Stylist timing management** system
+### **v2.0.0 Features:**
+- **HR System Integration** with employment details and cost calculations
+- **Enhanced Employment Details** with start/end dates and pay rates
+- **Appointment Cost Tracking** with automatic cost calculations
+- **HR Dashboard** with financial overview and reporting
+- **Stylist Earnings Reports** with date range filtering
+- **Business Logic Layer** with HRService for calculations
 
 ### **v1.2.0 Features:**
 - **Stylist-service associations** to control which stylists can perform which services
@@ -397,10 +421,19 @@ This migration adds the following major features:
 - **API endpoints** for stylist-service data
 - **Enhanced booking experience** with permission-based service selection
 
+### **v1.1.0 Features:**
+- **Service waiting times** for color processing and other services
+- **Stylist-specific service durations** for faster/slower stylists
+- **Enhanced appointment booking** with timing options
+- **Multi-service appointment support** (already implemented)
+- **Improved service management** interface
+- **Stylist timing management** system
+
 ### **Migration Scripts Included:**
-1. `migrate_appointments_multiservice.py` - Multi-service appointment support
-2. `migrate_stylist_timings.py` - Stylist timing and service waiting time features
-3. `migrate_stylist_service_associations.py` - Stylist-service permission system
-4. `migrate_stylist_timing_waiting_time.py` - Custom waiting time for stylist timings
+1. `migrate_hr_system.py` - HR system integration with employment details and cost tracking
+2. `migrate_appointments_multiservice.py` - Multi-service appointment support
+3. `migrate_stylist_timings.py` - Stylist timing and service waiting time features
+4. `migrate_stylist_service_associations.py` - Stylist-service permission system
+5. `migrate_stylist_timing_waiting_time.py` - Custom waiting time for stylist timings
 
 For detailed information about the new features, see the updated project documentation. 

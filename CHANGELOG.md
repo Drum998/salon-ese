@@ -1,5 +1,194 @@
 # Salon ESE Changelog
 
+## [2.0.0] - HR System Integration - 2025-01-28
+### 🎯 **HR System Integration - Major Release**
+
+#### Comprehensive HR Management System
+- **✅ COMPLETED**: Complete HR system integration with financial tracking and cost calculations
+- **Purpose**: Track employment details, calculate appointment costs, and manage financial performance
+- **Implementation**: Extended employment details with HR fields and new appointment cost tracking system
+- **Features**:
+  - Employment start/end dates and pay rates
+  - Hourly rate and commission rate tracking
+  - Base salary management for employed staff
+  - Automatic appointment cost calculations
+  - Financial reporting and profit analysis
+
+#### Enhanced Employment Details Model
+- **New Fields**: `start_date`, `end_date`, `hourly_rate`, `commission_rate`, `base_salary`
+- **Employment Types**: Support for both employed and self-employed stylists
+- **Date Management**: Track employment periods with start and end dates
+- **Rate Calculations**: Automatic cost calculations based on employment type
+- **Validation**: Comprehensive form validation for employment-specific fields
+
+#### Appointment Cost Tracking System
+- **New Model**: `AppointmentCost` for detailed cost breakdowns
+- **Cost Components**: Service revenue, stylist cost, salon profit
+- **Calculation Methods**: Hourly rate and commission-based calculations
+- **Automatic Integration**: Costs calculated automatically when appointments are booked
+- **Financial Transparency**: Clear breakdown of revenue, costs, and profit per appointment
+
+#### HR Dashboard & Financial Reports
+- **HR Dashboard**: Comprehensive financial overview with filtering options
+- **Financial Summary**: Total revenue, salon profit, stylist costs, profit margin
+- **Employment Summary**: Stylist counts, employment types, monthly base costs
+- **Appointment Costs**: Detailed cost breakdowns with filtering and pagination
+- **Stylist Earnings**: Earnings reports with date range filtering and rankings
+
+#### Business Logic Layer
+- **HRService Class**: Dedicated service layer for HR calculations
+- **Cost Calculations**: Automatic appointment cost calculations
+- **Earnings Reports**: Stylist earnings aggregation over time periods
+- **Profit Analysis**: Salon profit calculations with date filtering
+- **Performance Reports**: Detailed stylist performance analysis
+
+### 🔧 **Technical Implementation**
+
+#### Database Schema Changes
+```sql
+-- Enhanced EmploymentDetails table
+ALTER TABLE employment_details ADD COLUMN start_date DATE NOT NULL DEFAULT CURRENT_DATE;
+ALTER TABLE employment_details ADD COLUMN end_date DATE;
+ALTER TABLE employment_details ADD COLUMN hourly_rate NUMERIC(8,2);
+ALTER TABLE employment_details ADD COLUMN commission_rate NUMERIC(5,2);
+ALTER TABLE employment_details ADD COLUMN base_salary NUMERIC(10,2);
+
+-- New AppointmentCost table
+CREATE TABLE appointment_cost (
+    id SERIAL PRIMARY KEY,
+    appointment_id INTEGER REFERENCES appointment(id),
+    stylist_id INTEGER REFERENCES user(id),
+    service_revenue NUMERIC(10,2) NOT NULL,
+    stylist_cost NUMERIC(10,2) NOT NULL,
+    salon_profit NUMERIC(10,2) NOT NULL,
+    calculation_method VARCHAR(20) NOT NULL,
+    hours_worked NUMERIC(4,2),
+    commission_amount NUMERIC(10,2),
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+```
+
+#### New Models and Services
+- **Enhanced EmploymentDetails**: Added HR fields and calculation methods
+- **AppointmentCost**: Tracks cost breakdowns for each appointment
+- **HRService**: Business logic layer for HR calculations
+
+#### New Routes and Templates
+- `/admin/hr-dashboard` - HR dashboard with financial overview
+- `/admin/hr/appointment-costs` - Detailed appointment cost breakdowns
+- `/admin/hr/stylist-earnings` - Stylist earnings reports
+- Enhanced employment details routes with new fields
+- New templates for HR dashboard, appointment costs, and stylist earnings
+
+### 🎨 **User Interface Enhancements**
+
+#### HR Dashboard Features
+- **Financial Summary Cards**: Total Revenue, Salon Profit, Stylist Costs, Profit Margin
+- **Employment Summary**: Total Stylists, Employed/Self-employed counts, Monthly Base Cost
+- **Filtering Options**: Date range, stylist, and employment type filters
+- **Performance Reports**: Stylist performance when filtered by specific stylist
+- **Responsive Design**: Works on all screen sizes
+
+#### Appointment Cost Management
+- **Detailed Breakdowns**: Service revenue, stylist cost, salon profit, profit margin
+- **Calculation Methods**: Hourly rate vs commission-based calculations
+- **Filtering & Pagination**: Date range and stylist filtering with pagination
+- **Visual Indicators**: Color-coded profit margins and calculation methods
+
+#### Enhanced Employment Forms
+- **Dynamic Fields**: Employment-type-specific fields (hourly rate vs commission rate)
+- **Date Management**: Start and end date fields with validation
+- **Rate Validation**: Proper validation for different employment types
+- **Client-side Logic**: JavaScript for dynamic field visibility
+
+### 📊 **Business Benefits**
+
+#### For Salon Owners/Managers
+- **Financial Transparency**: Clear view of appointment profitability
+- **Cost Control**: Track stylist costs and profit margins
+- **Employment Management**: Comprehensive employment details tracking
+- **Performance Analysis**: Stylist earnings and performance reports
+- **Data-Driven Decisions**: Financial insights for business planning
+
+#### For Stylists
+- **Earnings Tracking**: Clear view of earnings and performance
+- **Employment Clarity**: Transparent employment terms and rates
+- **Performance Insights**: Understanding of cost vs revenue
+
+#### For Business Operations
+- **Automated Calculations**: No manual cost calculations required
+- **Accurate Reporting**: Reliable financial data for decision making
+- **Compliance**: Proper employment record keeping
+- **Scalability**: System grows with business needs
+
+### 🚀 **Migration Instructions**
+
+For users updating from previous versions:
+
+1. **Stop the current container:**
+   ```bash
+   docker-compose down
+   ```
+
+2. **Rebuild with latest code:**
+   ```bash
+   docker-compose build --no-cache
+   docker-compose up -d
+   ```
+
+3. **Run HR system migration:**
+   ```bash
+   docker exec -it salon-ese-web-1 python migrate_hr_system.py
+   ```
+
+4. **Test the new features:**
+   - Access HR Dashboard from admin panel
+   - Create employment details with new HR fields
+   - Book appointments to see automatic cost calculations
+   - View appointment cost breakdowns and stylist earnings
+
+### 🧪 **Testing & Verification**
+
+#### HR System Testing
+```bash
+# 1. Test employment details with HR fields
+- Navigate to Employment Details management
+- Create employment details with start dates and rates
+- Verify form validation for different employment types
+- Test date range validation
+
+# 2. Test appointment cost calculations
+- Book appointments with stylists who have employment details
+- Verify automatic cost calculations
+- Check appointment cost breakdowns in admin panel
+- Verify profit margin calculations
+
+# 3. Test HR dashboard
+- Access HR Dashboard from admin panel
+- Verify financial summary cards display correctly
+- Test filtering by date range and stylist
+- Check employment summary statistics
+
+# 4. Test reports
+- View appointment costs with filtering
+- Check stylist earnings reports
+- Verify date range filtering works
+- Test pagination in reports
+```
+
+#### Verification Checklist
+- [ ] HR Dashboard displays financial summary correctly
+- [ ] Employment details form includes new HR fields
+- [ ] Appointment costs are calculated automatically
+- [ ] Cost breakdowns show in appointment view
+- [ ] Stylist earnings reports work with filtering
+- [ ] All employment types (employed/self-employed) work correctly
+- [ ] Date validation works for employment periods
+- [ ] Financial calculations are accurate
+
+---
+
 ## [1.9.0] - Services Page Layout Improvements - 2025-01-28
 ### 🎯 **Services Page Layout Enhancement**
 #### Improved Information Hierarchy
@@ -1072,6 +1261,9 @@ For users updating from previous versions:
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 2.0.0 | 2025-01-28 | HR System Integration - Employment details, cost calculations, financial tracking |
+| 1.9.0 | 2025-01-28 | Services Page Layout Improvements |
+| 1.8.0 | 2025-01-28 | Click-to-Book Calendar with Single Block Spanning |
 | 1.7.0 | 2025-01-28 | Appointment Block Display Improvements |
 | 1.6.0 | 2025-01-28 | Code Cleanup & Redundant Feature Removal |
 | 1.5.0 | 2025-01-28 | Click-to-Book Calendar with 5-Minute Time Slots |

@@ -3,6 +3,7 @@ from flask_login import current_user, login_required
 from app.models import User, Role, Service, Appointment, AppointmentStatus, AppointmentService, StylistServiceAssociation
 from app.forms import AppointmentBookingForm, AppointmentManagementForm, AppointmentFilterForm, ServiceForm, StylistServiceTimingForm
 from app.extensions import db
+from app.services.hr_service import HRService
 from datetime import datetime, date, timedelta
 from functools import wraps
 import calendar
@@ -145,6 +146,17 @@ def book_appointment():
         )
         db.session.add(status_record)
         db.session.commit()
+        
+        # HR System Integration - Calculate appointment cost
+        try:
+            cost_record = HRService.calculate_appointment_cost(appointment.id)
+            if cost_record:
+                current_app.logger.info(f"Cost calculated for appointment {appointment.id}: "
+                                       f"Revenue £{cost_record.service_revenue}, "
+                                       f"Stylist Cost £{cost_record.stylist_cost}, "
+                                       f"Profit £{cost_record.salon_profit}")
+        except Exception as e:
+            current_app.logger.error(f"Failed to calculate cost for appointment {appointment.id}: {str(e)}")
         
         # Log the booking
         current_app.logger.info(f"Appointment booked: ID {appointment.id}, Customer {appointment.customer.first_name} {appointment.customer.last_name}, "
@@ -368,6 +380,19 @@ def edit_appointment(appointment_id):
             db.session.add(status_record)
         
         db.session.commit()
+        
+        # HR System Integration - Recalculate cost if status changed to completed
+        if old_status != form.status.data and form.status.data == 'completed':
+            try:
+                cost_record = HRService.calculate_appointment_cost(appointment.id)
+                if cost_record:
+                    current_app.logger.info(f"Cost recalculated for completed appointment {appointment.id}: "
+                                           f"Revenue £{cost_record.service_revenue}, "
+                                           f"Stylist Cost £{cost_record.stylist_cost}, "
+                                           f"Profit £{cost_record.salon_profit}")
+            except Exception as e:
+                current_app.logger.error(f"Failed to recalculate cost for appointment {appointment.id}: {str(e)}")
+        
         flash('Appointment updated successfully!', 'success')
         return redirect(url_for('appointments.view_appointment', appointment_id=appointment.id))
     

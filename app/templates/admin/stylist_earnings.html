@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">
+                    <i class="fas fa-money-bill-wave text-primary"></i> Stylist Earnings
+                </h1>
+                <div>
+                    <a href="{{ url_for('admin.hr_dashboard') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-chart-line"></i> HR Dashboard
+                    </a>
+                    <a href="{{ url_for('admin.appointment_costs') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-list"></i> Appointment Costs
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Form -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-filter"></i> Filter Earnings
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="GET" class="row g-3">
+                        <div class="col-md-3">
+                            <label for="date_from" class="form-label">From Date</label>
+                            <input type="date" class="form-control" id="date_from" name="date_from" 
+                                   value="{{ date_from or '' }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="date_to" class="form-label">To Date</label>
+                            <input type="date" class="form-control" id="date_to" name="date_to" 
+                                   value="{{ date_to or '' }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">&nbsp;</label>
+                            <div>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-search"></i> Filter
+                                </button>
+                                <a href="{{ url_for('admin.stylist_earnings') }}" class="btn btn-outline-secondary">
+                                    <i class="fas fa-times"></i> Clear
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Earnings Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Total Earnings</h6>
+                            <h3 class="mb-0">£{{ "%.2f"|format(stylist_earnings|sum(attribute='earnings.total_earnings')) }}</h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-pound-sign fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Total Hours</h6>
+                            <h3 class="mb-0">{{ "%.1f"|format(stylist_earnings|sum(attribute='earnings.total_hours')) }}</h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-clock fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Total Appointments</h6>
+                            <h3 class="mb-0">{{ stylist_earnings|sum(attribute='earnings.appointment_count') }}</h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-calendar-check fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Average per Appointment</h6>
+                            <h3 class="mb-0">£{{ "%.2f"|format((stylist_earnings|sum(attribute='earnings.total_earnings')) / (stylist_earnings|sum(attribute='earnings.appointment_count')) if (stylist_earnings|sum(attribute='earnings.appointment_count')) > 0 else 0) }}</h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-chart-bar fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stylist Earnings Table -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-table"></i> Stylist Earnings Breakdown
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if stylist_earnings %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Rank</th>
+                                    <th>Stylist</th>
+                                    <th>Employment Type</th>
+                                    <th>Total Earnings</th>
+                                    <th>Hours Worked</th>
+                                    <th>Appointments</th>
+                                    <th>Average per Appointment</th>
+                                    <th>Hourly Rate (Actual)</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for stylist_data in stylist_earnings %}
+                                <tr>
+                                    <td>
+                                        <span class="badge {% if loop.index == 1 %}bg-warning{% elif loop.index == 2 %}bg-secondary{% elif loop.index == 3 %}bg-info{% else %}bg-light text-dark{% endif %}">
+                                            #{{ loop.index }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <strong>{{ stylist_data.stylist.first_name }} {{ stylist_data.stylist.last_name }}</strong>
+                                    </td>
+                                    <td>
+                                        {% set employment = stylist_data.stylist.employment_details %}
+                                        {% if employment %}
+                                            <span class="badge {% if employment.employment_type == 'employed' %}bg-info{% else %}bg-warning{% endif %}">
+                                                {{ employment.employment_type.replace('_', ' ').title() }}
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Not Set</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-success fw-bold">£{{ "%.2f"|format(stylist_data.earnings.total_earnings) }}</td>
+                                    <td>{{ "%.1f"|format(stylist_data.earnings.total_hours) }}</td>
+                                    <td>{{ stylist_data.earnings.appointment_count }}</td>
+                                    <td class="text-primary">£{{ "%.2f"|format(stylist_data.earnings.average_per_appointment) }}</td>
+                                    <td class="text-info">£{{ "%.2f"|format(stylist_data.earnings.hourly_rate_actual) }}</td>
+                                    <td>
+                                        <a href="{{ url_for('admin.hr_dashboard', stylist_id=stylist_data.stylist.id, date_from=date_from, date_to=date_to) }}" 
+                                           class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-chart-line"></i> Details
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No earnings data found</h5>
+                        <p class="text-muted">No stylist earnings match your current filters.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Date Range Info -->
+    {% if date_from or date_to %}
+    <div class="row mt-3">
+        <div class="col-12">
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i>
+                <strong>Date Range:</strong> 
+                {% if date_from and date_to %}
+                    {{ date_from }} to {{ date_to }}
+                {% elif date_from %}
+                    From {{ date_from }}
+                {% elif date_to %}
+                    Until {{ date_to }}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %} 

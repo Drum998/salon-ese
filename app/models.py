@@ -403,6 +403,14 @@ class EmploymentDetails(db.Model):
     commission_percentage = db.Column(db.Numeric(5, 2))  # For self-employed (e.g., 70.00 for 70%)
     billing_method = db.Column(db.String(20), default='salon_bills')  # 'salon_bills' or 'stylist_bills'
     job_role = db.Column(db.String(100))
+    
+    # HR System Integration - New Fields
+    start_date = db.Column(db.Date, nullable=False, default=datetime.now().date())
+    end_date = db.Column(db.Date, nullable=True)  # Null for current employees
+    hourly_rate = db.Column(db.Numeric(8, 2), nullable=True)  # For employed staff
+    commission_rate = db.Column(db.Numeric(5, 2), nullable=True)  # For self-employed (e.g., 70.00 for 70%)
+    base_salary = db.Column(db.Numeric(10, 2), nullable=True)  # For employed staff
+    
     created_at = db.Column(db.DateTime, default=uk_utcnow)
     updated_at = db.Column(db.DateTime, default=uk_utcnow, onupdate=uk_utcnow)
     
@@ -410,17 +418,41 @@ class EmploymentDetails(db.Model):
     user = db.relationship('User', backref='employment_details', uselist=False)
     
     def __repr__(self):
-        return f'<EmploymentDetails {self.user.username} - {self.employment_type}>'
+        return f'<EmploymentDetails {self.user_id}>'
     
     @property
     def is_self_employed(self):
-        """Check if user is self-employed"""
         return self.employment_type == 'self_employed'
     
     @property
     def is_employed(self):
-        """Check if user is employed"""
         return self.employment_type == 'employed'
+    
+    # HR System Integration - New Methods
+    def calculate_hourly_cost(self, hours):
+        """Calculate cost for hourly employees"""
+        if not self.is_employed or not self.hourly_rate:
+            return 0
+        return float(self.hourly_rate) * hours
+    
+    def calculate_commission_cost(self, service_revenue):
+        """Calculate cost for commission-based employees"""
+        if not self.is_self_employed or not self.commission_rate:
+            return 0
+        return float(service_revenue) * (float(self.commission_rate) / 100)
+    
+    def is_currently_employed(self):
+        """Check if employee is currently employed"""
+        if self.end_date is None:
+            return True
+        return self.end_date >= datetime.now().date()
+    
+    def get_current_rate(self):
+        """Get current rate (hourly or commission)"""
+        if self.is_employed:
+            return self.hourly_rate
+        else:
+            return self.commission_rate
 
 class HolidayQuota(db.Model):
     """Holiday entitlements and usage tracking"""
@@ -527,15 +559,46 @@ class BillingElement(db.Model):
     updated_at = db.Column(db.DateTime, default=uk_utcnow, onupdate=uk_utcnow)
     
     def __repr__(self):
-        return f'<BillingElement {self.name}: {self.percentage}%>'
+        return f'<BillingElement {self.name}>'
     
     @classmethod
     def get_active_elements(cls):
-        """Get all active billing elements"""
         return cls.query.filter_by(is_active=True).all()
     
     @classmethod
     def get_total_percentage(cls):
-        """Get total percentage of all active billing elements"""
         elements = cls.get_active_elements()
-        return sum(element.percentage for element in elements) 
+        return sum(float(element.percentage) for element in elements)
+
+class AppointmentCost(db.Model):
+    """Track cost calculations for each appointment"""
+    id = db.Column(db.Integer, primary_key=True)
+    appointment_id = db.Column(db.Integer, db.ForeignKey('appointment.id'), nullable=False)
+    stylist_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    
+    # Cost breakdown
+    service_revenue = db.Column(db.Numeric(10, 2), nullable=False)  # Total service price
+    stylist_cost = db.Column(db.Numeric(10, 2), nullable=False)  # Cost to salon for stylist
+    salon_profit = db.Column(db.Numeric(10, 2), nullable=False)  # Salon's profit
+    
+    # Calculation details
+    calculation_method = db.Column(db.String(20), nullable=False)  # 'hourly' or 'commission'
+    hours_worked = db.Column(db.Numeric(4, 2), nullable=True)  # For hourly calculations
+    commission_amount = db.Column(db.Numeric(10, 2), nullable=True)  # For commission calculations
+    
+    created_at = db.Column(db.DateTime, default=uk_utcnow)
+    updated_at = db.Column(db.DateTime, default=uk_utcnow, onupdate=uk_utcnow)
+    
+    # Relationships
+    appointment = db.relationship('Appointment', backref='cost_details')
+    stylist = db.relationship('User', foreign_keys=[stylist_id])
+    
+    def __repr__(self):
+        return f'<AppointmentCost {self.appointment_id} - {self.stylist_id}>'
+    
+    @property
+    def profit_margin_percentage(self):
+        """Calculate profit margin as percentage"""
+        if self.service_revenue == 0:
+            return 0
+        return (float(self.salon_profit) / float(self.service_revenue)) * 100 

@@ -1,0 +1,330 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">
+                    <i class="fas fa-chart-line text-primary"></i> HR Dashboard
+                </h1>
+                <div>
+                    <a href="{{ url_for('admin.appointment_costs') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-list"></i> Appointment Costs
+                    </a>
+                    <a href="{{ url_for('admin.stylist_earnings') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-money-bill-wave"></i> Stylist Earnings
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Form -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-filter"></i> Filter Data
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="GET" class="row g-3">
+                        <div class="col-md-2">
+                            <label for="date_from" class="form-label">From Date</label>
+                            <input type="date" class="form-control" id="date_from" name="date_from" 
+                                   value="{{ date_from or '' }}">
+                        </div>
+                        <div class="col-md-2">
+                            <label for="date_to" class="form-label">To Date</label>
+                            <input type="date" class="form-control" id="date_to" name="date_to" 
+                                   value="{{ date_to or '' }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="stylist_id" class="form-label">Stylist</label>
+                            <select class="form-select" id="stylist_id" name="stylist_id">
+                                <option value="">All Stylists</option>
+                                {% for choice in filter_form.stylist_id.choices[1:] %}
+                                <option value="{{ choice[0] }}" {% if stylist_id == choice[0] %}selected{% endif %}>
+                                    {{ choice[1] }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="employment_type" class="form-label">Employment Type</label>
+                            <select class="form-select" id="employment_type" name="employment_type">
+                                <option value="">All Types</option>
+                                <option value="employed" {% if employment_type == 'employed' %}selected{% endif %}>Employed</option>
+                                <option value="self_employed" {% if employment_type == 'self_employed' %}selected{% endif %}>Self-Employed</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">&nbsp;</label>
+                            <div>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-search"></i> Filter
+                                </button>
+                                <a href="{{ url_for('admin.hr_dashboard') }}" class="btn btn-outline-secondary">
+                                    <i class="fas fa-times"></i> Clear
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Financial Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Total Revenue</h6>
+                            <h3 class="mb-0">£{{ "%.2f"|format(salon_profit.total_revenue) }}</h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-pound-sign fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Salon Profit</h6>
+                            <h3 class="mb-0">£{{ "%.2f"|format(salon_profit.total_profit) }}</h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-chart-line fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Stylist Costs</h6>
+                            <h3 class="mb-0">£{{ "%.2f"|format(salon_profit.total_stylist_cost) }}</h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-users fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Profit Margin</h6>
+                            <h3 class="mb-0">{{ "%.1f"|format(salon_profit.profit_margin) }}%</h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-percentage fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Employment Summary -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-users"></i> Employment Summary
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="text-center">
+                                <h4 class="text-primary">{{ employment_summary.total_stylists }}</h4>
+                                <p class="text-muted mb-0">Total Stylists</p>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-center">
+                                <h4 class="text-success">{{ employment_summary.active_count }}</h4>
+                                <p class="text-muted mb-0">Active</p>
+                            </div>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="text-center">
+                                <h4 class="text-info">{{ employment_summary.employed_count }}</h4>
+                                <p class="text-muted mb-0">Employed</p>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-center">
+                                <h4 class="text-warning">{{ employment_summary.self_employed_count }}</h4>
+                                <p class="text-muted mb-0">Self-Employed</p>
+                            </div>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="text-center">
+                        <h5 class="text-danger">£{{ "%.2f"|format(employment_summary.total_monthly_cost) }}</h5>
+                        <p class="text-muted mb-0">Monthly Base Cost</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-calendar-check"></i> Appointment Summary
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="text-center">
+                                <h4 class="text-primary">{{ salon_profit.appointment_count }}</h4>
+                                <p class="text-muted mb-0">Completed Appointments</p>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-center">
+                                <h4 class="text-success">£{{ "%.2f"|format(salon_profit.total_revenue / salon_profit.appointment_count if salon_profit.appointment_count > 0 else 0) }}</h4>
+                                <p class="text-muted mb-0">Average per Appointment</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Employment Details Table -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-list"></i> Employment Details
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Employment Type</th>
+                                    <th>Job Role</th>
+                                    <th>Start Date</th>
+                                    <th>Status</th>
+                                    <th>Rate</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for detail in employment_summary.employment_details %}
+                                <tr>
+                                    <td>{{ detail.name }}</td>
+                                    <td>
+                                        <span class="badge {% if detail.employment_type == 'employed' %}bg-info{% else %}bg-warning{% endif %}">
+                                            {{ detail.employment_type.replace('_', ' ').title() }}
+                                        </span>
+                                    </td>
+                                    <td>{{ detail.job_role or 'N/A' }}</td>
+                                    <td>{{ detail.start_date.strftime('%d/%m/%Y') if detail.start_date else 'N/A' }}</td>
+                                    <td>
+                                        <span class="badge {% if detail.is_active %}bg-success{% else %}bg-danger{% endif %}">
+                                            {{ 'Active' if detail.is_active else 'Inactive' }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if detail.rate %}
+                                            {% if detail.employment_type == 'employed' %}
+                                                £{{ "%.2f"|format(detail.rate) }}/hr
+                                            {% else %}
+                                                {{ "%.1f"|format(detail.rate) }}%
+                                            {% endif %}
+                                        {% else %}
+                                            N/A
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('admin.edit_employment_details', details_id=detail.user_id) }}" 
+                                           class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stylist Performance (if filtered) -->
+    {% if stylist_performance %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-user-chart"></i> Performance Report: {{ stylist_performance.stylist_name }}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h4 class="text-primary">{{ stylist_performance.total_appointments }}</h4>
+                                <p class="text-muted mb-0">Total Appointments</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h4 class="text-success">{{ stylist_performance.completed_appointments }}</h4>
+                                <p class="text-muted mb-0">Completed</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h4 class="text-warning">{{ "%.1f"|format(stylist_performance.completion_rate) }}%</h4>
+                                <p class="text-muted mb-0">Completion Rate</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h4 class="text-info">£{{ "%.2f"|format(stylist_performance.earnings.total_earnings) }}</h4>
+                                <p class="text-muted mb-0">Total Earnings</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %} 

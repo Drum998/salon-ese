@@ -1,10 +1,11 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
-from app.models import User, Role, UserProfile, SalonSettings, WorkPattern, EmploymentDetails
-from app.forms import AdminUserForm, RoleAssignmentForm, SalonSettingsForm, WorkPatternForm, EmploymentDetailsForm, AdminUserAddForm
+from app.models import User, Role, UserProfile, SalonSettings, WorkPattern, EmploymentDetails, AppointmentCost, Appointment
+from app.forms import AdminUserForm, RoleAssignmentForm, SalonSettingsForm, WorkPatternForm, EmploymentDetailsForm, AdminUserAddForm, HRDashboardFilterForm
 from app.extensions import db
 from app.routes.main import role_required
 from app.utils import uk_now
+from app.services.hr_service import HRService
 import json
 
 bp = Blueprint('admin', __name__)
@@ -30,6 +31,103 @@ def dashboard():
                          stylists=stylists,
                          recent_users=recent_users,
                          uk_now=uk_now)
+
+@bp.route('/hr-dashboard')
+@login_required
+@role_required('manager')
+def hr_dashboard():
+    """HR dashboard with financial tracking"""
+    filter_form = HRDashboardFilterForm()
+    
+    # Get filter parameters
+    date_from = request.args.get('date_from')
+    date_to = request.args.get('date_to')
+    stylist_id = request.args.get('stylist_id', type=int)
+    employment_type = request.args.get('employment_type')
+    
+    # Get employment summary
+    employment_summary = HRService.get_employment_summary()
+    
+    # Get salon profit data
+    salon_profit = HRService.calculate_salon_profit(date_from, date_to)
+    
+    # Get stylist performance data if filtered
+    stylist_performance = None
+    if stylist_id:
+        stylist_performance = HRService.get_stylist_performance_report(stylist_id, date_from, date_to)
+    
+    return render_template('admin/hr_dashboard.html',
+                         title='HR Dashboard',
+                         employment_summary=employment_summary,
+                         salon_profit=salon_profit,
+                         stylist_performance=stylist_performance,
+                         filter_form=filter_form,
+                         date_from=date_from,
+                         date_to=date_to,
+                         stylist_id=stylist_id,
+                         employment_type=employment_type)
+
+@bp.route('/hr/appointment-costs')
+@login_required
+@role_required('manager')
+def appointment_costs():
+    """View appointment cost breakdowns"""
+    page = request.args.get('page', 1, type=int)
+    date_from = request.args.get('date_from')
+    date_to = request.args.get('date_to')
+    stylist_id = request.args.get('stylist_id', type=int)
+    
+    # Build query with join to appointment
+    query = AppointmentCost.query.join(AppointmentCost.appointment)
+    
+    if date_from:
+        query = query.filter(Appointment.appointment_date >= date_from)
+    if date_to:
+        query = query.filter(Appointment.appointment_date <= date_to)
+    if stylist_id:
+        query = query.filter(AppointmentCost.stylist_id == stylist_id)
+    
+    # Order by appointment date (most recent first)
+    query = query.order_by(Appointment.appointment_date.desc())
+    
+    costs = query.paginate(page=page, per_page=20, error_out=False)
+    
+    return render_template('admin/appointment_costs.html',
+                         title='Appointment Costs',
+                         costs=costs,
+                         date_from=date_from,
+                         date_to=date_to,
+                         stylist_id=stylist_id)
+
+@bp.route('/hr/stylist-earnings')
+@login_required
+@role_required('manager')
+def stylist_earnings():
+    """View stylist earnings reports"""
+    date_from = request.args.get('date_from')
+    date_to = request.args.get('date_to')
+    
+    # Get all stylists
+    from app.models import User, Role
+    stylists = User.query.join(User.roles).filter(Role.name == 'stylist').all()
+    
+    # Calculate earnings for each stylist
+    stylist_earnings = []
+    for stylist in stylists:
+        earnings = HRService.calculate_stylist_earnings(stylist.id, date_from, date_to)
+        stylist_earnings.append({
+            'stylist': stylist,
+            'earnings': earnings
+        })
+    
+    # Sort by total earnings (highest first)
+    stylist_earnings.sort(key=lambda x: x['earnings']['total_earnings'], reverse=True)
+    
+    return render_template('admin/stylist_earnings.html',
+                         title='Stylist Earnings',
+                         stylist_earnings=stylist_earnings,
+                         date_from=date_from,
+                         date_to=date_to)
 
 @bp.route('/users')
 @login_required
@@ -359,7 +457,13 @@ def new_employment_details():
                 employment_type=form.employment_type.data,
                 commission_percentage=float(form.commission_percentage.data) if form.commission_percentage.data else None,
                 billing_method=form.billing_method.data,
-                job_role=form.job_role.data
+                job_role=form.job_role.data,
+                # HR System Integration - New Fields
+                start_date=form.start_date.data,
+                end_date=form.end_date.data,
+                hourly_rate=float(form.hourly_rate.data) if form.hourly_rate.data else None,
+                commission_rate=float(form.commission_rate.data) if form.commission_rate.data else None,
+                base_salary=float(form.base_salary.data) if form.base_salary.data else None
             )
             
             db.session.add(employment_details)
@@ -393,6 +497,12 @@ def edit_employment_details(details_id):
             employment_details.commission_percentage = float(form.commission_percentage.data) if form.commission_percentage.data else None
             employment_details.billing_method = form.billing_method.data
             employment_details.job_role = form.job_role.data
+            # HR System Integration - New Fields
+            employment_details.start_date = form.start_date.data
+            employment_details.end_date = form.end_date.data
+            employment_details.hourly_rate = float(form.hourly_rate.data) if form.hourly_rate.data else None
+            employment_details.commission_rate = float(form.commission_rate.data) if form.commission_rate.data else None
+            employment_details.base_salary = float(form.base_salary.data) if form.base_salary.data else None
             
             db.session.commit()
             

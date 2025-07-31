@@ -93,6 +93,58 @@
                     </div>
                 </div>
                 
+                <!-- HR System Integration - Cost Breakdown -->
+                {% if appointment.cost_details %}
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <h5>Cost Breakdown</h5>
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-3">
+                                        <div class="text-center">
+                                            <h6 class="text-success">Service Revenue</h6>
+                                            <h4 class="text-success">£{{ "%.2f"|format(appointment.cost_details.service_revenue) }}</h4>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="text-center">
+                                            <h6 class="text-info">Stylist Cost</h6>
+                                            <h4 class="text-info">£{{ "%.2f"|format(appointment.cost_details.stylist_cost) }}</h4>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="text-center">
+                                            <h6 class="text-primary">Salon Profit</h6>
+                                            <h4 class="text-primary">£{{ "%.2f"|format(appointment.cost_details.salon_profit) }}</h4>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="text-center">
+                                            <h6 class="text-warning">Profit Margin</h6>
+                                            <h4 class="text-warning">{{ "%.1f"|format(appointment.cost_details.profit_margin_percentage) }}%</h4>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row mt-3">
+                                    <div class="col-12">
+                                        <small class="text-muted">
+                                            <strong>Calculation Method:</strong> {{ appointment.cost_details.calculation_method.title() }}
+                                            {% if appointment.cost_details.hours_worked %}
+                                                | <strong>Hours:</strong> {{ "%.1f"|format(appointment.cost_details.hours_worked) }}
+                                            {% endif %}
+                                            {% if appointment.cost_details.commission_amount %}
+                                                | <strong>Commission:</strong> £{{ "%.2f"|format(appointment.cost_details.commission_amount) }}
+                                            {% endif %}
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
                 {% if appointment.notes %}
                 <div class="row mt-4">
                     <div class="col-12">
