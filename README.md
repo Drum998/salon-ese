@@ -16,7 +16,190 @@ A comprehensive, role-based authentication and management system for hair salons
 
 ---
 
-## 🆕 Latest Release: v2.0.0 - HR System Integration
+## 🆕 Latest Release: v2.1.0 - Salon Hours Integration
+
+### 🎯 Overview
+The latest release introduces comprehensive Salon Hours Integration that seamlessly connects salon opening times with the appointment booking system. This major update provides intelligent time slot generation, emergency extension capabilities, and work pattern validation to ensure appointments are only booked during appropriate hours.
+
+### ✨ New Features in v2.1.0
+
+#### 1. **Salon Hours Integration**
+- **Purpose**: Enforce salon opening hours in appointment booking
+- **Implementation**: New SalonHoursService with comprehensive time validation
+- **Features**:
+  - Automatic time slot generation based on salon hours
+  - Work pattern validation for stylist availability
+  - Emergency extension capabilities for special circumstances
+  - Dynamic time slot updates when date/stylist changes
+  - Real-time validation against opening hours
+
+#### 2. **Intelligent Time Slot Generation**
+- **Purpose**: Generate available time slots based on salon settings and stylist work patterns
+- **Implementation**: SalonHoursService with conflict detection
+- **Features**:
+  - Time slots generated only during salon opening hours
+  - Stylist work pattern integration
+  - Conflict detection with existing appointments
+  - 5-minute interval precision
+  - Dynamic updates via AJAX
+
+#### 3. **Emergency Extension System**
+- **Purpose**: Allow appointments outside normal hours for special circumstances
+- **Implementation**: Configurable emergency extension settings
+- **Features**:
+  - Admin-controlled emergency extension toggle
+  - Warning messages for extended appointments
+  - Validation to prevent abuse
+  - Clear indication in booking interface
+
+#### 4. **Enhanced Appointment Booking**
+- **Purpose**: Improved booking experience with salon hours integration
+- **Implementation**: Updated booking form with real-time validation
+- **Features**:
+  - Salon hours display in booking interface
+  - Emergency extension checkbox (when enabled)
+  - Real-time time slot updates
+  - Validation messages for invalid times
+  - Integration with existing multi-service booking
+
+#### 5. **Work Pattern Integration**
+- **Purpose**: Ensure appointments respect stylist work schedules
+- **Implementation**: Integration with existing WorkPattern system
+- **Features**:
+  - Stylist availability checking
+  - Work pattern validation
+  - Holiday entitlement calculation
+  - Weekly hours tracking
+
+### 🔧 Technical Implementation
+
+#### New Service Layer
+```python
+# app/services/salon_hours_service.py
+class SalonHoursService:
+    @staticmethod
+    def get_salon_settings()
+    @staticmethod
+    def generate_available_time_slots()
+    @staticmethod
+    def validate_appointment_time()
+    @staticmethod
+    def is_emergency_extension_allowed()
+```
+
+#### Enhanced Appointment Booking
+```python
+# Updated appointment booking with salon hours validation
+validation = SalonHoursService.validate_appointment_time(
+    appointment_date, start_time, end_time, stylist_id, allow_emergency
+)
+```
+
+#### API Endpoint for Dynamic Updates
+```python
+# /appointments/api/available-slots
+@bp.route('/api/available-slots')
+def api_available_slots():
+    # Returns available time slots for given date and stylist
+```
+
+### 🎨 User Interface Enhancements
+
+#### Booking Form Improvements
+- **Salon Hours Display**: Current opening hours shown in booking interface
+- **Emergency Extension Toggle**: Checkbox for extending beyond normal hours
+- **Dynamic Time Slots**: Real-time updates when date or stylist changes
+- **Validation Messages**: Clear feedback for invalid appointment times
+
+#### Admin Interface Enhancements
+- **Salon Settings Integration**: Opening hours management in admin panel
+- **Emergency Extension Control**: Toggle for enabling/disabling extensions
+- **Work Pattern Management**: Enhanced work pattern interface
+
+### 📊 Business Benefits
+
+#### For Salon Owners/Managers
+- **Accurate Scheduling**: Appointments only booked during open hours
+- **Flexible Operations**: Emergency extensions for special circumstances
+- **Staff Management**: Work pattern integration for stylist availability
+- **Customer Experience**: Clear indication of available times
+
+#### For Stylists
+- **Work-Life Balance**: Appointments respect work patterns
+- **Clear Availability**: Visual indication of working hours
+- **Holiday Tracking**: Automatic entitlement calculation
+
+#### For Customers
+- **Accurate Booking**: Only available times shown
+- **Transparent Hours**: Clear salon opening times display
+- **Flexible Options**: Emergency extensions when needed
+
+### 🚀 Migration Instructions
+
+For users updating from previous versions:
+
+1. **Stop the current container:**
+   ```bash
+   docker-compose down
+   ```
+
+2. **Rebuild with latest code:**
+   ```bash
+   docker-compose build --no-cache
+   docker-compose up -d
+   ```
+
+3. **Run salon hours migration:**
+   ```bash
+   docker exec -it salon-ese-web-1 python migrate_salon_hours_integration.py
+   ```
+
+4. **Test the new features:**
+   - Access Salon Settings from admin panel
+   - Configure opening hours for each day
+   - Test appointment booking with salon hours
+   - Verify emergency extension functionality
+
+### 🧪 Testing the New Features
+
+#### Salon Hours Integration Testing
+```bash
+# 1. Test salon settings configuration
+- Navigate to Admin > Salon Settings
+- Configure opening hours for each day
+- Enable/disable emergency extensions
+- Save settings and verify they persist
+
+# 2. Test appointment booking integration
+- Book appointment and verify time slots respect salon hours
+- Test booking outside normal hours with emergency extension
+- Verify validation messages for invalid times
+- Test dynamic time slot updates when changing date/stylist
+
+# 3. Test work pattern integration
+- Create work patterns for stylists
+- Verify appointments respect stylist availability
+- Test holiday entitlement calculations
+
+# 4. Test API functionality
+- Verify /api/available-slots endpoint works
+- Test with different dates and stylists
+- Check response format and data accuracy
+```
+
+#### Verification Checklist
+- [ ] Salon settings can be configured and saved
+- [ ] Time slots are generated based on opening hours
+- [ ] Emergency extensions work when enabled
+- [ ] Work patterns are respected in booking
+- [ ] API endpoint returns correct data
+- [ ] Dynamic updates work in booking form
+- [ ] Validation messages are clear and helpful
+- [ ] All existing functionality still works
+
+---
+
+## 🆕 Previous Release: v2.0.0 - HR System Integration
 
 ### 🎯 Overview
 The latest release introduces comprehensive HR System Integration with financial tracking, cost calculations, and employment management. This major update provides salon owners and managers with detailed insights into appointment profitability, stylist earnings, and employment costs.
@@ -155,18 +338,12 @@ For users updating from previous versions:
    docker-compose down
    ```
 
-2. **Rebuild with latest code:**
-   ```bash
-   docker-compose build --no-cache
-   docker-compose up -d
-   ```
-
-3. **Run HR system migration:**
+2. **Run HR system migration:**
    ```bash
    docker exec -it salon-ese-web-1 python migrate_hr_system.py
    ```
 
-4. **Test the new features:**
+3. **Test the new features:**
    - Access HR Dashboard from admin panel
    - Create employment details with new HR fields
    - Book appointments to see automatic cost calculations

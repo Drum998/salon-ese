@@ -4,6 +4,7 @@ from wtforms import StringField, PasswordField, BooleanField, SubmitField, TextA
 from wtforms.validators import DataRequired, Email, Length, EqualTo, ValidationError, Optional
 from app.models import User, Role
 import json
+from datetime import datetime
 
 class LoginForm(FlaskForm):
     username = StringField('Username', validators=[DataRequired()])
@@ -282,11 +283,14 @@ class AppointmentBookingForm(FlaskForm):
     customer_phone = StringField('Phone Number', validators=[Optional(), Length(max=20)])
     customer_email = StringField('Email', validators=[Optional(), Email()])
     notes = TextAreaField('Notes', validators=[Optional(), Length(max=500)])
+    emergency_extension = BooleanField('Allow Emergency Extension', default=False)
     submit = SubmitField('Book Appointment')
 
     def __init__(self, *args, **kwargs):
         super(AppointmentBookingForm, self).__init__(*args, **kwargs)
         from app.models import User, Role
+        from app.services.salon_hours_service import SalonHoursService
+        
         stylist_role = Role.query.filter_by(name='stylist').first()
         if stylist_role:
             stylists = User.query.join(User.roles).filter(
@@ -296,6 +300,7 @@ class AppointmentBookingForm(FlaskForm):
             self.stylist_id.choices = [(s.id, f"{s.first_name} {s.last_name}") for s in stylists]
         else:
             self.stylist_id.choices = []
+        
         # Populate customer choices (all active users with 'customer' role)
         customer_role = Role.query.filter_by(name='customer').first()
         if customer_role:
@@ -306,6 +311,7 @@ class AppointmentBookingForm(FlaskForm):
             self.customer_id.choices = [(c.id, f"{c.first_name} {c.last_name} ({c.username})") for c in customers]
         else:
             self.customer_id.choices = []
+        
         # If the current user is a customer, set their ID and hide the field
         from flask_login import current_user
         if current_user.is_authenticated and current_user.has_role('customer'):
@@ -317,23 +323,108 @@ class AppointmentBookingForm(FlaskForm):
         for service_form in self.services:
             service_form.stylist_id = self.stylist_id.data if self.stylist_id.data else None
         
-        # Populate time slots (9 AM to 6 PM, 5-minute intervals)
+        # Generate time slots based on salon opening hours
+        self._populate_time_slots()
+    
+    def _populate_time_slots(self):
+        """Populate time slots based on salon opening hours and selected date/stylist"""
+        from app.services.salon_hours_service import SalonHoursService
+        
+        # Default time slots if no date is selected
         time_slots = []
-        for hour in range(9, 18):
-            for minute in range(0, 60, 5):
-                time_slots.append((f"{hour:02d}:{minute:02d}", f"{hour:02d}:{minute:02d}"))
+        
+        # If we have a selected date, generate slots based on salon hours
+        if hasattr(self, 'appointment_date') and self.appointment_date.data:
+            selected_stylist = self.stylist_id.data if self.stylist_id.data else None
+            available_slots = SalonHoursService.generate_available_time_slots(
+                self.appointment_date.data, 
+                selected_stylist
+            )
+            time_slots = [(slot, slot) for slot in available_slots]
+        
+        # If no slots available or no date selected, use default slots
+        if not time_slots:
+            # Default time slots (9 AM to 6 PM, 5-minute intervals)
+            for hour in range(9, 18):
+                for minute in range(0, 60, 5):
+                    time_slots.append((f"{hour:02d}:{minute:02d}", f"{hour:02d}:{minute:02d}"))
+        
         self.start_time.choices = time_slots
+    
+    def update_time_slots_for_date_and_stylist(self, appointment_date, stylist_id=None):
+        """Update time slots when date or stylist changes"""
+        from app.services.salon_hours_service import SalonHoursService
+        
+        available_slots = SalonHoursService.generate_available_time_slots(
+            appointment_date, 
+            stylist_id
+        )
+        
+        if available_slots:
+            self.start_time.choices = [(slot, slot) for slot in available_slots]
+        else:
+            # Fallback to default slots if no availability
+            time_slots = []
+            for hour in range(9, 18):
+                for minute in range(0, 60, 5):
+                    time_slots.append((f"{hour:02d}:{minute:02d}", f"{hour:02d}:{minute:02d}"))
+            self.start_time.choices = time_slots
     
     def validate_appointment_date(self, appointment_date):
         from datetime import date
+        from app.services.salon_hours_service import SalonHoursService
+        
         if appointment_date.data < date.today():
             raise ValidationError('Cannot book appointments in the past.')
+        
+        # Check if salon is open on this date
+        hours = SalonHoursService.get_opening_hours_for_date(appointment_date.data)
+        if not hours:
+            raise ValidationError('Salon is closed on this date.')
     
     def validate_stylist_id(self, stylist_id):
         from app.models import User, Role
         stylist = User.query.get(stylist_id.data)
         if not stylist or not stylist.has_role('stylist'):
             raise ValidationError('Please select a valid stylist.')
+    
+    def validate_start_time(self, start_time):
+        from app.services.salon_hours_service import SalonHoursService
+        
+        if not self.appointment_date.data or not start_time.data:
+            return
+        
+        try:
+            start_time_obj = datetime.strptime(start_time.data, '%H:%M').time()
+            
+            # Validate against salon opening hours
+            validation = SalonHoursService.validate_appointment_time(
+                self.appointment_date.data,
+                start_time_obj,
+                start_time_obj,  # End time will be calculated later
+                self.stylist_id.data if self.stylist_id.data else None,
+                allow_emergency=self.emergency_extension.data if hasattr(self, 'emergency_extension') else False
+            )
+            
+            if not validation['valid']:
+                raise ValidationError(validation['reason'])
+                
+        except ValueError:
+            raise ValidationError('Invalid time format.')
+    
+    def validate(self):
+        """Custom validation for the entire form"""
+        if not super().validate():
+            return False
+        
+        # Additional validation for emergency extensions
+        if hasattr(self, 'emergency_extension') and self.emergency_extension.data:
+            from app.services.salon_hours_service import SalonHoursService
+            if not SalonHoursService.is_emergency_extension_allowed():
+                self.emergency_extension.errors.append('Emergency extensions are not enabled.')
+                return False
+        
+        return True
 
 class AppointmentManagementForm(FlaskForm):
     status = SelectField('Status', choices=[

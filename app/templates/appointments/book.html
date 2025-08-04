@@ -45,6 +45,33 @@
                         </div>
                     {% endif %}
                     
+                    {# Salon Hours Information #}
+                    {% if salon_settings %}
+                        <div class="alert alert-info">
+                            <h6><i class="fas fa-clock"></i> Salon Hours</h6>
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <small>
+                                        {% for day, hours in salon_settings.opening_hours.items() %}
+                                            <strong>{{ day.title() }}:</strong> 
+                                            {% if hours.closed %}
+                                                <span class="text-muted">Closed</span>
+                                            {% else %}
+                                                {{ hours.open }} - {{ hours.close }}
+                                            {% endif %}
+                                            {% if not loop.last %} | {% endif %}
+                                        {% endfor %}
+                                    </small>
+                                </div>
+                                <div class="col-md-4 text-end">
+                                    {% if salon_settings.emergency_extension_enabled %}
+                                        <span class="badge bg-warning">Emergency Extensions Enabled</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                    
                     <form method="POST">
                         {{ form.hidden_tag() }}
                         <div class="row">
@@ -165,6 +192,27 @@
                                 </div>
                             </div>
                         </div>
+                        
+                        {# Emergency Extension Field #}
+                        {% if salon_settings and salon_settings.emergency_extension_enabled %}
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    {{ form.emergency_extension(class="form-check-input") }}
+                                    {{ form.emergency_extension.label(class="form-check-label") }}
+                                    <small class="form-text text-muted d-block">
+                                        Allow appointment to extend beyond normal salon hours if necessary
+                                    </small>
+                                </div>
+                                {% if form.emergency_extension.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.emergency_extension.errors %}
+                                            <small>{{ error }}</small>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                        
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
@@ -217,10 +265,13 @@
             </div>
             <div class="card-body">
                 <ul class="list-unstyled mb-0">
-                    <li><i class="fas fa-clock text-primary"></i> Appointments are available from 9:00 AM to 6:00 PM</li>
+                    <li><i class="fas fa-clock text-primary"></i> Appointments are available during salon opening hours</li>
                     <li><i class="fas fa-calendar text-primary"></i> You can book appointments up to 30 days in advance</li>
                     <li><i class="fas fa-phone text-primary"></i> You'll receive confirmation via email or phone</li>
                     <li><i class="fas fa-exclamation-triangle text-warning"></i> Please arrive 10 minutes before your appointment time</li>
+                    {% if salon_settings and salon_settings.emergency_extension_enabled %}
+                        <li><i class="fas fa-exclamation-circle text-warning"></i> Emergency extensions may be available for special circumstances</li>
+                    {% endif %}
                 </ul>
             </div>
         </div>
@@ -231,6 +282,7 @@
 // Set minimum date to today
 // Add/remove service rows dynamically
 // Update service choices based on selected stylist
+// Update time slots based on date and stylist
 
 document.addEventListener('DOMContentLoaded', function() {
     const dateInput = document.querySelector('input[type="date"]');
@@ -257,8 +309,76 @@ document.addEventListener('DOMContentLoaded', function() {
             const stylistId = this.value;
             if (stylistId) {
                 updateServiceChoices(stylistId);
+                updateTimeSlots();
             }
         });
+    }
+    
+    // Update time slots when date changes
+    if (dateInput) {
+        dateInput.addEventListener('change', function() {
+            updateTimeSlots();
+        });
+    }
+    
+    function updateTimeSlots() {
+        const selectedDate = dateInput.value;
+        const selectedStylist = stylistSelect ? stylistSelect.value : null;
+        
+        if (!selectedDate) return;
+        
+        // Show loading state
+        const timeSelect = document.querySelector('select[name="start_time"]');
+        const originalOptions = timeSelect.innerHTML;
+        timeSelect.innerHTML = '<option value="">Loading available times...</option>';
+        
+        // Fetch available slots
+        const url = `/appointments/api/available-slots?date=${selectedDate}`;
+        if (selectedStylist) {
+            url += `&stylist_id=${selectedStylist}`;
+        }
+        
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    console.error('Error fetching available slots:', data.error);
+                    timeSelect.innerHTML = originalOptions;
+                    return;
+                }
+                
+                // Clear and populate time slots
+                timeSelect.innerHTML = '<option value="">Select time...</option>';
+                
+                if (data.slots && data.slots.length > 0) {
+                    data.slots.forEach(slot => {
+                        const option = document.createElement('option');
+                        option.value = slot;
+                        option.textContent = slot;
+                        timeSelect.appendChild(option);
+                    });
+                } else {
+                    const option = document.createElement('option');
+                    option.value = '';
+                    option.textContent = 'No available times';
+                    option.disabled = true;
+                    timeSelect.appendChild(option);
+                }
+                
+                // Show salon hours info if available
+                if (data.salon_hours) {
+                    showSalonHoursInfo(data.salon_hours);
+                }
+            })
+            .catch(error => {
+                console.error('Error updating time slots:', error);
+                timeSelect.innerHTML = originalOptions;
+            });
+    }
+    
+    function showSalonHoursInfo(hours) {
+        // You can add a small info display here if needed
+        console.log('Salon hours for selected date:', hours);
     }
     
     function updateServiceChoices(stylistId) {

@@ -4,6 +4,7 @@ from app.models import User, Role, Service, Appointment, AppointmentStatus, Appo
 from app.forms import AppointmentBookingForm, AppointmentManagementForm, AppointmentFilterForm, ServiceForm, StylistServiceTimingForm
 from app.extensions import db
 from app.services.hr_service import HRService
+from app.services.salon_hours_service import SalonHoursService
 from datetime import datetime, date, timedelta
 from functools import wraps
 import calendar
@@ -75,6 +76,23 @@ def book_appointment():
         end_datetime = start_datetime + timedelta(minutes=total_duration)
         end_time = end_datetime.time()
         
+        # Validate appointment time against salon hours
+        validation = SalonHoursService.validate_appointment_time(
+            form.appointment_date.data,
+            start_time,
+            end_time,
+            form.stylist_id.data,
+            allow_emergency=form.emergency_extension.data
+        )
+        
+        if not validation['valid']:
+            flash(validation['reason'], 'error')
+            return redirect(url_for('appointments.book_appointment'))
+        
+        # Show warning for emergency extensions
+        if validation.get('emergency_extension'):
+            flash(validation['warning'], 'warning')
+        
         # Check for conflicts (same as before, but for total duration)
         conflicts = Appointment.query.filter(
             Appointment.stylist_id == form.stylist_id.data,
@@ -99,89 +117,63 @@ def book_appointment():
             flash('This time slot conflicts with an existing appointment. Please choose a different time.', 'error')
             return redirect(url_for('appointments.book_appointment'))
         
-        # Create the appointment (service_id is deprecated, set to first service for legacy compatibility)
-        first_service_id = form.services.entries[0].service_id.data if form.services.entries else None
+        # Create the appointment
         appointment = Appointment(
             customer_id=form.customer_id.data,
             stylist_id=form.stylist_id.data,
-            service_id=first_service_id,
+            booked_by_id=current_user.id,
             appointment_date=form.appointment_date.data,
             start_time=start_time,
             end_time=end_time,
-            customer_phone=form.customer_phone.data or current_user.phone,
-            customer_email=form.customer_email.data or current_user.email,
+            customer_phone=form.customer_phone.data,
+            customer_email=form.customer_email.data,
             notes=form.notes.data,
-            booked_by_id=current_user.id
+            status='confirmed'
         )
+        
+        # Add appointment to database and get ID
         db.session.add(appointment)
-        db.session.flush()  # Get appointment.id
+        db.session.flush()  # Get the ID without committing
         
-        # Create AppointmentService entries
-        for idx, service_form in enumerate(form.services.entries):
-            # Check if stylist timing should be used
-            duration_to_use = service_form.duration.data
-            if service_form.use_stylist_timing.data:
-                from app.models import StylistServiceTiming
-                stylist_timing = StylistServiceTiming.get_stylist_duration(
-                    form.stylist_id.data, 
-                    service_form.service_id.data
+        # Add services to the appointment
+        for i, service_form in enumerate(form.services.entries):
+            if service_form.service_id.data:
+                appointment_service = AppointmentService(
+                    appointment_id=appointment.id,
+                    service_id=service_form.service_id.data,
+                    duration=service_form.duration.data,
+                    waiting_time=service_form.waiting_time.data,
+                    order=i
                 )
-                if stylist_timing:
-                    duration_to_use = stylist_timing
-            
-            appt_service = AppointmentService(
-                appointment_id=appointment.id,
-                service_id=service_form.service_id.data,
-                duration=duration_to_use,
-                waiting_time=service_form.waiting_time.data or 0,
-                order=idx
-            )
-            db.session.add(appt_service)
+                db.session.add(appointment_service)
         
-        # Create initial status record
-        status_record = AppointmentStatus(
+        # Create status history entry
+        status_entry = AppointmentStatus(
             appointment_id=appointment.id,
             status='confirmed',
-            changed_by_id=current_user.id
+            changed_by_id=current_user.id,
+            notes='Appointment booked'
         )
-        db.session.add(status_record)
+        db.session.add(status_entry)
+        
+        # Calculate appointment costs using HR service
+        try:
+            HRService.calculate_appointment_cost(appointment.id)
+        except Exception as e:
+            logging.error(f"Error calculating appointment cost: {e}")
+        
         db.session.commit()
         
-        # HR System Integration - Calculate appointment cost
-        try:
-            cost_record = HRService.calculate_appointment_cost(appointment.id)
-            if cost_record:
-                current_app.logger.info(f"Cost calculated for appointment {appointment.id}: "
-                                       f"Revenue £{cost_record.service_revenue}, "
-                                       f"Stylist Cost £{cost_record.stylist_cost}, "
-                                       f"Profit £{cost_record.salon_profit}")
-        except Exception as e:
-            current_app.logger.error(f"Failed to calculate cost for appointment {appointment.id}: {str(e)}")
-        
-        # Log the booking
-        current_app.logger.info(f"Appointment booked: ID {appointment.id}, Customer {appointment.customer.first_name} {appointment.customer.last_name}, "
-                               f"Stylist {appointment.stylist.first_name} {appointment.stylist.last_name}, "
-                               f"Services {[s.service_id.data for s in form.services.entries]}, Date {appointment.appointment_date}, Time {appointment.start_time}")
-        
         flash('Appointment booked successfully!', 'success')
-        # Redirect based on role
-        if current_user.has_role('customer'):
-            return redirect(url_for('appointments.my_appointments'))
-        elif current_user.has_role('stylist'):
-            return redirect(url_for('appointments.stylist_appointments'))
-        elif current_user.has_role('manager') or current_user.has_role('owner'):
-            return redirect(url_for('appointments.admin_appointments'))
-        else:
-            return redirect(url_for('main.index'))
-    else:
-        # Debug: Show validation errors
-        if form.errors:
-            current_app.logger.error(f"Form validation errors: {form.errors}")
-            for field, errors in form.errors.items():
-                for error in errors:
-                    flash(f'Error in {field}: {error}', 'error')
+        return redirect(url_for('appointments.view_appointment', appointment_id=appointment.id))
     
-    return render_template('appointments/book.html', form=form, title='Book Appointment')
+    # Get salon settings for display
+    salon_settings = SalonHoursService.get_salon_settings()
+    
+    return render_template('appointments/book.html', 
+                         title='Book Appointment',
+                         form=form,
+                         salon_settings=salon_settings)
 
 @bp.route('/my-appointments')
 @login_required
@@ -750,3 +742,40 @@ def api_service_details(service_id):
     }
     
     return jsonify(service_data) 
+
+@bp.route('/api/available-slots')
+@login_required
+def api_available_slots():
+    """API endpoint to get available time slots for a date and stylist"""
+    date_str = request.args.get('date')
+    stylist_id = request.args.get('stylist_id', type=int)
+    
+    if not date_str:
+        return jsonify({'error': 'Date parameter is required'}), 400
+    
+    try:
+        appointment_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+    except ValueError:
+        return jsonify({'error': 'Invalid date format'}), 400
+    
+    # Get available slots
+    available_slots = SalonHoursService.generate_available_time_slots(
+        appointment_date, 
+        stylist_id
+    )
+    
+    # Get salon hours for this date
+    hours = SalonHoursService.get_opening_hours_for_date(appointment_date)
+    salon_hours = None
+    if hours:
+        salon_hours = {
+            'open': hours['open'].strftime('%H:%M'),
+            'close': hours['close'].strftime('%H:%M'),
+            'closed': hours['closed']
+        }
+    
+    return jsonify({
+        'slots': available_slots,
+        'salon_hours': salon_hours,
+        'date': date_str
+    }) 
