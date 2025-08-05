@@ -948,7 +948,7 @@ class AdminUserAddForm(FlaskForm):
             raise ValidationError('Email already registered. Please use a different email address.')
 
 class EmploymentDetailsForm(FlaskForm):
-    user_id = SelectField('Staff Member', coerce=int, validators=[DataRequired()])
+    user_id = SelectField('Staff Member', validators=[DataRequired()])
     employment_type = SelectField('Employment Type', choices=[
         ('employed', 'Employed'),
         ('self_employed', 'Self-Employed')
@@ -975,14 +975,19 @@ class EmploymentDetailsForm(FlaskForm):
         # Populate user choices (only stylists)
         from app.models import User, Role
         stylists = User.query.join(User.roles).filter(Role.name == 'stylist').all()
-        self.user_id.choices = [('', 'Select staff member')] + [
-            (user.id, f"{user.first_name} {user.last_name}") 
-            for user in stylists
-        ]
+        
+        if stylists:
+            self.user_id.choices = [('', 'Select staff member')] + [
+                (str(user.id), f"{user.first_name} {user.last_name}") 
+                for user in stylists
+            ]
+        else:
+            # If no stylists available, set empty choices
+            self.user_id.choices = [('', 'No stylists available')]
         
         # Pre-populate form if editing
         if employment_details:
-            self.user_id.data = employment_details.user_id
+            self.user_id.data = str(employment_details.user_id)
             self.employment_type.data = employment_details.employment_type
             self.commission_percentage.data = str(employment_details.commission_percentage) if employment_details.commission_percentage else ''
             self.billing_method.data = employment_details.billing_method
@@ -1002,12 +1007,45 @@ class EmploymentDetailsForm(FlaskForm):
             except ValueError:
                 raise ValidationError('Commission percentage must be between 0 and 100.')
     
-    def validate_user_id(self, field):
+    def validate_hourly_rate(self, field):
         if field.data:
+            try:
+                rate = float(field.data)
+                if rate < 0:
+                    raise ValueError
+            except ValueError:
+                raise ValidationError('Hourly rate must be a valid positive number.')
+    
+    def validate_commission_rate(self, field):
+        if field.data:
+            try:
+                rate = float(field.data)
+                if rate < 0 or rate > 100:
+                    raise ValueError
+            except ValueError:
+                raise ValidationError('Commission rate must be between 0 and 100.')
+    
+    def validate_base_salary(self, field):
+        if field.data:
+            try:
+                salary = float(field.data)
+                if salary < 0:
+                    raise ValueError
+            except ValueError:
+                raise ValidationError('Base salary must be a valid positive number.')
+    
+    def validate_user_id(self, field):
+        if not field.data or field.data == '':
+            raise ValidationError('Please select a staff member.')
+        
+        try:
+            user_id = int(field.data)
             from app.models import EmploymentDetails
-            existing = EmploymentDetails.query.filter_by(user_id=field.data).first()
-            if existing and not self.employment_details:
+            existing = EmploymentDetails.query.filter_by(user_id=user_id).first()
+            if existing and not hasattr(self, 'employment_details'):
                 raise ValidationError('This staff member already has employment details.')
+        except ValueError:
+            raise ValidationError('Please select a valid staff member.')
     
     def validate(self):
         if not super().validate():

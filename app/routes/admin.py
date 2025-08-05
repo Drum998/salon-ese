@@ -452,18 +452,24 @@ def new_employment_details():
     
     if form.validate_on_submit():
         try:
+            # Helper function to safely convert string to float
+            def safe_float(value):
+                if value and value.strip():
+                    return float(value)
+                return None
+            
             employment_details = EmploymentDetails(
-                user_id=form.user_id.data,
+                user_id=int(form.user_id.data),
                 employment_type=form.employment_type.data,
-                commission_percentage=float(form.commission_percentage.data) if form.commission_percentage.data else None,
+                commission_percentage=safe_float(form.commission_percentage.data),
                 billing_method=form.billing_method.data,
                 job_role=form.job_role.data,
                 # HR System Integration - New Fields
                 start_date=form.start_date.data,
                 end_date=form.end_date.data,
-                hourly_rate=float(form.hourly_rate.data) if form.hourly_rate.data else None,
-                commission_rate=float(form.commission_rate.data) if form.commission_rate.data else None,
-                base_salary=float(form.base_salary.data) if form.base_salary.data else None
+                hourly_rate=safe_float(form.hourly_rate.data),
+                commission_rate=safe_float(form.commission_rate.data),
+                base_salary=safe_float(form.base_salary.data)
             )
             
             db.session.add(employment_details)
@@ -492,17 +498,23 @@ def edit_employment_details(details_id):
     
     if form.validate_on_submit():
         try:
-            employment_details.user_id = form.user_id.data
+            # Helper function to safely convert string to float
+            def safe_float(value):
+                if value and value.strip():
+                    return float(value)
+                return None
+            
+            employment_details.user_id = int(form.user_id.data)
             employment_details.employment_type = form.employment_type.data
-            employment_details.commission_percentage = float(form.commission_percentage.data) if form.commission_percentage.data else None
+            employment_details.commission_percentage = safe_float(form.commission_percentage.data)
             employment_details.billing_method = form.billing_method.data
             employment_details.job_role = form.job_role.data
             # HR System Integration - New Fields
             employment_details.start_date = form.start_date.data
             employment_details.end_date = form.end_date.data
-            employment_details.hourly_rate = float(form.hourly_rate.data) if form.hourly_rate.data else None
-            employment_details.commission_rate = float(form.commission_rate.data) if form.commission_rate.data else None
-            employment_details.base_salary = float(form.base_salary.data) if form.base_salary.data else None
+            employment_details.hourly_rate = safe_float(form.hourly_rate.data)
+            employment_details.commission_rate = safe_float(form.commission_rate.data)
+            employment_details.base_salary = safe_float(form.base_salary.data)
             
             db.session.commit()
             
