@@ -1,0 +1,250 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">
+                    <i class="fas fa-calendar-alt text-primary"></i> Holiday Request Details
+                </h1>
+                <div>
+                    <a href="{{ url_for('admin.holiday_requests') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> Back to Requests
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <!-- Request Details Card -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-info-circle"></i> Request Information
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-muted">Staff Member</h6>
+                            <p class="h5">{{ request.user.first_name }} {{ request.user.last_name }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-muted">Request Status</h6>
+                            {% if request.status == 'pending' %}
+                                <span class="badge bg-warning fs-6">Pending</span>
+                            {% elif request.status == 'approved' %}
+                                <span class="badge bg-success fs-6">Approved</span>
+                            {% elif request.status == 'rejected' %}
+                                <span class="badge bg-danger fs-6">Rejected</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-muted">Holiday Period</h6>
+                            <p class="h5">
+                                {{ request.start_date.strftime('%A, %d %B %Y') }}<br>
+                                <small class="text-muted">to {{ request.end_date.strftime('%A, %d %B %Y') }}</small>
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-muted">Days Requested</h6>
+                            <p class="h5">{{ request.days_requested }} working days</p>
+                        </div>
+                    </div>
+                    
+                    {% if request.notes %}
+                    <hr>
+                    <div class="row">
+                        <div class="col-12">
+                            <h6 class="text-muted">Notes</h6>
+                            <p class="mb-0">{{ request.notes }}</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <hr>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-muted">Submitted</h6>
+                            <p class="mb-0">{{ request.created_at.strftime('%d/%m/%Y at %H:%M') }}</p>
+                        </div>
+                        {% if request.approved_by %}
+                        <div class="col-md-6">
+                            <h6 class="text-muted">Processed by</h6>
+                            <p class="mb-0">{{ request.approved_by.first_name }} {{ request.approved_by.last_name }}</p>
+                            <small class="text-muted">{{ request.approved_at.strftime('%d/%m/%Y at %H:%M') }}</small>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Approval Form (for pending requests) -->
+            {% if request.status == 'pending' %}
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-gavel"></i> Process Request
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('admin.approve_holiday_request', request_id=request.id) }}">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <label for="action" class="form-label">Action</label>
+                                <select class="form-select" id="action" name="action" required>
+                                    <option value="">Select action...</option>
+                                    <option value="approve">Approve Request</option>
+                                    <option value="reject">Reject Request</option>
+                                </select>
+                            </div>
+                            <div class="col-md-8">
+                                <label for="notes" class="form-label">Notes</label>
+                                <textarea class="form-control" id="notes" name="notes" rows="3" 
+                                          placeholder="Add notes about your decision..."></textarea>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <button type="submit" class="btn btn-primary" id="submitBtn" disabled>
+                                <i class="fas fa-save"></i> Process Request
+                            </button>
+                            <a href="{{ url_for('admin.holiday_requests') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times"></i> Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="col-lg-4">
+            <!-- Holiday Quota Information -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-pie"></i> Holiday Quota
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% set quota = request.user.holiday_quotas|selectattr('year', 'equalto', request.start_date.year)|first %}
+                    {% if quota %}
+                        <div class="row text-center">
+                            <div class="col-4">
+                                <h6 class="text-muted">Entitled</h6>
+                                <h4 class="text-primary">{{ quota.holiday_days_entitled }}</h4>
+                            </div>
+                            <div class="col-4">
+                                <h6 class="text-muted">Taken</h6>
+                                <h4 class="text-warning">{{ quota.holiday_days_taken }}</h4>
+                            </div>
+                            <div class="col-4">
+                                <h6 class="text-muted">Remaining</h6>
+                                <h4 class="text-success">{{ quota.holiday_days_remaining }}</h4>
+                            </div>
+                        </div>
+                        
+                        <hr>
+                        
+                        <div class="progress mb-3">
+                            {% set usage_percentage = (quota.holiday_days_taken / quota.holiday_days_entitled * 100) %}
+                            <div class="progress-bar" role="progressbar" 
+                                 style="width: {{ usage_percentage }}%" 
+                                 aria-valuenow="{{ usage_percentage }}" 
+                                 aria-valuemin="0" aria-valuemax="100">
+                                {{ "%.1f"|format(usage_percentage) }}%
+                            </div>
+                        </div>
+                        
+                        <small class="text-muted">
+                            {{ quota.holiday_days_taken }} of {{ quota.holiday_days_entitled }} days used
+                        </small>
+                    {% else %}
+                        <div class="text-center py-3">
+                            <i class="fas fa-exclamation-triangle text-warning fa-2x mb-2"></i>
+                            <p class="text-muted mb-0">No holiday quota found for {{ request.start_date.year }}</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Recent Requests by Same User -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-history"></i> Recent Requests
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% set recent_requests = request.user.holiday_requests|selectattr('id', 'ne', request.id)|list %}
+                    {% if recent_requests %}
+                        <div class="list-group list-group-flush">
+                            {% for recent_request in recent_requests[:5] %}
+                            <div class="list-group-item px-0">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <small class="text-muted">
+                                            {{ recent_request.start_date.strftime('%d/%m/%Y') }} - 
+                                            {{ recent_request.end_date.strftime('%d/%m/%Y') }}
+                                        </small>
+                                        <br>
+                                        <small>{{ recent_request.days_requested }} days</small>
+                                    </div>
+                                    <div>
+                                        {% if recent_request.status == 'pending' %}
+                                            <span class="badge bg-warning">Pending</span>
+                                        {% elif recent_request.status == 'approved' %}
+                                            <span class="badge bg-success">Approved</span>
+                                        {% elif recent_request.status == 'rejected' %}
+                                            <span class="badge bg-danger">Rejected</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-3">
+                            <i class="fas fa-calendar-plus text-muted fa-2x mb-2"></i>
+                            <p class="text-muted mb-0">No other requests found</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('action').addEventListener('change', function() {
+    const submitBtn = document.getElementById('submitBtn');
+    const action = this.value;
+    
+    if (action) {
+        submitBtn.disabled = false;
+        if (action === 'approve') {
+            submitBtn.className = 'btn btn-success';
+            submitBtn.innerHTML = '<i class="fas fa-check"></i> Approve Request';
+        } else {
+            submitBtn.className = 'btn btn-danger';
+            submitBtn.innerHTML = '<i class="fas fa-times"></i> Reject Request';
+        }
+    } else {
+        submitBtn.disabled = true;
+        submitBtn.className = 'btn btn-primary';
+        submitBtn.innerHTML = '<i class="fas fa-save"></i> Process Request';
+    }
+});
+</script>
+{% endblock %} 

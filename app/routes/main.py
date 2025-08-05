@@ -1,6 +1,8 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, current_app
+from flask import Blueprint, render_template, redirect, url_for, flash, current_app, request
 from flask_login import current_user, login_required
 from app.models import User, Role
+from app.forms import HolidayRequestForm
+from app.services.holiday_service import HolidayService
 from functools import wraps
 
 bp = Blueprint('main', __name__)
@@ -94,4 +96,39 @@ def contact():
 
 @bp.route('/services')
 def services():
-    return render_template('main/services.html', title='Our Services') 
+    return render_template('main/services.html', title='Our Services')
+
+@bp.route('/holiday-request', methods=['GET', 'POST'])
+@login_required
+@role_required('stylist')
+def holiday_request():
+    """Submit a holiday request"""
+    form = HolidayRequestForm()
+    
+    # Get user's holiday quota
+    quota = HolidayService.get_or_create_holiday_quota(current_user.id)
+    
+    # Get recent requests
+    recent_requests = HolidayService.get_user_holiday_requests(current_user.id)[:5]
+    
+    if form.validate_on_submit():
+        # Create the holiday request
+        request_obj, errors = HolidayService.create_holiday_request(
+            current_user.id,
+            form.start_date.data,
+            form.end_date.data,
+            form.notes.data
+        )
+        
+        if request_obj:
+            flash('Holiday request submitted successfully! It will be reviewed by management.', 'success')
+            return redirect(url_for('main.holiday_request'))
+        else:
+            for error in errors:
+                flash(error, 'error')
+    
+    return render_template('main/holiday_request.html',
+                         title='Holiday Request',
+                         form=form,
+                         quota=quota,
+                         recent_requests=recent_requests) 

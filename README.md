@@ -192,6 +192,218 @@ For users updating from previous versions:
 
 ---
 
+## 🆕 Latest Release: v2.3.0 - Holiday Management System
+
+### 🎯 Overview
+The latest release introduces a comprehensive Holiday Management System with complete request and approval workflow. This major update provides staff with easy holiday request submission and managers with complete holiday management capabilities, including automatic entitlement calculations based on work patterns.
+
+### ✨ New Features in v2.3.0
+
+#### 1. **Holiday Request System** ✅ **COMPLETED**
+- **Purpose**: Complete holiday request and approval workflow
+- **Implementation**: Full CRUD operations with automatic entitlement calculations
+- **Features**:
+  - Staff holiday request submission with date validation
+  - Admin approval workflow with notes and status tracking
+  - Automatic holiday entitlement calculations based on work patterns
+  - Integration with HR dashboard for comprehensive overview
+  - Comprehensive form validation and error handling
+  - Template error fixes for robust rendering
+
+#### 2. **Holiday Quota Tracking** ✅ **COMPLETED**
+- **Purpose**: Automatic calculation and tracking of holiday entitlements
+- **Implementation**: HolidayQuota model with work pattern integration
+- **Features**:
+  - Automatic entitlement calculation based on weekly hours
+  - Usage tracking and remaining days calculation
+  - Year-based quota management
+  - Integration with employment details
+  - Visual progress bars and usage statistics
+
+#### 3. **Admin Holiday Management** ✅ **COMPLETED**
+- **Purpose**: Complete admin interface for holiday management
+- **Implementation**: Comprehensive admin routes and templates
+- **Features**:
+  - View all holiday requests with filtering and pagination
+  - Approve/reject requests with notes
+  - View individual request details
+  - Holiday quota management for all staff
+  - Usage statistics and alerts
+  - Integration with existing HR dashboard
+
+### 🔧 Technical Implementation
+
+#### Holiday Models
+```python
+# HolidayQuota model with automatic entitlement calculation
+class HolidayQuota(db.Model):
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    year = db.Column(db.Integer, nullable=False)
+    total_hours_per_week = db.Column(db.Integer, nullable=False)
+    holiday_days_entitled = db.Column(db.Integer, nullable=False)
+    holiday_days_taken = db.Column(db.Integer, default=0)
+    holiday_days_remaining = db.Column(db.Integer, nullable=False)
+
+# HolidayRequest model with approval workflow
+class HolidayRequest(db.Model):
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    start_date = db.Column(db.Date, nullable=False)
+    end_date = db.Column(db.Date, nullable=False)
+    days_requested = db.Column(db.Integer, nullable=False)
+    status = db.Column(db.String(20), default='pending')
+    approved_by_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    notes = db.Column(db.Text)
+```
+
+#### Holiday Service Layer
+```python
+# HolidayService with entitlement calculations
+class HolidayService:
+    @staticmethod
+    def calculate_holiday_entitlement(hours_per_week):
+        # UK employment law calculations
+        if hours_per_week >= 37.5:  # Full-time
+            return 28
+        elif hours_per_week >= 20:  # Part-time
+            return int((hours_per_week / 37.5) * 28)
+        else:  # Reduced hours
+            return int((hours_per_week / 37.5) * 28)
+
+    @staticmethod
+    def validate_holiday_request(user_id, start_date, end_date):
+        # Comprehensive validation including:
+        # - Past date validation
+        # - Overlapping request validation
+        # - Sufficient quota validation
+        # - Working day validation
+```
+
+#### Form System
+```python
+# HolidayRequestForm for staff submissions
+class HolidayRequestForm(FlaskForm):
+    start_date = DateField('Start Date', validators=[DataRequired()])
+    end_date = DateField('End Date', validators=[DataRequired()])
+    notes = TextAreaField('Notes')
+
+# HolidayApprovalForm for admin approvals
+class HolidayApprovalForm(FlaskForm):
+    action = SelectField('Action', choices=[('approve', 'Approve'), ('reject', 'Reject')])
+    notes = TextAreaField('Notes')
+```
+
+### 🎨 User Interface Enhancements
+
+#### Staff Holiday Request Interface
+- **Easy Request Submission**: Simple form for staff to submit requests
+- **Quota Display**: Shows current entitlement and remaining days
+- **Recent Requests**: Display of recent request history
+- **Validation Feedback**: Clear error messages for invalid requests
+
+#### Admin Holiday Management Interface
+- **Complete Request Management**: View, filter, and manage all requests
+- **Approval Workflow**: Easy approve/reject with notes
+- **Quota Overview**: Visual display of all staff holiday quotas
+- **Usage Statistics**: Analytics and alerts for holiday usage
+- **Integration**: Seamless integration with HR dashboard
+
+### 📊 Business Benefits
+
+#### For Salon Managers
+- **Streamlined Approval Process**: Easy request management and approval
+- **Automatic Entitlement Calculations**: No manual calculation required
+- **Comprehensive Overview**: Complete holiday management in one place
+- **Compliance**: Proper holiday tracking and management
+
+#### For Staff
+- **Easy Request Submission**: Simple interface for holiday requests
+- **Transparent Tracking**: Clear view of entitlements and usage
+- **Quick Feedback**: Immediate status updates on requests
+- **Integration**: Seamless integration with existing systems
+
+### 🚀 Migration Instructions
+
+For users updating from previous versions:
+
+1. **Stop the current container:**
+   ```bash
+   docker-compose down
+   ```
+
+2. **Rebuild with latest code:**
+   ```bash
+   docker-compose build --no-cache
+   docker-compose up -d
+   ```
+
+3. **Test the new holiday features:**
+   - Staff holiday requests: `/holiday-request`
+   - Admin holiday management: `/admin/holiday-requests`
+   - Holiday quotas: `/admin/holiday-quotas`
+   - HR dashboard integration: `/admin/hr-dashboard`
+
+### 🧪 Testing the Holiday System
+
+#### Staff Holiday Request Testing
+```bash
+# 1. Test holiday request submission
+- Login as a stylist
+- Navigate to /holiday-request
+- Submit a holiday request with valid dates
+- Verify request is created and displayed
+
+# 2. Test validation
+- Try submitting requests with past dates
+- Try submitting overlapping requests
+- Try submitting requests exceeding quota
+- Verify proper error messages
+
+# 3. Test quota display
+- Check current entitlement display
+- Verify remaining days calculation
+- Test recent requests display
+```
+
+#### Admin Holiday Management Testing
+```bash
+# 1. Test request approval workflow
+- Login as a manager
+- Navigate to /admin/holiday-requests
+- View pending requests
+- Approve/reject requests with notes
+- Verify status updates
+
+# 2. Test holiday quotas
+- Navigate to /admin/holiday-quotas
+- View all staff quotas
+- Check entitlement calculations
+- Test usage statistics
+
+# 3. Test HR dashboard integration
+- Navigate to /admin/hr-dashboard
+- Check holiday summary section
+- Verify integration with existing features
+```
+
+#### Verification Checklist
+- [ ] Staff can submit holiday requests
+- [ ] Admin can approve/reject requests
+- [ ] Holiday quotas are calculated correctly
+- [ ] HR dashboard shows holiday summary
+- [ ] All template errors are resolved
+- [ ] Form validation works properly
+- [ ] Integration with existing systems works
+- [ ] All existing functionality still works
+
+### 🔧 Error Fixes in v2.3.0
+- ✅ Fixed `TypeError: object of type 'int' has no len()` in HR dashboard
+- ✅ Fixed `ZeroDivisionError` in holiday quotas template
+- ✅ Fixed `UndefinedError` in stylist earnings template
+- ✅ All template rendering issues resolved
+- ✅ Comprehensive error handling implemented
+
+---
+
 ## 🆕 Previous Release: v2.0.0 - HR System Integration
 
 ### 🎯 Overview

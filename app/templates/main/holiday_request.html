@@ -1,0 +1,233 @@
+{% extends "base.html" %}
+
+{% block title %}Holiday Request{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        <i class="fas fa-calendar-alt text-primary"></i> Submit Holiday Request
+                    </h4>
+                </div>
+                <div class="card-body">
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+
+                    <!-- Holiday Quota Summary -->
+                    {% if quota %}
+                    <div class="alert alert-info">
+                        <h6 class="alert-heading">
+                            <i class="fas fa-info-circle"></i> Your Holiday Entitlement
+                        </h6>
+                        <div class="row text-center">
+                            <div class="col-4">
+                                <h5 class="text-primary">{{ quota.holiday_days_entitled }}</h5>
+                                <small class="text-muted">Days Entitled</small>
+                            </div>
+                            <div class="col-4">
+                                <h5 class="text-warning">{{ quota.holiday_days_taken }}</h5>
+                                <small class="text-muted">Days Taken</small>
+                            </div>
+                            <div class="col-4">
+                                <h5 class="text-success">{{ quota.holiday_days_remaining }}</h5>
+                                <small class="text-muted">Days Remaining</small>
+                            </div>
+                        </div>
+                        <div class="progress mt-2">
+                            {% set usage_percentage = (quota.holiday_days_taken / quota.holiday_days_entitled * 100) %}
+                            <div class="progress-bar {% if usage_percentage > 80 %}bg-danger{% elif usage_percentage > 60 %}bg-warning{% else %}bg-success{% endif %}" 
+                                 role="progressbar" 
+                                 style="width: {{ usage_percentage }}%" 
+                                 aria-valuenow="{{ usage_percentage }}" 
+                                 aria-valuemin="0" aria-valuemax="100">
+                                {{ "%.1f"|format(usage_percentage) }}% Used
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Holiday Request Form -->
+                    <form method="POST" id="holidayRequestForm">
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.start_date.label(class="form-label") }}
+                                    {{ form.start_date(class="form-control", type="date") }}
+                                    {% if form.start_date.errors %}
+                                        <div class="text-danger">
+                                            {% for error in form.start_date.errors %}
+                                                <small>{{ error }}</small>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.end_date.label(class="form-label") }}
+                                    {{ form.end_date(class="form-control", type="date") }}
+                                    {% if form.end_date.errors %}
+                                        <div class="text-danger">
+                                            {% for error in form.end_date.errors %}
+                                                <small>{{ error }}</small>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.notes.label(class="form-label") }}
+                            {{ form.notes(class="form-control", rows="4", placeholder="Please provide any additional information about your holiday request...") }}
+                            {% if form.notes.errors %}
+                                <div class="text-danger">
+                                    {% for error in form.notes.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Request Preview -->
+                        <div id="requestPreview" class="alert alert-secondary" style="display: none;">
+                            <h6 class="alert-heading">
+                                <i class="fas fa-eye"></i> Request Preview
+                            </h6>
+                            <div id="previewContent"></div>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('main.stylist_dashboard') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left"></i> Back to Dashboard
+                            </a>
+                            {{ form.submit(class="btn btn-primary") }}
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Recent Requests -->
+            {% if recent_requests %}
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-history"></i> Your Recent Requests
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Period</th>
+                                    <th>Days</th>
+                                    <th>Status</th>
+                                    <th>Submitted</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for request in recent_requests %}
+                                <tr>
+                                    <td>
+                                        <small>
+                                            {{ request.start_date.strftime('%d/%m/%Y') }} - {{ request.end_date.strftime('%d/%m/%Y') }}
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info">{{ request.days_requested }} days</span>
+                                    </td>
+                                    <td>
+                                        {% if request.status == 'pending' %}
+                                            <span class="badge bg-warning">Pending</span>
+                                        {% elif request.status == 'approved' %}
+                                            <span class="badge bg-success">Approved</span>
+                                        {% elif request.status == 'rejected' %}
+                                            <span class="badge bg-danger">Rejected</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">{{ request.created_at.strftime('%d/%m/%Y') }}</small>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const startDateInput = document.getElementById('start_date');
+    const endDateInput = document.getElementById('end_date');
+    const previewDiv = document.getElementById('requestPreview');
+    const previewContent = document.getElementById('previewContent');
+    
+    function updatePreview() {
+        const startDate = startDateInput.value;
+        const endDate = endDateInput.value;
+        
+        if (startDate && endDate) {
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            
+            if (start <= end) {
+                // Calculate working days (excluding weekends)
+                let workingDays = 0;
+                const current = new Date(start);
+                
+                while (current <= end) {
+                    // Monday = 1, Sunday = 0
+                    if (current.getDay() !== 0 && current.getDay() !== 6) {
+                        workingDays++;
+                    }
+                    current.setDate(current.getDate() + 1);
+                }
+                
+                previewContent.innerHTML = `
+                    <p><strong>Holiday Period:</strong> ${startDate} to ${endDate}</p>
+                    <p><strong>Working Days Requested:</strong> ${workingDays} days</p>
+                    <p><strong>Status:</strong> Will be submitted for approval</p>
+                `;
+                previewDiv.style.display = 'block';
+            } else {
+                previewDiv.style.display = 'none';
+            }
+        } else {
+            previewDiv.style.display = 'none';
+        }
+    }
+    
+    startDateInput.addEventListener('change', updatePreview);
+    endDateInput.addEventListener('change', updatePreview);
+    
+    // Set minimum date to today
+    const today = new Date().toISOString().split('T')[0];
+    startDateInput.min = today;
+    endDateInput.min = today;
+    
+    // Update end date minimum when start date changes
+    startDateInput.addEventListener('change', function() {
+        endDateInput.min = this.value;
+    });
+});
+</script>
+{% endblock %} 

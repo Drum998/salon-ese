@@ -1,11 +1,13 @@
+from datetime import date
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
-from app.models import User, Role, UserProfile, SalonSettings, WorkPattern, EmploymentDetails, AppointmentCost, Appointment
-from app.forms import AdminUserForm, RoleAssignmentForm, SalonSettingsForm, WorkPatternForm, EmploymentDetailsForm, AdminUserAddForm, HRDashboardFilterForm
+from app.models import User, Role, UserProfile, SalonSettings, WorkPattern, EmploymentDetails, AppointmentCost, Appointment, HolidayRequest, HolidayQuota
+from app.forms import AdminUserForm, RoleAssignmentForm, SalonSettingsForm, WorkPatternForm, EmploymentDetailsForm, AdminUserAddForm, HRDashboardFilterForm, HolidayRequestForm, HolidayApprovalForm, HolidayQuotaForm
 from app.extensions import db
 from app.routes.main import role_required
 from app.utils import uk_now
 from app.services.hr_service import HRService
+from app.services.holiday_service import HolidayService
 import json
 
 bp = Blueprint('admin', __name__)
@@ -56,11 +58,15 @@ def hr_dashboard():
     if stylist_id:
         stylist_performance = HRService.get_stylist_performance_report(stylist_id, date_from, date_to)
     
+    # Get holiday summary data
+    holiday_summary = HRService.get_holiday_summary()
+    
     return render_template('admin/hr_dashboard.html',
                          title='HR Dashboard',
                          employment_summary=employment_summary,
                          salon_profit=salon_profit,
                          stylist_performance=stylist_performance,
+                         holiday_summary=holiday_summary,
                          filter_form=filter_form,
                          date_from=date_from,
                          date_to=date_to,
@@ -552,4 +558,124 @@ def delete_employment_details(details_id):
         db.session.rollback()
         flash(f'Error deleting employment details: {str(e)}', 'error')
     
-    return redirect(url_for('admin.employment_details')) 
+    return redirect(url_for('admin.employment_details'))
+
+# Holiday Management Routes
+
+@bp.route('/holiday-requests')
+@login_required
+@role_required('manager')
+def holiday_requests():
+    """View all holiday requests"""
+    page = request.args.get('page', 1, type=int)
+    status_filter = request.args.get('status', '')
+    user_id = request.args.get('user_id', type=int)
+    
+    # Build query
+    query = HolidayRequest.query
+    
+    if status_filter:
+        query = query.filter_by(status=status_filter)
+    if user_id:
+        query = query.filter_by(user_id=user_id)
+    
+    # Order by creation date (most recent first)
+    requests = query.order_by(HolidayRequest.created_at.desc()).paginate(
+        page=page, per_page=20, error_out=False
+    )
+    
+    # Get user choices for filter
+    from app.models import User, Role
+    users = User.query.join(User.roles).filter(Role.name == 'stylist').all()
+    user_choices = [(user.id, f"{user.first_name} {user.last_name}") for user in users]
+    
+    return render_template('admin/holiday_requests.html',
+                         title='Holiday Requests',
+                         requests=requests,
+                         user_choices=user_choices,
+                         status_filter=status_filter,
+                         user_id=user_id,
+                         uk_now=uk_now)
+
+@bp.route('/holiday-requests/<int:request_id>')
+@login_required
+@role_required('manager')
+def view_holiday_request(request_id):
+    """View a specific holiday request"""
+    request = HolidayRequest.query.get_or_404(request_id)
+    approval_form = HolidayApprovalForm()
+    
+    return render_template('admin/holiday_request_detail.html',
+                         title='Holiday Request Details',
+                         request=request,
+                         approval_form=approval_form,
+                         uk_now=uk_now)
+
+@bp.route('/holiday-requests/<int:request_id>/approve', methods=['POST'])
+@login_required
+@role_required('manager')
+def approve_holiday_request(request_id):
+    """Approve or reject a holiday request"""
+    request = HolidayRequest.query.get_or_404(request_id)
+    form = HolidayApprovalForm()
+    
+    if form.validate_on_submit():
+        if form.action.data == 'approve':
+            success, message = HolidayService.approve_holiday_request(
+                request_id, current_user.id, form.notes.data
+            )
+        else:
+            success, message = HolidayService.reject_holiday_request(
+                request_id, current_user.id, form.notes.data
+            )
+        
+        if success:
+            flash(message, 'success')
+        else:
+            flash(message, 'error')
+    
+    return redirect(url_for('admin.holiday_requests'))
+
+@bp.route('/holiday-quotas')
+@login_required
+@role_required('manager')
+def holiday_quotas():
+    """View holiday quotas for all staff"""
+    year = request.args.get('year', date.today().year, type=int)
+    
+    # Get all stylists with their quotas
+    from app.models import User, Role
+    stylists = User.query.join(User.roles).filter(Role.name == 'stylist').all()
+    
+    quotas_data = []
+    for stylist in stylists:
+        quota = HolidayService.get_or_create_holiday_quota(stylist.id, year)
+        if quota:
+            quotas_data.append({
+                'user': stylist,
+                'quota': quota,
+                'requests': HolidayService.get_user_holiday_requests(stylist.id)
+            })
+    
+    return render_template('admin/holiday_quotas.html',
+                         title='Holiday Quotas',
+                         quotas_data=quotas_data,
+                         year=year,
+                         uk_now=uk_now)
+
+@bp.route('/holiday-quotas/<int:user_id>')
+@login_required
+@role_required('manager')
+def view_user_holiday_summary(user_id):
+    """View detailed holiday summary for a specific user"""
+    user = User.query.get_or_404(user_id)
+    year = request.args.get('year', date.today().year, type=int)
+    
+    holiday_summary = HolidayService.get_holiday_summary(user_id, year)
+    
+    return render_template('admin/user_holiday_summary.html',
+                         title=f'Holiday Summary - {user.first_name} {user.last_name}',
+                         user=user,
+                         holiday_summary=holiday_summary,
+                         year=year,
+                         uk_now=uk_now)

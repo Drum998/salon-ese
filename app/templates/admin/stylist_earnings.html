@@ -163,7 +163,7 @@
                                     </td>
                                     <td>
                                         {% set employment = stylist_data.stylist.employment_details %}
-                                        {% if employment %}
+                                        {% if employment and employment.employment_type %}
                                             <span class="badge {% if employment.employment_type == 'employed' %}bg-info{% else %}bg-warning{% endif %}">
                                                 {{ employment.employment_type.replace('_', ' ').title() }}
                                             </span>

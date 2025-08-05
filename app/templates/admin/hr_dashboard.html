@@ -11,6 +11,12 @@
                     <i class="fas fa-chart-line text-primary"></i> HR Dashboard
                 </h1>
                 <div>
+                    <a href="{{ url_for('admin.holiday_requests') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-calendar-alt"></i> Holiday Requests
+                    </a>
+                    <a href="{{ url_for('admin.holiday_quotas') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-chart-pie"></i> Holiday Quotas
+                    </a>
                     <a href="{{ url_for('admin.appointment_costs') }}" class="btn btn-outline-primary">
                         <i class="fas fa-list"></i> Appointment Costs
                     </a>
@@ -326,5 +332,56 @@
         </div>
     </div>
     {% endif %}
+
+    <!-- Holiday Summary -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-calendar-alt"></i> Holiday Summary
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h4 class="text-warning">{{ holiday_summary.pending_requests if holiday_summary else 0 }}</h4>
+                                <p class="text-muted mb-0">Pending Requests</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h4 class="text-success">{{ holiday_summary.approved_requests if holiday_summary else 0 }}</h4>
+                                <p class="text-muted mb-0">Approved Requests</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h4 class="text-primary">{{ holiday_summary.total_entitlement if holiday_summary else 0 }}</h4>
+                                <p class="text-muted mb-0">Total Entitlement</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h4 class="text-info">{{ holiday_summary.total_remaining if holiday_summary else 0 }}</h4>
+                                <p class="text-muted mb-0">Total Remaining</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-12 text-center">
+                            <a href="{{ url_for('admin.holiday_requests') }}" class="btn btn-outline-primary me-2">
+                                <i class="fas fa-calendar-alt"></i> View All Requests
+                            </a>
+                            <a href="{{ url_for('admin.holiday_quotas') }}" class="btn btn-outline-info">
+                                <i class="fas fa-chart-pie"></i> View Quotas
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %} 

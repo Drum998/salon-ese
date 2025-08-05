@@ -1,10 +1,10 @@
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField, FileAllowed
-from wtforms import StringField, PasswordField, BooleanField, SubmitField, TextAreaField, SelectField, DateField, TimeField, FieldList, FormField, IntegerField, HiddenField
+from wtforms import StringField, PasswordField, BooleanField, SubmitField, TextAreaField, SelectField, DateField, TimeField, FieldList, FormField, IntegerField, HiddenField, DecimalField
 from wtforms.validators import DataRequired, Email, Length, EqualTo, ValidationError, Optional
 from app.models import User, Role
 import json
-from datetime import datetime
+from datetime import datetime, date
 
 class LoginForm(FlaskForm):
     username = StringField('Username', validators=[DataRequired()])
@@ -1065,6 +1065,64 @@ class EmploymentDetailsForm(FlaskForm):
                 raise ValidationError('End date must be after start date.')
         
         return True 
+
+class HolidayRequestForm(FlaskForm):
+    """Form for submitting holiday requests"""
+    start_date = DateField('Start Date', validators=[DataRequired()])
+    end_date = DateField('End Date', validators=[DataRequired()])
+    notes = TextAreaField('Notes', validators=[Optional(), Length(max=500)])
+    submit = SubmitField('Submit Request')
+    
+    def validate_start_date(self, field):
+        if field.data and field.data < date.today():
+            raise ValidationError('Start date cannot be in the past.')
+    
+    def validate_end_date(self, field):
+        if field.data and self.start_date.data and field.data < self.start_date.data:
+            raise ValidationError('End date must be after start date.')
+    
+    def validate(self):
+        if not super().validate():
+            return False
+        
+        # Additional validation can be done here using HolidayService
+        return True
+
+class HolidayApprovalForm(FlaskForm):
+    """Form for approving/rejecting holiday requests"""
+    action = SelectField('Action', choices=[
+        ('approve', 'Approve'),
+        ('reject', 'Reject')
+    ], validators=[DataRequired()])
+    notes = TextAreaField('Notes', validators=[Optional(), Length(max=500)])
+    submit = SubmitField('Submit Decision')
+
+class HolidayQuotaForm(FlaskForm):
+    """Form for managing holiday quotas"""
+    user_id = SelectField('Staff Member', coerce=int, validators=[DataRequired()])
+    year = IntegerField('Year', validators=[DataRequired()])
+    total_hours_per_week = IntegerField('Hours per Week', validators=[DataRequired()])
+    holiday_days_entitled = DecimalField('Days Entitled', validators=[DataRequired()])
+    holiday_days_taken = IntegerField('Days Taken', validators=[DataRequired()])
+    submit = SubmitField('Save Quota')
+    
+    def __init__(self, quota=None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # Populate user choices
+        from app.models import User, Role
+        users = User.query.join(User.roles).filter(Role.name == 'stylist').all()
+        self.user_id.choices = [
+            (user.id, f"{user.first_name} {user.last_name}") 
+            for user in users
+        ]
+        
+        if quota:
+            self.user_id.data = quota.user_id
+            self.year.data = quota.year
+            self.total_hours_per_week.data = quota.total_hours_per_week
+            self.holiday_days_entitled.data = quota.holiday_days_entitled
+            self.holiday_days_taken.data = quota.holiday_days_taken
 
 class HRDashboardFilterForm(FlaskForm):
     """Form for filtering HR dashboard data"""

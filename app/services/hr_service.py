@@ -1,6 +1,6 @@
 from datetime import datetime, date
 from decimal import Decimal
-from app.models import Appointment, AppointmentCost, EmploymentDetails, User, Service
+from app.models import Appointment, AppointmentCost, EmploymentDetails, User, Service, HolidayRequest, HolidayQuota
 from app.extensions import db
 from sqlalchemy import func, and_
 
@@ -224,4 +224,50 @@ class HRService:
             'cancelled_appointments': cancelled_appointments,
             'completion_rate': (completed_appointments / total_appointments * 100) if total_appointments > 0 else 0,
             'earnings': earnings_data
-        } 
+        }
+    
+    @staticmethod
+    def get_holiday_summary():
+        """Get holiday summary for all staff"""
+        from app.services.holiday_service import HolidayService
+        
+        # Get all stylists
+        stylists = User.query.join(User.roles).filter(
+            User.roles.any(name='stylist')
+        ).all()
+        
+        summary = {
+            'total_stylists': len(stylists),
+            'pending_requests': 0,
+            'approved_requests': 0,
+            'rejected_requests': 0,
+            'total_entitlement': 0,
+            'total_taken': 0,
+            'total_remaining': 0,
+            'stylist_holidays': []
+        }
+        
+        # Get pending requests count
+        pending_requests = HolidayRequest.query.filter_by(status='pending').count()
+        summary['pending_requests'] = pending_requests
+        
+        for stylist in stylists:
+            holiday_data = HolidayService.get_holiday_summary(stylist.id)
+            if holiday_data and holiday_data['quota']:
+                quota = holiday_data['quota']
+                summary['total_entitlement'] += quota.holiday_days_entitled
+                summary['total_taken'] += quota.holiday_days_taken
+                summary['total_remaining'] += quota.holiday_days_remaining
+                
+                summary['stylist_holidays'].append({
+                    'user_id': stylist.id,
+                    'name': f"{stylist.first_name} {stylist.last_name}",
+                    'entitled': quota.holiday_days_entitled,
+                    'taken': quota.holiday_days_taken,
+                    'remaining': quota.holiday_days_remaining,
+                    'pending_requests': len(holiday_data['pending_requests']),
+                    'approved_requests': len(holiday_data['approved_requests']),
+                    'rejected_requests': len(holiday_data['rejected_requests'])
+                })
+        
+        return summary 
