@@ -8,6 +8,7 @@ from app.routes.main import role_required
 from app.utils import uk_now
 from app.services.hr_service import HRService
 from app.services.holiday_service import HolidayService
+from app.models import BillingElement
 import json
 
 bp = Blueprint('admin', __name__)
@@ -679,3 +680,202 @@ def view_user_holiday_summary(user_id):
                          holiday_summary=holiday_summary,
                          year=year,
                          uk_now=uk_now)
+
+# Commission Reports Routes
+@bp.route('/commission/reports')
+@login_required
+@role_required('manager')
+def commission_reports():
+    """Commission reports dashboard"""
+    # Get date range from query parameters
+    start_date_str = request.args.get('start_date')
+    end_date_str = request.args.get('end_date')
+    
+    start_date = None
+    end_date = None
+    
+    if start_date_str:
+        try:
+            from datetime import datetime
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            pass
+    
+    if end_date_str:
+        try:
+            from datetime import datetime
+            end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            pass
+    
+    # Get commission summary
+    commission_summary = HRService.calculate_salon_commission_summary(start_date, end_date)
+    
+    # Get all stylists for filtering
+    stylists = User.query.join(User.roles).filter(
+        User.roles.any(name='stylist')
+    ).all()
+    
+    return render_template('admin/commission_reports.html',
+                         commission_summary=commission_summary,
+                         stylists=stylists,
+                         start_date=start_date,
+                         end_date=end_date)
+
+@bp.route('/commission/stylist-performance/<int:stylist_id>')
+@login_required
+@role_required('manager')
+def stylist_commission_performance(stylist_id):
+    """Individual stylist commission performance"""
+    stylist = User.query.get_or_404(stylist_id)
+    
+    # Get date range from query parameters
+    start_date_str = request.args.get('start_date')
+    end_date_str = request.args.get('end_date')
+    
+    start_date = None
+    end_date = None
+    
+    if start_date_str:
+        try:
+            from datetime import datetime
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            pass
+    
+    if end_date_str:
+        try:
+            from datetime import datetime
+            end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            pass
+    
+    # Get stylist performance
+    performance = HRService.calculate_stylist_commission_performance(stylist_id, start_date, end_date)
+    
+    # Get employment details
+    employment = EmploymentDetails.query.filter_by(user_id=stylist_id).first()
+    
+    return render_template('admin/stylist_commission_performance.html',
+                         stylist=stylist,
+                         performance=performance,
+                         employment=employment,
+                         start_date=start_date,
+                         end_date=end_date)
+
+@bp.route('/commission/salon-summary')
+@login_required
+@role_required('manager')
+def salon_commission_summary():
+    """Salon-wide commission summary"""
+    # Get date range from query parameters
+    start_date_str = request.args.get('start_date')
+    end_date_str = request.args.get('end_date')
+    
+    start_date = None
+    end_date = None
+    
+    if start_date_str:
+        try:
+            from datetime import datetime
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            pass
+    
+    if end_date_str:
+        try:
+            from datetime import datetime
+            end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            pass
+    
+    # Get salon summary
+    summary = HRService.calculate_salon_commission_summary(start_date, end_date)
+    
+    return render_template('admin/salon_commission_summary.html',
+                         summary=summary,
+                         start_date=start_date,
+                         end_date=end_date)
+
+@bp.route('/commission/billing-elements')
+@login_required
+@role_required('manager')
+def billing_elements_management():
+    """Billing elements management"""
+    billing_elements = BillingElement.query.all()
+    
+    return render_template('admin/billing_elements_management.html',
+                         billing_elements=billing_elements)
+
+@bp.route('/commission/billing-elements/add', methods=['GET', 'POST'])
+@login_required
+@role_required('manager')
+def add_billing_element():
+    """Add new billing element"""
+    if request.method == 'POST':
+        name = request.form.get('name')
+        percentage = request.form.get('percentage')
+        
+        if name and percentage:
+            try:
+                from decimal import Decimal
+                percentage_decimal = Decimal(percentage)
+                if percentage_decimal > 0 and percentage_decimal <= 100:
+                    element = BillingElement(name=name, percentage=percentage_decimal)
+                    db.session.add(element)
+                    db.session.commit()
+                    flash(f'Billing element "{name}" added successfully.', 'success')
+                    return redirect(url_for('admin.billing_elements_management'))
+                else:
+                    flash('Percentage must be between 0 and 100.', 'error')
+            except ValueError:
+                flash('Invalid percentage value.', 'error')
+        else:
+            flash('Name and percentage are required.', 'error')
+    
+    return render_template('admin/add_billing_element.html')
+
+@bp.route('/commission/billing-elements/<int:element_id>/edit', methods=['GET', 'POST'])
+@login_required
+@role_required('manager')
+def edit_billing_element(element_id):
+    """Edit billing element"""
+    element = BillingElement.query.get_or_404(element_id)
+    
+    if request.method == 'POST':
+        name = request.form.get('name')
+        percentage = request.form.get('percentage')
+        is_active = request.form.get('is_active') == 'on'
+        
+        if name and percentage:
+            try:
+                from decimal import Decimal
+                percentage_decimal = Decimal(percentage)
+                if percentage_decimal > 0 and percentage_decimal <= 100:
+                    element.name = name
+                    element.percentage = percentage_decimal
+                    element.is_active = is_active
+                    db.session.commit()
+                    flash(f'Billing element "{name}" updated successfully.', 'success')
+                    return redirect(url_for('admin.billing_elements_management'))
+                else:
+                    flash('Percentage must be between 0 and 100.', 'error')
+            except ValueError:
+                flash('Invalid percentage value.', 'error')
+        else:
+            flash('Name and percentage are required.', 'error')
+    
+    return render_template('admin/edit_billing_element.html', element=element)
+
+@bp.route('/commission/billing-elements/<int:element_id>/delete', methods=['POST'])
+@login_required
+@role_required('manager')
+def delete_billing_element(element_id):
+    """Delete billing element"""
+    element = BillingElement.query.get_or_404(element_id)
+    name = element.name
+    db.session.delete(element)
+    db.session.commit()
+    flash(f'Billing element "{name}" deleted successfully.', 'success')
+    
+    return redirect(url_for('admin.billing_elements_management'))

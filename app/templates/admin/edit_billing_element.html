@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Billing Element - Salon ESE{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">
+                    <i class="fas fa-edit text-primary"></i>
+                    Edit Billing Element
+                </h1>
+                <a href="{{ url_for('admin.billing_elements_management') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Billing Elements
+                </a>
+            </div>
+
+            <div class="row">
+                <div class="col-md-8">
+                    <!-- Edit Billing Element Form -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-edit"></i> Edit Billing Element</h5>
+                        </div>
+                        <div class="card-body">
+                            <form method="POST">
+                                <div class="mb-3">
+                                    <label for="name" class="form-label">Element Name *</label>
+                                    <input type="text" class="form-control" id="name" name="name" 
+                                           value="{{ element.name }}" placeholder="e.g., Color, Styling, Treatment" required>
+                                    <div class="form-text">
+                                        Choose a descriptive name for this billing element (e.g., "Color", "Styling", "Electric").
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="percentage" class="form-label">Percentage *</label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control" id="percentage" name="percentage" 
+                                               value="{{ "%.2f"|format(element.percentage) }}" placeholder="25.00" step="0.01" min="0" max="100" required>
+                                        <span class="input-group-text">%</span>
+                                    </div>
+                                    <div class="form-text">
+                                        Enter the percentage this element represents of the total service cost (0-100%).
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="is_active" name="is_active" 
+                                               {{ 'checked' if element.is_active else '' }}>
+                                        <label class="form-check-label" for="is_active">
+                                            Active
+                                        </label>
+                                    </div>
+                                    <div class="form-text">
+                                        Inactive elements are not used in commission calculations.
+                                    </div>
+                                </div>
+                                
+                                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                    <a href="{{ url_for('admin.billing_elements_management') }}" class="btn btn-secondary me-md-2">
+                                        <i class="fas fa-times"></i> Cancel
+                                    </a>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save"></i> Update Element
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4">
+                    <!-- Element Information -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-info-circle"></i> Element Information</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <strong>Current Name:</strong><br>
+                                <span class="text-primary">{{ element.name }}</span>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <strong>Current Percentage:</strong><br>
+                                <span class="badge bg-primary">{{ "%.1f"|format(element.percentage) }}%</span>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <strong>Status:</strong><br>
+                                {% if element.is_active %}
+                                    <span class="badge bg-success">Active</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Inactive</span>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="mb-3">
+                                <strong>Created:</strong><br>
+                                <small class="text-muted">{{ element.created_at.strftime('%d %B %Y') }}</small>
+                            </div>
+                            
+                            <div class="mb-0">
+                                <strong>Last Updated:</strong><br>
+                                <small class="text-muted">{{ element.updated_at.strftime('%d %B %Y') }}</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Help Information -->
+                    <div class="card mt-3">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-question-circle"></i> Help</h5>
+                        </div>
+                        <div class="card-body">
+                            <h6>Editing Tips:</h6>
+                            <ul class="mb-3">
+                                <li>Keep element names descriptive and consistent</li>
+                                <li>Ensure total percentage equals 100%</li>
+                                <li>Inactive elements won't affect calculations</li>
+                                <li>Changes apply to future appointments only</li>
+                            </ul>
+                            
+                            <h6>Common Percentages:</h6>
+                            <ul class="mb-0">
+                                <li><strong>Color:</strong> 25-30%</li>
+                                <li><strong>Styling:</strong> 20-25%</li>
+                                <li><strong>Electric:</strong> 15-20%</li>
+                                <li><strong>Treatment:</strong> 10-15%</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Update percentage display when input changes
+    document.getElementById('percentage').addEventListener('input', function() {
+        const percentage = parseFloat(this.value) || 0;
+        if (percentage > 100) {
+            this.value = 100;
+        }
+    });
+    
+    // Form validation
+    document.querySelector('form').addEventListener('submit', function(e) {
+        const name = document.getElementById('name').value.trim();
+        const percentage = parseFloat(document.getElementById('percentage').value);
+        
+        if (!name) {
+            e.preventDefault();
+            alert('Please enter an element name.');
+            return;
+        }
+        
+        if (isNaN(percentage) || percentage <= 0 || percentage > 100) {
+            e.preventDefault();
+            alert('Please enter a valid percentage between 0 and 100.');
+            return;
+        }
+    });
+</script>
+{% endblock %} 

@@ -586,6 +586,11 @@ class AppointmentCost(db.Model):
     hours_worked = db.Column(db.Numeric(4, 2), nullable=True)  # For hourly calculations
     commission_amount = db.Column(db.Numeric(10, 2), nullable=True)  # For commission calculations
     
+    # Enhanced Commission System - New Fields
+    commission_breakdown = db.Column(db.JSON, nullable=True)  # Detailed commission breakdown
+    billing_method = db.Column(db.String(20), nullable=True)  # 'salon_bills' or 'stylist_bills'
+    billing_elements_applied = db.Column(db.JSON, nullable=True)  # Billing elements breakdown
+    
     created_at = db.Column(db.DateTime, default=uk_utcnow)
     updated_at = db.Column(db.DateTime, default=uk_utcnow, onupdate=uk_utcnow)
     
@@ -601,4 +606,40 @@ class AppointmentCost(db.Model):
         """Calculate profit margin as percentage"""
         if self.service_revenue == 0:
             return 0
-        return (float(self.salon_profit) / float(self.service_revenue)) * 100 
+        return (float(self.salon_profit) / float(self.service_revenue)) * 100
+    
+    @property
+    def commission_performance_metrics(self):
+        """Calculate commission performance metrics"""
+        if not self.commission_breakdown:
+            return None
+            
+        breakdown = self.commission_breakdown
+        metrics = {
+            'total_commission': breakdown.get('total_commission', 0),
+            'commission_percentage': breakdown.get('commission_percentage', 0),
+            'service_revenue': breakdown.get('service_revenue', 0),
+            'calculation_method': breakdown.get('calculation_method', 'percentage'),
+            'commission_efficiency': 0
+        }
+        
+        # Calculate commission efficiency (commission as % of revenue)
+        if metrics['service_revenue'] > 0:
+            metrics['commission_efficiency'] = (metrics['total_commission'] / metrics['service_revenue']) * 100
+            
+        return metrics
+    
+    @property
+    def billing_elements_summary(self):
+        """Get summary of billing elements applied"""
+        if not self.billing_elements_applied:
+            return None
+            
+        elements = self.billing_elements_applied
+        summary = {
+            'total_elements': len(elements),
+            'total_percentage': sum(element.get('percentage', 0) for element in elements.values()),
+            'elements': elements
+        }
+        
+        return summary 

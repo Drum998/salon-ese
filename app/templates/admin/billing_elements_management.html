@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+
+{% block title %}Billing Elements Management - Salon ESE{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">
+                    <i class="fas fa-cogs text-primary"></i>
+                    Billing Elements Management
+                </h1>
+                <div class="btn-group" role="group">
+                    <a href="{{ url_for('admin.commission_reports') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-chart-line"></i> Commission Reports
+                    </a>
+                    <a href="{{ url_for('admin.add_billing_element') }}" class="btn btn-success">
+                        <i class="fas fa-plus"></i> Add Element
+                    </a>
+                </div>
+            </div>
+
+            <!-- Billing Elements Overview -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-info-circle"></i> About Billing Elements</h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-2">
+                        <strong>Billing Elements</strong> are used to break down service costs for commission calculations. 
+                        Each element represents a percentage of the total service cost that can be allocated to different 
+                        aspects of the service (e.g., color, styling, treatments).
+                    </p>
+                    <p class="mb-0">
+                        <strong>Total Percentage:</strong> The sum of all active billing elements should equal 100% 
+                        for accurate commission calculations.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Billing Elements Table -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-list"></i> Billing Elements</h5>
+                </div>
+                <div class="card-body">
+                    {% if billing_elements %}
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Element Name</th>
+                                        <th>Percentage</th>
+                                        <th>Status</th>
+                                        <th>Created</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for element in billing_elements %}
+                                    <tr>
+                                        <td>
+                                            <strong>{{ element.name }}</strong>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-primary">{{ "%.1f"|format(element.percentage) }}%</span>
+                                        </td>
+                                        <td>
+                                            {% if element.is_active %}
+                                                <span class="badge bg-success">Active</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">Inactive</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <small class="text-muted">
+                                                {{ element.created_at.strftime('%d %b %Y') }}
+                                            </small>
+                                        </td>
+                                        <td>
+                                            <div class="btn-group" role="group">
+                                                <a href="{{ url_for('admin.edit_billing_element', element_id=element.id) }}" 
+                                                   class="btn btn-sm btn-outline-primary">
+                                                    <i class="fas fa-edit"></i> Edit
+                                                </a>
+                                                <button type="button" class="btn btn-sm btn-outline-danger" 
+                                                        onclick="confirmDelete({{ element.id }}, '{{ element.name }}')">
+                                                    <i class="fas fa-trash"></i> Delete
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                                <tfoot class="table-light">
+                                    <tr>
+                                        <td><strong>Total</strong></td>
+                                        <td>
+                                            {% set total_percentage = billing_elements|selectattr('is_active')|sum(attribute='percentage') %}
+                                            <span class="badge bg-{{ 'success' if total_percentage == 100 else 'warning' if total_percentage > 100 else 'danger' }}">
+                                                {{ "%.1f"|format(total_percentage) }}%
+                                            </span>
+                                        </td>
+                                        <td colspan="3">
+                                            {% if total_percentage == 100 %}
+                                                <span class="text-success"><i class="fas fa-check-circle"></i> Perfect balance</span>
+                                            {% elif total_percentage > 100 %}
+                                                <span class="text-warning"><i class="fas fa-exclamation-triangle"></i> Over 100%</span>
+                                            {% else %}
+                                                <span class="text-danger"><i class="fas fa-times-circle"></i> Under 100%</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-cogs fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No billing elements found</h5>
+                            <p class="text-muted">Create your first billing element to get started with commission calculations.</p>
+                            <a href="{{ url_for('admin.add_billing_element') }}" class="btn btn-primary">
+                                <i class="fas fa-plus"></i> Add First Element
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Commission Calculation Info -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-calculator"></i> Commission Calculation</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>How it works:</h6>
+                            <ol class="mb-0">
+                                <li>Each service is broken down into billing elements</li>
+                                <li>Stylist commission is calculated based on their commission rate</li>
+                                <li>Commission applies to the stylist's portion of each element</li>
+                                <li>Total commission = Sum of (element amount × commission rate)</li>
+                            </ol>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Example:</h6>
+                            <ul class="mb-0">
+                                <li>Service: £100</li>
+                                <li>Color (25%): £25</li>
+                                <li>Styling (20%): £20</li>
+                                <li>Stylist Commission Rate: 70%</li>
+                                <li>Total Commission: £31.50</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete the billing element "<span id="elementName"></span>"?</p>
+                <p class="text-warning"><i class="fas fa-exclamation-triangle"></i> This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="deleteForm" method="POST" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function confirmDelete(elementId, elementName) {
+        document.getElementById('elementName').textContent = elementName;
+        document.getElementById('deleteForm').action = `/admin/commission/billing-elements/${elementId}/delete`;
+        
+        const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+        modal.show();
+    }
+</script>
+{% endblock %} 

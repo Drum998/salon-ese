@@ -1,8 +1,9 @@
 from datetime import datetime, date
 from decimal import Decimal
-from app.models import Appointment, AppointmentCost, EmploymentDetails, User, Service, HolidayRequest, HolidayQuota
+from app.models import Appointment, AppointmentCost, EmploymentDetails, User, Service, HolidayRequest, HolidayQuota, BillingElement
 from app.extensions import db
 from sqlalchemy import func, and_
+import json
 
 
 class HRService:
@@ -10,7 +11,7 @@ class HRService:
     
     @staticmethod
     def calculate_appointment_cost(appointment_id):
-        """Calculate cost breakdown for an appointment"""
+        """Calculate cost breakdown for an appointment with enhanced commission system"""
         appointment = Appointment.query.get(appointment_id)
         if not appointment:
             return None
@@ -31,6 +32,9 @@ class HRService:
         calculation_method = ''
         hours_worked = None
         commission_amount = None
+        commission_breakdown = None
+        billing_elements_applied = None
+        billing_method = employment.billing_method
         
         if employment.is_employed and employment.hourly_rate:
             # Hourly calculation
@@ -39,10 +43,15 @@ class HRService:
             calculation_method = 'hourly'
             hours_worked = hours
         elif employment.is_self_employed and employment.commission_rate:
-            # Commission calculation
-            stylist_cost = employment.calculate_commission_cost(total_revenue)
-            calculation_method = 'commission'
-            commission_amount = stylist_cost
+            # Enhanced commission calculation with billing elements
+            commission_data = HRService.calculate_commission_with_billing_elements(appointment_id)
+            if commission_data:
+                stylist_cost = commission_data['total_commission']
+                calculation_method = 'commission'
+                commission_amount = stylist_cost
+                commission_breakdown = commission_data['commission_breakdown']
+                billing_elements_applied = commission_data['billing_elements_applied']
+                billing_method = commission_data['billing_method']
         
         # Calculate salon profit
         salon_profit = total_revenue - stylist_cost
@@ -61,6 +70,9 @@ class HRService:
         cost_record.calculation_method = calculation_method
         cost_record.hours_worked = hours_worked
         cost_record.commission_amount = commission_amount
+        cost_record.commission_breakdown = commission_breakdown
+        cost_record.billing_elements_applied = billing_elements_applied
+        cost_record.billing_method = billing_method
         
         db.session.add(cost_record)
         db.session.commit()
@@ -182,6 +194,232 @@ class HRService:
                 })
         
         return summary
+    
+    @staticmethod
+    def calculate_commission_breakdown(appointment_id):
+        """Calculate detailed commission breakdown including billing elements"""
+        appointment = Appointment.query.get(appointment_id)
+        if not appointment:
+            return None
+            
+        # Get employment details for stylist
+        employment = EmploymentDetails.query.filter_by(user_id=appointment.stylist_id).first()
+        if not employment or not employment.is_self_employed:
+            return None
+            
+        # Calculate total service revenue
+        total_revenue = 0
+        for service_link in appointment.services_link:
+            service = service_link.service
+            total_revenue += float(service.price)
+        
+        # Get billing elements
+        billing_elements = BillingElement.get_active_elements()
+        
+        # Calculate commission breakdown
+        commission_percentage = float(employment.commission_rate) if employment.commission_rate else 0
+        total_commission = total_revenue * (commission_percentage / 100)
+        
+        # Calculate billing elements breakdown
+        elements_breakdown = {}
+        for element in billing_elements:
+            element_amount = total_revenue * (float(element.percentage) / 100)
+            elements_breakdown[element.name] = {
+                'percentage': float(element.percentage),
+                'amount': element_amount,
+                'commission_portion': element_amount * (commission_percentage / 100)
+            }
+        
+        breakdown = {
+            'total_commission': total_commission,
+            'commission_percentage': commission_percentage,
+            'service_revenue': total_revenue,
+            'calculation_method': 'percentage',
+            'billing_method': employment.billing_method,
+            'billing_elements': elements_breakdown,
+            'stylist_earnings': total_commission,
+            'salon_portion': total_revenue - total_commission
+        }
+        
+        return breakdown
+    
+    @staticmethod
+    def calculate_stylist_commission_performance(stylist_id, start_date=None, end_date=None):
+        """Calculate stylist commission performance metrics"""
+        if not start_date:
+            start_date = date.today().replace(day=1)  # First day of current month
+        if not end_date:
+            end_date = date.today()
+            
+        # Get appointments in date range
+        appointments = Appointment.query.filter(
+            and_(
+                Appointment.stylist_id == stylist_id,
+                Appointment.appointment_date >= start_date,
+                Appointment.appointment_date <= end_date,
+                Appointment.status == 'completed'
+            )
+        ).all()
+        
+        total_commission = 0
+        total_revenue = 0
+        appointment_count = 0
+        commission_appointments = 0
+        
+        for appointment in appointments:
+            cost_record = AppointmentCost.query.filter_by(appointment_id=appointment.id).first()
+            if cost_record and cost_record.calculation_method == 'commission':
+                total_commission += float(cost_record.commission_amount or 0)
+                total_revenue += float(cost_record.service_revenue)
+                commission_appointments += 1
+            appointment_count += 1
+        
+        # Calculate performance metrics
+        avg_commission_per_appointment = total_commission / commission_appointments if commission_appointments > 0 else 0
+        commission_efficiency = (total_commission / total_revenue * 100) if total_revenue > 0 else 0
+        commission_rate = (commission_appointments / appointment_count * 100) if appointment_count > 0 else 0
+        
+        return {
+            'total_commission': total_commission,
+            'total_revenue': total_revenue,
+            'appointment_count': appointment_count,
+            'commission_appointments': commission_appointments,
+            'avg_commission_per_appointment': avg_commission_per_appointment,
+            'commission_efficiency': commission_efficiency,
+            'commission_rate': commission_rate,
+            'date_range': {
+                'start_date': start_date,
+                'end_date': end_date
+            }
+        }
+    
+    @staticmethod
+    def calculate_salon_commission_summary(start_date=None, end_date=None):
+        """Calculate salon-wide commission summary and analytics"""
+        if not start_date:
+            start_date = date.today().replace(day=1)  # First day of current month
+        if not end_date:
+            end_date = date.today()
+            
+        # Get all commission-based cost records in date range
+        cost_records = db.session.query(
+            func.sum(AppointmentCost.service_revenue).label('total_revenue'),
+            func.sum(AppointmentCost.commission_amount).label('total_commission'),
+            func.sum(AppointmentCost.salon_profit).label('total_salon_profit'),
+            func.count(AppointmentCost.id).label('appointment_count'),
+            func.avg(AppointmentCost.commission_amount).label('avg_commission')
+        ).join(Appointment).filter(
+            and_(
+                Appointment.appointment_date >= start_date,
+                Appointment.appointment_date <= end_date,
+                Appointment.status == 'completed',
+                AppointmentCost.calculation_method == 'commission'
+            )
+        ).first()
+        
+        # Get stylist breakdown
+        stylist_breakdown = db.session.query(
+            AppointmentCost.stylist_id,
+            func.sum(AppointmentCost.service_revenue).label('stylist_revenue'),
+            func.sum(AppointmentCost.commission_amount).label('stylist_commission'),
+            func.count(AppointmentCost.id).label('appointment_count')
+        ).join(Appointment).filter(
+            and_(
+                Appointment.appointment_date >= start_date,
+                Appointment.appointment_date <= end_date,
+                Appointment.status == 'completed',
+                AppointmentCost.calculation_method == 'commission'
+            )
+        ).group_by(AppointmentCost.stylist_id).all()
+        
+        # Calculate summary metrics
+        total_revenue = float(cost_records.total_revenue or 0)
+        total_commission = float(cost_records.total_commission or 0)
+        total_salon_profit = float(cost_records.total_salon_profit or 0)
+        appointment_count = cost_records.appointment_count or 0
+        avg_commission = float(cost_records.avg_commission or 0)
+        
+        commission_efficiency = (total_commission / total_revenue * 100) if total_revenue > 0 else 0
+        profit_margin = (total_salon_profit / total_revenue * 100) if total_revenue > 0 else 0
+        
+        return {
+            'total_revenue': total_revenue,
+            'total_commission': total_commission,
+            'total_salon_profit': total_salon_profit,
+            'appointment_count': appointment_count,
+            'avg_commission': avg_commission,
+            'commission_efficiency': commission_efficiency,
+            'profit_margin': profit_margin,
+            'stylist_breakdown': [
+                {
+                    'stylist_id': record.stylist_id,
+                    'stylist_name': User.query.get(record.stylist_id).first_name + ' ' + User.query.get(record.stylist_id).last_name,
+                    'revenue': float(record.stylist_revenue),
+                    'commission': float(record.stylist_commission),
+                    'appointment_count': record.appointment_count,
+                    'commission_efficiency': (float(record.stylist_commission) / float(record.stylist_revenue) * 100) if record.stylist_revenue > 0 else 0
+                }
+                for record in stylist_breakdown
+            ],
+            'date_range': {
+                'start_date': start_date,
+                'end_date': end_date
+            }
+        }
+    
+    @staticmethod
+    def calculate_commission_with_billing_elements(appointment_id):
+        """Calculate commission including billing elements breakdown"""
+        appointment = Appointment.query.get(appointment_id)
+        if not appointment:
+            return None
+            
+        # Get employment details
+        employment = EmploymentDetails.query.filter_by(user_id=appointment.stylist_id).first()
+        if not employment or not employment.is_self_employed:
+            return None
+            
+        # Calculate total service revenue
+        total_revenue = 0
+        for service_link in appointment.services_link:
+            service = service_link.service
+            total_revenue += float(service.price)
+        
+        # Get billing elements
+        billing_elements = BillingElement.get_active_elements()
+        
+        # Calculate commission
+        commission_percentage = float(employment.commission_rate) if employment.commission_rate else 0
+        total_commission = total_revenue * (commission_percentage / 100)
+        
+        # Calculate billing elements breakdown
+        elements_applied = {}
+        for element in billing_elements:
+            element_amount = total_revenue * (float(element.percentage) / 100)
+            elements_applied[element.name] = {
+                'percentage': float(element.percentage),
+                'amount': element_amount,
+                'commission_portion': element_amount * (commission_percentage / 100)
+            }
+        
+        # Create commission breakdown
+        commission_breakdown = {
+            'total_commission': total_commission,
+            'commission_percentage': commission_percentage,
+            'service_revenue': total_revenue,
+            'calculation_method': 'percentage',
+            'billing_method': employment.billing_method,
+            'stylist_earnings': total_commission,
+            'salon_portion': total_revenue - total_commission
+        }
+        
+        return {
+            'commission_breakdown': commission_breakdown,
+            'billing_elements_applied': elements_applied,
+            'billing_method': employment.billing_method,
+            'total_commission': total_commission,
+            'total_revenue': total_revenue
+        }
     
     @staticmethod
     def get_stylist_performance_report(stylist_id, start_date=None, end_date=None):
