@@ -34,26 +34,26 @@ class AnalyticsService:
         # Staff metrics
         total_stylists = User.query.join(User.roles).filter(Role.name == 'stylist').count()
         active_stylists = Appointment.query.filter(
-            Appointment.date >= start_date,
-            Appointment.date <= end_date
+            Appointment.appointment_date >= start_date,
+            Appointment.appointment_date <= end_date
         ).with_entities(Appointment.stylist_id).distinct().count()
 
         # Holiday metrics
         holiday_requests = HolidayRequest.query.filter(
-            HolidayRequest.request_date >= start_date,
-            HolidayRequest.request_date <= end_date
+            HolidayRequest.start_date >= start_date,
+            HolidayRequest.start_date <= end_date
         ).count()
         
         approved_holidays = HolidayRequest.query.filter(
-            HolidayRequest.request_date >= start_date,
-            HolidayRequest.request_date <= end_date,
+            HolidayRequest.start_date >= start_date,
+            HolidayRequest.start_date <= end_date,
             HolidayRequest.status == 'approved'
         ).count()
 
         # Appointment metrics
         total_appointments = Appointment.query.filter(
-            Appointment.date >= start_date,
-            Appointment.date <= end_date
+            Appointment.appointment_date >= start_date,
+            Appointment.appointment_date <= end_date
         ).count()
 
         return {
@@ -82,16 +82,16 @@ class AnalyticsService:
 
         # Monthly holiday request trends
         monthly_trends = db.session.query(
-            func.date_trunc('month', HolidayRequest.request_date).label('month'),
+            func.date_trunc('month', HolidayRequest.start_date).label('month'),
             func.count(HolidayRequest.id).label('total_requests'),
             func.count(case([(HolidayRequest.status == 'approved', 1)])).label('approved'),
             func.count(case([(HolidayRequest.status == 'rejected', 1)])).label('rejected'),
             func.count(case([(HolidayRequest.status == 'pending', 1)])).label('pending')
         ).filter(
-            HolidayRequest.request_date >= start_date,
-            HolidayRequest.request_date <= end_date
+            HolidayRequest.start_date >= start_date,
+            HolidayRequest.start_date <= end_date
         ).group_by(
-            func.date_trunc('month', HolidayRequest.request_date)
+            func.date_trunc('month', HolidayRequest.start_date)
         ).order_by('month').all()
 
         # Staff holiday utilization
@@ -103,8 +103,8 @@ class AnalyticsService:
         ).join(
             HolidayRequest, User.id == HolidayRequest.user_id
         ).filter(
-            HolidayRequest.request_date >= start_date,
-            HolidayRequest.request_date <= end_date
+            HolidayRequest.start_date >= start_date,
+            HolidayRequest.start_date <= end_date
         ).group_by(User.id, User.username).all()
 
         # Holiday conflict analysis
@@ -181,18 +181,18 @@ class AnalyticsService:
 
         # Monthly commission trends
         monthly_commission = db.session.query(
-            func.date_trunc('month', Appointment.date).label('month'),
+            func.date_trunc('month', Appointment.appointment_date).label('month'),
             func.sum(AppointmentCost.service_revenue).label('total_revenue'),
             func.sum(AppointmentCost.commission_amount).label('total_commission'),
             func.avg(AppointmentCost.commission_amount).label('avg_commission')
         ).join(
             AppointmentCost, Appointment.id == AppointmentCost.appointment_id
         ).filter(
-            Appointment.date >= start_date,
-            Appointment.date <= end_date,
+            Appointment.appointment_date >= start_date,
+            Appointment.appointment_date <= end_date,
             AppointmentCost.commission_amount > 0
         ).group_by(
-            func.date_trunc('month', Appointment.date)
+            func.date_trunc('month', Appointment.appointment_date)
         ).order_by('month').all()
 
         # Stylist performance rankings
@@ -207,8 +207,8 @@ class AnalyticsService:
         ).join(
             AppointmentCost, Appointment.id == AppointmentCost.appointment_id
         ).filter(
-            Appointment.date >= start_date,
-            Appointment.date <= end_date,
+            Appointment.appointment_date >= start_date,
+            Appointment.appointment_date <= end_date,
             AppointmentCost.commission_amount > 0
         ).group_by(User.id, User.username).order_by(
             func.sum(AppointmentCost.commission_amount).desc()
@@ -272,8 +272,8 @@ class AnalyticsService:
             # Get appointments in date range
             appointments = Appointment.query.filter(
                 Appointment.stylist_id == stylist.id,
-                Appointment.date >= start_date,
-                Appointment.date <= end_date
+                Appointment.appointment_date >= start_date,
+                Appointment.appointment_date <= end_date
             ).all()
             
             # Calculate scheduled hours
@@ -322,14 +322,14 @@ class AnalyticsService:
         """Generate capacity planning recommendations"""
         # Analyze current capacity vs demand
         current_appointments = Appointment.query.filter(
-            Appointment.date >= date.today(),
-            Appointment.date <= date.today() + timedelta(days=30)
+            Appointment.appointment_date >= date.today(),
+            Appointment.appointment_date <= date.today() + timedelta(days=30)
         ).all()
         
         # Group by date and stylist
         daily_capacity = {}
         for appointment in current_appointments:
-            date_key = appointment.date.strftime('%Y-%m-%d')
+            date_key = appointment.appointment_date.strftime('%Y-%m-%d')
             if date_key not in daily_capacity:
                 daily_capacity[date_key] = {}
             

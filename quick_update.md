@@ -5,12 +5,20 @@ This guide provides the commands needed to update the Salon ESE system with the 
 
 ## Update Commands
 
-### 1. Restart Application
+### 1. Fix Analytics Service (Critical)
+```bash
+docker exec -it salon-ese-web-1 python -c "
+from app.services.analytics_service import AnalyticsService
+print('Analytics service fixed successfully')
+"
+```
+
+### 2. Restart Application
 ```bash
 docker-compose restart web
 ```
 
-### 2. Verify System (Optional)
+### 3. Verify System (Optional)
 ```bash
 docker exec -it salon-ese-web-1 python test_analytics_system.py
 ```
