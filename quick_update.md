@@ -3,6 +3,61 @@
 ## Overview
 This guide provides the commands needed to update the Salon ESE system from the HR System migration to the current Advanced Analytics System (v2.5.0). This covers all updates from the last major migration point.
 
+## Fresh Installation (Nuclear Reset)
+
+If you want to start completely fresh with a clean database and comprehensive test data:
+
+### 1. Nuclear Database Reset
+```bash
+# Stop containers
+docker-compose down
+
+# Remove the database volume (this deletes ALL data)
+docker volume rm salon-ese_postgres_data
+
+# Start containers fresh
+docker-compose up -d
+
+# Wait for database to be ready
+docker-compose logs -f db
+# (Wait until you see "database system is ready to accept connections")
+```
+
+### 2. Initialize Services (Required First)
+```bash
+docker exec -it salon-ese-web-1 python init_services.py
+```
+
+### 3. Apply Commission System Migration
+```bash
+docker exec -it salon-ese-web-1 python migrate_commission_system.py
+```
+
+### 4. Add Comprehensive Test Data
+```bash
+docker exec -it salon-ese-web-1 python add_test_users.py
+```
+
+### 5. Verify Installation
+```bash
+# Check that test data was created
+docker exec -it salon-ese-web-1 python -c "
+from app import create_app
+from app.models import User, Service, EmploymentDetails, Appointment
+app = create_app()
+with app.app_context():
+    print(f'Users: {User.query.count()}')
+    print(f'Services: {Service.query.count()}')
+    print(f'Employment Details: {EmploymentDetails.query.count()}')
+    print(f'Appointments: {Appointment.query.count()}')
+"
+```
+
+**Test Login Credentials:**
+- **Manager**: `manager_1` / `12345678`
+- **Stylists**: `stylist_1`, `stylist_2`, `stylist_3` / `12345678`
+- **Customers**: `cust_1`, `cust_2`, `cust_3`, `cust_4`, `cust_5` / `12345678`
+
 ## Prerequisites
 - Your system should have completed the HR System migration (`migrate_hr_system.py`)
 - Docker containers should be running
@@ -141,6 +196,19 @@ docker-compose restart db
 
 # Wait for database to be ready
 docker-compose logs -f db
+```
+
+### If Test Data Creation Fails
+```bash
+# Check if services exist
+docker exec -it salon-ese-web-1 python -c "
+from app import create_app
+from app.models import Service
+app = create_app()
+with app.app_context():
+    services = Service.query.all()
+    print(f'Found {len(services)} services')
+"
 ```
 
 ## Version History
