@@ -8,6 +8,7 @@ from app.routes.main import role_required
 from app.utils import uk_now
 from app.services.hr_service import HRService
 from app.services.holiday_service import HolidayService
+from app.services.analytics_service import AnalyticsService
 from app.models import BillingElement
 import json
 
@@ -879,3 +880,144 @@ def delete_billing_element(element_id):
     flash(f'Billing element "{name}" deleted successfully.', 'success')
     
     return redirect(url_for('admin.billing_elements_management'))
+
+# Analytics Routes
+@bp.route('/analytics/dashboard')
+@login_required
+@role_required('manager')
+def analytics_dashboard():
+    """Executive analytics dashboard"""
+    # Get date range from request
+    start_date_str = request.args.get('start_date')
+    end_date_str = request.args.get('end_date')
+    
+    start_date = None
+    end_date = None
+    
+    if start_date_str:
+        try:
+            from datetime import datetime
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            pass
+    
+    if end_date_str:
+        try:
+            from datetime import datetime
+            end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            pass
+    
+    # Get executive dashboard data
+    dashboard_data = AnalyticsService.get_executive_dashboard_data(start_date, end_date)
+    
+    return render_template('admin/analytics_dashboard.html',
+                         dashboard_data=dashboard_data,
+                         start_date=start_date,
+                         end_date=end_date)
+
+@bp.route('/analytics/holiday-trends')
+@login_required
+@role_required('manager')
+def holiday_analytics():
+    """Holiday trends and analytics"""
+    # Get date range from request
+    start_date_str = request.args.get('start_date')
+    end_date_str = request.args.get('end_date')
+    
+    start_date = None
+    end_date = None
+    
+    if start_date_str:
+        try:
+            from datetime import datetime
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            pass
+    
+    if end_date_str:
+        try:
+            from datetime import datetime
+            end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            pass
+    
+    # Get holiday analytics data
+    holiday_data = AnalyticsService.analyze_holiday_trends(start_date, end_date)
+    
+    return render_template('admin/holiday_analytics.html',
+                         holiday_data=holiday_data,
+                         start_date=start_date,
+                         end_date=end_date)
+
+@bp.route('/analytics/commission-trends')
+@login_required
+@role_required('manager')
+def commission_analytics():
+    """Commission trends and analytics"""
+    # Get date range from request
+    start_date_str = request.args.get('start_date')
+    end_date_str = request.args.get('end_date')
+    
+    start_date = None
+    end_date = None
+    
+    if start_date_str:
+        try:
+            from datetime import datetime
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            pass
+    
+    if end_date_str:
+        try:
+            from datetime import datetime
+            end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            pass
+    
+    # Get commission analytics data
+    commission_data = AnalyticsService.analyze_commission_trends(start_date, end_date)
+    
+    return render_template('admin/commission_analytics.html',
+                         commission_data=commission_data,
+                         start_date=start_date,
+                         end_date=end_date)
+
+@bp.route('/analytics/staff-utilization')
+@login_required
+@role_required('manager')
+def staff_utilization_analytics():
+    """Staff utilization analytics"""
+    # Get date range from request
+    start_date_str = request.args.get('start_date')
+    end_date_str = request.args.get('end_date')
+    
+    start_date = None
+    end_date = None
+    
+    if start_date_str:
+        try:
+            from datetime import datetime
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            pass
+    
+    if end_date_str:
+        try:
+            from datetime import datetime
+            end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            pass
+    
+    # Get staff utilization data
+    utilization_data = AnalyticsService.calculate_staff_utilization(start_date, end_date)
+    
+    # Get capacity recommendations
+    capacity_data = AnalyticsService.generate_capacity_recommendations()
+    
+    return render_template('admin/staff_utilization_analytics.html',
+                         utilization_data=utilization_data,
+                         capacity_data=capacity_data,
+                         start_date=start_date,
+                         end_date=end_date)

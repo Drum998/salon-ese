@@ -1,0 +1,352 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">
+                    <i class="fas fa-chart-line text-primary"></i>
+                    Analytics Dashboard
+                </h1>
+                <div class="btn-group" role="group">
+                    <a href="{{ url_for('admin.analytics_dashboard') }}" class="btn btn-outline-primary active">
+                        <i class="fas fa-tachometer-alt"></i> Overview
+                    </a>
+                    <a href="{{ url_for('admin.holiday_analytics') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-calendar-alt"></i> Holiday Trends
+                    </a>
+                    <a href="{{ url_for('admin.commission_analytics') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-hand-holding-usd"></i> Commission Trends
+                    </a>
+                    <a href="{{ url_for('admin.staff_utilization_analytics') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-users"></i> Staff Utilization
+                    </a>
+                </div>
+            </div>
+
+            <!-- Date Range Filter -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <form method="GET" class="row g-3">
+                        <div class="col-md-4">
+                            <label for="start_date" class="form-label">Start Date</label>
+                            <input type="date" class="form-control" id="start_date" name="start_date" 
+                                   value="{{ start_date.strftime('%Y-%m-%d') if start_date else '' }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="end_date" class="form-label">End Date</label>
+                            <input type="date" class="form-control" id="end_date" name="end_date" 
+                                   value="{{ end_date.strftime('%Y-%m-%d') if end_date else '' }}">
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary me-2">
+                                <i class="fas fa-filter"></i> Filter
+                            </button>
+                            <a href="{{ url_for('admin.analytics_dashboard') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times"></i> Clear
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- KPI Cards -->
+            <div class="row mb-4">
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card border-left-primary shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                        Total Revenue
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                        £{{ "%.2f"|format(dashboard_data.revenue) }}
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-pound-sign fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card border-left-success shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                        Total Commission
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                        £{{ "%.2f"|format(dashboard_data.commission) }}
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-hand-holding-usd fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card border-left-info shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                        Staff Utilization
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                        {{ "%.1f"|format(dashboard_data.staff_utilization) }}%
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-users fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card border-left-warning shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                        Holiday Approval Rate
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                        {{ "%.1f"|format(dashboard_data.holiday_approval_rate) }}%
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-calendar-check fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detailed Metrics -->
+            <div class="row">
+                <!-- Revenue and Commission -->
+                <div class="col-lg-6 mb-4">
+                    <div class="card shadow">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-primary">
+                                <i class="fas fa-chart-pie"></i> Financial Performance
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-6">
+                                    <div class="text-center">
+                                        <div class="h4 text-primary">£{{ "%.2f"|format(dashboard_data.revenue) }}</div>
+                                        <div class="text-muted">Total Revenue</div>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="text-center">
+                                        <div class="h4 text-success">£{{ "%.2f"|format(dashboard_data.commission) }}</div>
+                                        <div class="text-muted">Total Commission</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <hr>
+                            <div class="row">
+                                <div class="col-12">
+                                    <div class="text-center">
+                                        <div class="h5 text-info">{{ "%.1f"|format(dashboard_data.commission_efficiency) }}%</div>
+                                        <div class="text-muted">Commission Efficiency</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Staff Metrics -->
+                <div class="col-lg-6 mb-4">
+                    <div class="card shadow">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-primary">
+                                <i class="fas fa-users"></i> Staff Overview
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-6">
+                                    <div class="text-center">
+                                        <div class="h4 text-primary">{{ dashboard_data.total_stylists }}</div>
+                                        <div class="text-muted">Total Stylists</div>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="text-center">
+                                        <div class="h4 text-success">{{ dashboard_data.active_stylists }}</div>
+                                        <div class="text-muted">Active Stylists</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <hr>
+                            <div class="row">
+                                <div class="col-12">
+                                    <div class="text-center">
+                                        <div class="h5 text-info">{{ "%.1f"|format(dashboard_data.staff_utilization) }}%</div>
+                                        <div class="text-muted">Staff Utilization Rate</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Holiday Metrics -->
+                <div class="col-lg-6 mb-4">
+                    <div class="card shadow">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-primary">
+                                <i class="fas fa-calendar-alt"></i> Holiday Management
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-6">
+                                    <div class="text-center">
+                                        <div class="h4 text-warning">{{ dashboard_data.holiday_requests }}</div>
+                                        <div class="text-muted">Total Requests</div>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="text-center">
+                                        <div class="h4 text-success">{{ dashboard_data.approved_holidays }}</div>
+                                        <div class="text-muted">Approved</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <hr>
+                            <div class="row">
+                                <div class="col-12">
+                                    <div class="text-center">
+                                        <div class="h5 text-info">{{ "%.1f"|format(dashboard_data.holiday_approval_rate) }}%</div>
+                                        <div class="text-muted">Approval Rate</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Appointment Metrics -->
+                <div class="col-lg-6 mb-4">
+                    <div class="card shadow">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-primary">
+                                <i class="fas fa-calendar-check"></i> Appointment Activity
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-6">
+                                    <div class="text-center">
+                                        <div class="h4 text-primary">{{ dashboard_data.total_appointments }}</div>
+                                        <div class="text-muted">Total Appointments</div>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="text-center">
+                                        <div class="h4 text-success">{{ "%.1f"|format(dashboard_data.avg_appointments_per_day) }}</div>
+                                        <div class="text-muted">Avg per Day</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <hr>
+                            <div class="row">
+                                <div class="col-12">
+                                    <div class="text-center">
+                                        <div class="h5 text-info">
+                                            {{ dashboard_data.period_start.strftime('%d/%m/%Y') if dashboard_data.period_start else 'N/A' }} - 
+                                            {{ dashboard_data.period_end.strftime('%d/%m/%Y') if dashboard_data.period_end else 'N/A' }}
+                                        </div>
+                                        <div class="text-muted">Analysis Period</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="card shadow">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-primary">
+                                <i class="fas fa-bolt"></i> Quick Actions
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-3 mb-3">
+                                    <a href="{{ url_for('admin.holiday_analytics') }}" class="btn btn-outline-primary w-100">
+                                        <i class="fas fa-calendar-alt"></i><br>
+                                        Holiday Trends
+                                    </a>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <a href="{{ url_for('admin.commission_analytics') }}" class="btn btn-outline-success w-100">
+                                        <i class="fas fa-hand-holding-usd"></i><br>
+                                        Commission Trends
+                                    </a>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <a href="{{ url_for('admin.staff_utilization_analytics') }}" class="btn btn-outline-info w-100">
+                                        <i class="fas fa-users"></i><br>
+                                        Staff Utilization
+                                    </a>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <a href="{{ url_for('admin.hr_dashboard') }}" class="btn btn-outline-warning w-100">
+                                        <i class="fas fa-chart-bar"></i><br>
+                                        HR Dashboard
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Auto-submit form when date inputs change
+    document.addEventListener('DOMContentLoaded', function() {
+        const startDate = document.getElementById('start_date');
+        const endDate = document.getElementById('end_date');
+        
+        function updateDateRange() {
+            if (startDate.value && endDate.value) {
+                const form = startDate.closest('form');
+                form.submit();
+            }
+        }
+        
+        startDate.addEventListener('change', updateDateRange);
+        endDate.addEventListener('change', updateDateRange);
+    });
+</script>
+{% endblock %} 
