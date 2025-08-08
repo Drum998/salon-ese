@@ -1,5 +1,181 @@
 # Salon ESE Changelog
 
+## [2.3.0] - Advanced Calendar & Seniority System - 2025-01-28
+### 🎯 **Advanced Calendar & Seniority System - Major Release**
+
+#### Comprehensive Seniority-Based Stylist Hierarchy
+- **✅ COMPLETED**: Complete seniority system with role-based hierarchy and visual distinction
+- **Purpose**: Professional salon management with clear seniority levels and role-based access control
+- **Implementation**: Five-tier seniority system with color-coded calendar views and employment differentiation
+- **Features**:
+  - Role hierarchy: Owner → Manager → Senior Stylist → Stylist → Junior Stylist
+  - Color-coded system with blue gradient from dark (Senior) to light (Junior)
+  - Automatic seniority-based ordering in calendar views
+  - Role-based filtering and access control
+  - Differentiated employment structures by seniority level
+
+#### Advanced Calendar System Enhancements
+- **24-Hour Time Format**: All appointment times display in professional 24-hour format
+- **Filter Persistence**: Calendar filter options persist across navigation and page loads
+- **Enhanced Week View**: Optimized for large numbers of stylists with horizontal scrolling
+- **Compact Layout**: Narrower columns and optimized spacing for better information density
+- **Responsive Design**: Calendar adapts to different screen sizes and stylist counts
+
+#### Calendar View Optimizations
+- **Horizontal Scrolling**: Week view supports unlimited stylists with smooth horizontal scroll
+- **Compact Stylist Names**: Two-line horizontal display for better readability
+- **Role-Based Color Coding**: Entire column headers color-coded by seniority level
+- **Optimized Spacing**: Reduced margins and compact layout for better information density
+- **Role Filter Integration**: New filter option for seniority-based calendar viewing
+
+#### Enhanced Test Data System
+- **Comprehensive Test Data**: Complete seniority hierarchy with realistic employment details
+- **Role-Based Employment**: Different compensation models for each seniority level
+- **Service Access Control**: Stylist service access based on experience and seniority
+- **Work Pattern Integration**: Seniority-appropriate work schedules and holiday quotas
+- **Sample Appointments**: Realistic appointment data across all seniority levels
+
+### 🔧 **Technical Implementation**
+
+#### Seniority Role System
+```python
+# Seniority hierarchy implementation
+SENIORITY_ORDER = {
+    'owner': 1,
+    'manager': 2, 
+    'senior_stylist': 3,
+    'stylist': 4,
+    'junior_stylist': 5
+}
+
+# Role-based color coding
+ROLE_COLORS = {
+    'owner': '#dc3545',      # Red
+    'manager': '#fd7e14',    # Orange  
+    'senior_stylist': '#0d6efd',  # Dark Blue
+    'stylist': '#0dcaf0',    # Medium Blue
+    'junior_stylist': '#87ceeb'   # Light Blue
+}
+```
+
+#### Calendar Filter Persistence
+```python
+# Filter state preservation across navigation
+def admin_appointments():
+    view_type = request.args.get('view_type', 'month')
+    stylist_id = request.args.get('stylist_id', '')
+    status_filter = request.args.get('status', '')
+    role_filter = request.args.get('role_filter', '')
+    
+    # Populate form with current filter state
+    form.view_type.data = view_type
+    form.stylist_id.data = stylist_id
+    form.status.data = status_filter
+```
+
+#### Seniority-Based Ordering
+```python
+# SQLAlchemy case statement for seniority ordering
+from sqlalchemy import case
+
+stylists = User.query.join(User.roles).filter(
+    Role.name.in_(['stylist', 'manager', 'owner', 'senior_stylist', 'junior_stylist'])
+).order_by(
+    case(
+        (Role.name == 'owner', 1),
+        (Role.name == 'manager', 2),
+        (Role.name == 'senior_stylist', 3),
+        (Role.name == 'stylist', 4),
+        (Role.name == 'junior_stylist', 5),
+        else_=6
+    )
+).all()
+```
+
+#### Enhanced CSS for Calendar Views
+```css
+/* Horizontal scrolling for week view */
+.calendar-container {
+    overflow-x: auto;
+    min-width: 800px;
+}
+
+/* Compact stylist columns */
+.stylist-header-angled {
+    height: 40px;
+    padding: 2px;
+    margin: 0;
+}
+
+/* Role-based color coding */
+.table-dark th.role-owner { background-color: #dc3545 !important; }
+.table-dark th.role-manager { background-color: #fd7e14 !important; }
+.table-dark th.role-senior_stylist { background-color: #0d6efd !important; }
+.table-dark th.role-stylist { background-color: #0dcaf0 !important; }
+.table-dark th.role-junior_stylist { background-color: #87ceeb !important; }
+```
+
+### 🎨 **User Interface Enhancements**
+
+#### Calendar Week View Features
+- **Horizontal Scrolling**: Smooth horizontal scroll for unlimited stylists
+- **Compact Columns**: 80px minimum width for optimal space usage
+- **Color-Coded Headers**: Entire column headers color-coded by seniority
+- **Two-Line Names**: Stylist names displayed horizontally across two lines
+- **Role Filter**: Dropdown to filter by specific seniority roles
+
+#### Enhanced Filter System
+- **Persistent State**: All filter options maintain state across navigation
+- **Role Filter**: New filter option for seniority-based viewing
+- **URL Parameters**: All filters preserved in URL for bookmarking and sharing
+- **Form Integration**: Filter state automatically populates form fields
+
+#### Responsive Design Improvements
+- **Mobile Optimization**: Calendar adapts to smaller screens
+- **Touch-Friendly**: Optimized for touch devices
+- **Flexible Layout**: Adapts to different stylist counts and screen sizes
+
+### 📊 **Test Data Structure**
+
+#### Seniority Hierarchy
+- **Owner (1)**: Elizabeth Parker - High salary (£75,000), full management access
+- **Manager (1)**: Sarah Mitchell - Good salary (£45,000), management capabilities
+- **Senior Stylists (3)**: Emma Wilson, James Brown, Sophie Davis - High commission (75%), all services
+- **Regular Stylists (4)**: Michael Taylor, Olivia Anderson, David Martinez, Lisa Thompson - Medium commission (65%), most services
+- **Junior Stylists (3)**: Alex Johnson, Maya Garcia, Ryan Lee - Lower commission (50%) or hourly (£12/hr), basic services
+
+#### Employment Differentiation
+- **Senior Stylists**: Self-employed, 75% commission, 30 holiday days, all services, 20% faster timing
+- **Regular Stylists**: Self-employed, 65% commission, 25 holiday days, most services, standard timing
+- **Junior Stylists**: Mix of employed (hourly) and self-employed, 20 holiday days, basic services, 20% slower timing
+
+#### Service Access Control
+- **Senior Stylists**: All 10 services, 20% faster timing
+- **Regular Stylists**: 8 services (excluding most complex), standard timing
+- **Junior Stylists**: 5 basic services only, 20% slower timing
+
+### 🔑 **Test Login Credentials**
+```
+Owner: salon_owner / 12345678
+Manager: salon_manager / 12345678
+Senior Stylists: emma_wilson, james_brown, sophie_davis / 12345678
+Regular Stylists: michael_taylor, olivia_anderson, david_martinez, lisa_thompson / 12345678
+Junior Stylists: alex_johnson, maya_garcia, ryan_lee / 12345678
+Customers: alice_j, bob_smith, carol_w, dan_jones, eve_garcia / 12345678
+```
+
+### 🛠️ **Files Modified**
+- `app/templates/appointments/admin_calendar.html` - Enhanced calendar view with seniority system
+- `app/templates/appointments/stylist_calendar.html` - Updated for 24-hour format and filter persistence
+- `app/templates/appointments/view_appointment.html` - 24-hour time format
+- `app/templates/appointments/my_appointments.html` - 24-hour time format
+- `app/routes/appointments.py` - Filter persistence and seniority ordering
+- `create_ranked_test_data.py` - Comprehensive test data with seniority hierarchy
+- `add_seniority_roles.py` - Seniority role creation script
+- `check_roles.py` - Role verification script
+
+---
+
 ## [2.0.0] - HR System Integration - 2025-01-28
 ### 🎯 **HR System Integration - Major Release**
 
@@ -1261,6 +1437,7 @@ For users updating from previous versions:
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 2.3.0 | 2025-01-28 | Advanced Calendar & Seniority System - 24-hour time format, filter persistence, compact layout |
 | 2.0.0 | 2025-01-28 | HR System Integration - Employment details, cost calculations, financial tracking |
 | 1.9.0 | 2025-01-28 | Services Page Layout Improvements |
 | 1.8.0 | 2025-01-28 | Click-to-Book Calendar with Single Block Spanning |

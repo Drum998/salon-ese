@@ -196,6 +196,9 @@ def stylist_appointments():
     calendar_view = request.args.get('calendar_view', 'personal')  # personal or global
     selected_date = request.args.get('date', date.today().isoformat())
     
+    # Populate form with current filter values to maintain state
+    form.view_type.data = view_type
+    
     try:
         selected_date = datetime.strptime(selected_date, '%Y-%m-%d').date()
     except ValueError:
@@ -264,7 +267,13 @@ def admin_appointments():
     view_type = request.args.get('view_type', 'week')
     stylist_id = request.args.get('stylist_id', '')
     status_filter = request.args.get('status', '')
+    role_filter = request.args.get('role_filter', '')
     selected_date = request.args.get('date', date.today().isoformat())
+    
+    # Populate form with current filter values to maintain state
+    form.view_type.data = view_type
+    form.stylist_id.data = stylist_id
+    form.status.data = status_filter
     
     try:
         selected_date = datetime.strptime(selected_date, '%Y-%m-%d').date()
@@ -279,10 +288,27 @@ def admin_appointments():
         start_date = selected_date.replace(day=1)
         end_date = (start_date + timedelta(days=32)).replace(day=1) - timedelta(days=1)
     
-    # Get all stylists for the calendar columns
-    stylists = User.query.join(User.roles).filter(
-        Role.name.in_(['stylist', 'manager', 'owner'])
-    ).order_by(User.first_name, User.last_name).all()
+    # Get all stylists for the calendar columns with role filtering and seniority ordering
+    stylist_query = User.query.join(User.roles).filter(
+        Role.name.in_(['stylist', 'manager', 'owner', 'senior_stylist', 'junior_stylist'])
+    )
+    
+    # Apply role filter if specified
+    if role_filter:
+        stylist_query = stylist_query.filter(Role.name == role_filter)
+    
+    # Order by seniority: owner, manager, senior_stylist, stylist, junior_stylist
+    from sqlalchemy import case
+    seniority_order = case(
+        (Role.name == 'owner', 1),
+        (Role.name == 'manager', 2),
+        (Role.name == 'senior_stylist', 3),
+        (Role.name == 'stylist', 4),
+        (Role.name == 'junior_stylist', 5),
+        else_=6
+    )
+    
+    stylists = stylist_query.order_by(seniority_order, User.first_name, User.last_name).all()
     
     # Build query
     query = Appointment.query.filter(

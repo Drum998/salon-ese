@@ -2,17 +2,128 @@
 
 {% block page_title %}All Appointments{% endblock %}
 
+{% block extra_css %}
+<style>
+    /* Stylist header styles */
+    .stylist-header-angled {
+        height: 40px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 2px;
+        text-align: center;
+        margin: 0;
+    }
+    
+    .stylist-name-angled {
+        white-space: normal;
+        font-size: 0.7rem;
+        font-weight: bold;
+        color: white;
+        text-align: center;
+        line-height: 1.0;
+        word-wrap: break-word;
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        margin: 0;
+        padding: 0;
+    }
+    
+    /* Role color coding for entire tab - override table header defaults */
+    .table-dark th.role-owner {
+        background-color: #dc3545 !important;
+        color: white !important;
+        border-color: #dc3545 !important;
+    }
+    
+    .table-dark th.role-manager {
+        background-color: #28a745 !important;
+        color: white !important;
+        border-color: #28a745 !important;
+    }
+    
+    .table-dark th.role-senior_stylist {
+        background-color: #1e3a8a !important;
+        color: white !important;
+        border-color: #1e3a8a !important;
+    }
+    
+    .table-dark th.role-stylist {
+        background-color: #3b82f6 !important;
+        color: white !important;
+        border-color: #3b82f6 !important;
+    }
+    
+    .table-dark th.role-junior_stylist {
+        background-color: #93c5fd !important;
+        color: white !important;
+        border-color: #93c5fd !important;
+    }
+    
+    .table-dark th.role-customer {
+        background-color: #6c757d !important;
+        color: white !important;
+        border-color: #6c757d !important;
+    }
+    
+    .table-dark th.role-no_role {
+        background-color: #6c757d !important;
+        color: white !important;
+        border-color: #6c757d !important;
+    }
+    
+    /* Override Bootstrap table header defaults */
+    .table-dark thead th {
+        border-bottom: 1px solid #dee2e6;
+    }
+    
+    /* Calendar container improvements */
+    .calendar-container {
+        max-height: 70vh;
+        overflow-y: auto;
+    }
+    
+    .sticky-header {
+        position: sticky;
+        top: 0;
+        z-index: 100;
+    }
+    
+    /* Compact appointment slots for narrow columns */
+    .appointment-slot {
+        font-size: 0.7rem !important;
+        padding: 2px 4px !important;
+    }
+    
+    .appointment-slot .fw-bold {
+        font-size: 0.7rem;
+    }
+    
+    .appointment-slot .small {
+        font-size: 0.6rem;
+    }
+    
+    /* Empty slot styling */
+    .empty-slot {
+        font-size: 0.5rem !important;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="row">
     <div class="col-12">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h2><i class="fas fa-calendar-alt"></i> All Appointments</h2>
             <div class="d-flex gap-2">
-                <a href="{{ url_for('appointments.admin_appointments', view_type=view_type, date=(selected_date - timedelta(days=7)).isoformat(), stylist_id=request.args.get('stylist_id', ''), status=request.args.get('status', '')) }}" 
+                <a href="{{ url_for('appointments.admin_appointments', view_type=form.view_type.data, date=(selected_date - timedelta(days=7)).isoformat(), stylist_id=form.stylist_id.data, status=form.status.data, role_filter=request.args.get('role_filter', '')) }}" 
                    class="btn btn-outline-secondary">
                     <i class="fas fa-chevron-left"></i> Previous
                 </a>
-                <a href="{{ url_for('appointments.admin_appointments', view_type=view_type, date=(selected_date + timedelta(days=7)).isoformat(), stylist_id=request.args.get('stylist_id', ''), status=request.args.get('status', '')) }}" 
+                <a href="{{ url_for('appointments.admin_appointments', view_type=form.view_type.data, date=(selected_date + timedelta(days=7)).isoformat(), stylist_id=form.stylist_id.data, status=form.status.data, role_filter=request.args.get('role_filter', '')) }}" 
                    class="btn btn-outline-secondary">
                     Next <i class="fas fa-chevron-right"></i>
                 </a>
@@ -36,11 +147,24 @@
                         {{ form.status(class="form-select") }}
                     </div>
                     <div class="col-md-2">
+                        <label class="form-label">Role</label>
+                        <select name="role_filter" class="form-select">
+                            <option value="">All Roles</option>
+                            <option value="owner" {{ 'selected' if request.args.get('role_filter') == 'owner' else '' }}>Owner</option>
+                            <option value="manager" {{ 'selected' if request.args.get('role_filter') == 'manager' else '' }}>Manager</option>
+                            <option value="senior_stylist" {{ 'selected' if request.args.get('role_filter') == 'senior_stylist' else '' }}>Senior Stylist</option>
+                            <option value="stylist" {{ 'selected' if request.args.get('role_filter') == 'stylist' else '' }}>Stylist</option>
+                            <option value="junior_stylist" {{ 'selected' if request.args.get('role_filter') == 'junior_stylist' else '' }}>Junior Stylist</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
                         <label class="form-label">Date</label>
                         <input type="date" name="date" value="{{ selected_date.isoformat() }}" class="form-control">
                     </div>
                     <div class="col-md-2 d-flex align-items-end">
-                        <button type="submit" class="btn btn-primary">Filter</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-filter"></i> Filter
+                        </button>
                     </div>
                     <div class="col-md-2 d-flex align-items-end">
                         <a href="{{ url_for('appointments.manage_services') }}" class="btn btn-outline-success">
@@ -155,19 +279,18 @@
                     </div>
                     
                     <!-- Week View with Stylists as Columns -->
-                    <div class="table-responsive calendar-container">
-                        <table class="table table-bordered mb-0">
+                    <div class="table-responsive calendar-container" style="overflow-x: auto;">
+                        <table class="table table-bordered mb-0" style="min-width: 800px;">
                             <thead class="table-dark sticky-header">
                                 <tr>
-                                    <th style="width: 120px;">Day/Time</th>
+                                    <th style="width: 120px; min-width: 120px;">Day/Time</th>
                                     {% for stylist in stylists %}
-                                        <th class="text-center" style="min-width: 150px;">
-                                            <div class="stylist-header">
-                                                <strong>{{ stylist.first_name }} {{ stylist.last_name }}</strong>
-                                                <br>
-                                                <small class="text-muted">{{ stylist.username }}</small>
-                                                <br>
-                                                <span class="badge bg-primary">{{ stylist.roles[0].name.title() if stylist.roles else 'No Role' }}</span>
+                                        {% set role_name = stylist.roles[0].name if stylist.roles else 'no_role' %}
+                                        <th class="text-center role-{{ role_name }}" style="min-width: 80px; max-width: 80px; width: 80px;">
+                                            <div class="stylist-header-angled">
+                                                <div class="stylist-name-angled">
+                                                    {{ stylist.first_name }} {{ stylist.last_name }}
+                                                </div>
                                             </div>
                                         </th>
                                     {% endfor %}
@@ -186,10 +309,10 @@
                                             {% endif %}
                                         </td>
                                         {% for stylist in stylists %}
-                                            <td class="text-center" style="background-color: #e9ecef;">
+                                            <td class="text-center" style="background-color: #e9ecef; min-width: 80px; max-width: 80px; width: 80px;">
                                                 <small class="text-muted">
                                                     {% set stylist_appointments = appointments|selectattr("appointment_date", "equalto", current_date)|selectattr("stylist_id", "equalto", stylist.id)|list %}
-                                                    {{ stylist_appointments|length }} appointment{{ 's' if stylist_appointments|length != 1 else '' }}
+                                                    {{ stylist_appointments|length }}
                                                 </small>
                                             </td>
                                         {% endfor %}
@@ -216,7 +339,7 @@
                                                     {% endfor %}
                                                     
                                                     <td class="position-relative calendar-time-slot" 
-                                                        style="height: 20px; min-width: 150px; cursor: pointer;"
+                                                        style="height: 20px; min-width: 80px; max-width: 80px; width: 80px; cursor: pointer;"
                                                         data-date="{{ current_date.isoformat() }}"
                                                         data-time="{{ "%02d:%02d"|format(hour, minute) }}"
                                                         data-stylist-id="{{ stylist.id }}"
@@ -232,10 +355,9 @@
                                                                 {% set is_start = (current_time >= appointment_start and current_time < appointment_start + 5) %}
                                                                 
                                                                 {% if is_start %}
-                                                                    <div class="appointment-slot p-2" 
+                                                                    <div class="appointment-slot" 
                                                                          style="background-color: {% if appointment.status == 'confirmed' %}#e3f2fd{% elif appointment.status == 'completed' %}#c8e6c9{% elif appointment.status == 'cancelled' %}#ffcdd2{% else %}#fff3e0{% endif %}; 
-                                                                                border-left: 4px solid #2196f3; 
-                                                                                font-size: 0.8rem; 
+                                                                                border-left: 3px solid #2196f3; 
                                                                         overflow: hidden;
                                                                         height: calc({{ rowspan }} * 20px);
                                                                         display: flex;
@@ -247,26 +369,26 @@
                                                                         right: 0;
                                                                         z-index: 10;"
                                                                          data-appointment-id="{{ appointment.id }}">
-                                                                        <div>
-                                                                            <div class="fw-bold">{{ appointment.customer.first_name }} {{ appointment.customer.last_name }}</div>
-                                                                            <div class="small">
+                                                                        <div class="px-1">
+                                                                            <div class="fw-bold text-truncate">{{ appointment.customer.first_name }}</div>
+                                                                            <div class="small text-truncate">
                                                                                 {% if appointment.services_link %}
                                                                                     {% set service_names = appointment.services_link|map(attribute='service.name')|list %}
                                                                                     {% if service_names|length == 1 %}
-                                                                                        {{ service_names[0] }}
+                                                                                        {{ service_names[0][:8] }}{% if service_names[0]|length > 8 %}...{% endif %}
                                                                                     {% else %}
                                                                                         {{ service_names|length }} services
                                                                                     {% endif %}
                                                                                 {% else %}
-                                                                                    {{ appointment.service.name if appointment.service else 'No service' }}
+                                                                                    {{ (appointment.service.name if appointment.service else 'No service')[:8] }}{% if (appointment.service.name if appointment.service else 'No service')|length > 8 %}...{% endif %}
                                                                                 {% endif %}
                                                                             </div>
                                                                             <div class="small text-muted">
-                                                                                {{ appointment.start_time.strftime('%I:%M') }} - {{ appointment.end_time.strftime('%I:%M') }}
+                                                                                {{ appointment.start_time.strftime('%H:%M') }}
                                                                             </div>
                                                                         </div>
-                                                                        <span class="badge bg-{{ 'success' if appointment.status == 'confirmed' else 'secondary' if appointment.status == 'completed' else 'danger' if appointment.status == 'cancelled' else 'warning' }} position-absolute top-0 end-0 m-1">
-                                                                            {{ appointment.status[:3]|upper }}
+                                                                        <span class="badge bg-{{ 'success' if appointment.status == 'confirmed' else 'secondary' if appointment.status == 'completed' else 'danger' if appointment.status == 'cancelled' else 'warning' }} position-absolute top-0 end-0" style="font-size: 0.5rem; padding: 1px 2px;">
+                                                                            {{ appointment.status[:2]|upper }}
                                                                         </span>
                                                                     </div>
                                                                 {% endif %}
@@ -322,7 +444,7 @@
                                                         {% for appointment in day_appointments[:3] %}
                                                             <div class="small mb-1 p-1 rounded" style="background-color: {% if appointment.status == 'confirmed' %}#e3f2fd{% elif appointment.status == 'completed' %}#c8e6c9{% elif appointment.status == 'cancelled' %}#ffcdd2{% else %}#fff3e0{% endif %};">
                                                                 <div class="fw-bold">{{ appointment.customer.first_name }}</div>
-                                                                <div class="text-muted">{{ appointment.start_time.strftime('%I:%M') }} - {{ appointment.stylist.first_name }}</div>
+                                                                <div class="text-muted">{{ appointment.start_time.strftime('%H:%M') }} - {{ appointment.stylist.first_name }}</div>
                                                             </div>
                                                         {% endfor %}
                                                         {% if day_appointments|length > 3 %}
@@ -366,7 +488,7 @@
                                     <tr>
                                         <td>
                                             <div>{{ appointment.appointment_date.strftime('%A, %B %d') }}</div>
-                                            <div class="small text-muted">{{ appointment.start_time.strftime('%I:%M %p') }} - {{ appointment.end_time.strftime('%I:%M %p') }}</div>
+                                            <div class="small text-muted">{{ appointment.start_time.strftime('%H:%M') }} - {{ appointment.end_time.strftime('%H:%M') }}</div>
                                         </td>
                                         <td>{{ appointment.customer.first_name }} {{ appointment.customer.last_name }}</td>
                                         <td>{{ appointment.stylist.first_name }} {{ appointment.stylist.last_name }}</td>

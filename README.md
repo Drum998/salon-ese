@@ -16,10 +16,153 @@ A comprehensive, role-based authentication and management system for hair salons
 
 ---
 
-## 🆕 Latest Release: v2.2.0 - Complete Admin System
+## 🆕 Latest Release: v2.3.0 - Advanced Calendar & Seniority System
 
 ### 🎯 Overview
-The latest release completes the core admin system with fully functional Work Patterns and Employment Details management. This major update provides comprehensive staff management capabilities with proper form validation, HR integration, and salon hours integration.
+The latest release introduces a comprehensive seniority-based stylist hierarchy system with advanced calendar functionality. This major update provides enhanced calendar views, role-based color coding, and a complete seniority management system for professional salon operations.
+
+### ✨ New Features in v2.3.0
+
+#### 1. **Advanced Calendar System** ✅ **COMPLETED**
+- **24-Hour Time Format**: All appointment times now display in 24-hour format for professional clarity
+- **Filter Persistence**: Calendar filter options (view type, stylist, status, role) persist across navigation
+- **Enhanced Week View**: Optimized for large numbers of stylists with horizontal scrolling
+- **Responsive Design**: Calendar adapts to different screen sizes and stylist counts
+- **Compact Layout**: Narrower columns and optimized spacing for better information density
+
+#### 2. **Seniority-Based Stylist Hierarchy** ✅ **COMPLETED**
+- **Role Hierarchy**: Owner → Manager → Senior Stylist → Stylist → Junior Stylist
+- **Color-Coded System**: Visual distinction with blue gradient from dark (Senior) to light (Junior)
+- **Seniority Ordering**: Automatic column ordering by seniority level in calendar views
+- **Role-Based Filtering**: Filter calendar view by specific seniority roles
+- **Employment Differentiation**: Different compensation structures based on seniority
+
+#### 3. **Enhanced Test Data System** ✅ **COMPLETED**
+- **Comprehensive Test Data**: Complete seniority hierarchy with realistic employment details
+- **Role-Based Employment**: Different compensation models for each seniority level
+- **Service Access Control**: Stylist service access based on experience level
+- **Work Pattern Integration**: Seniority-appropriate work schedules and holiday quotas
+- **Sample Appointments**: Realistic appointment data across all seniority levels
+
+#### 4. **Calendar View Enhancements** ✅ **COMPLETED**
+- **Horizontal Scrolling**: Week view supports unlimited stylists with horizontal scroll
+- **Compact Stylist Names**: Two-line horizontal display for better readability
+- **Role-Based Color Coding**: Entire column headers color-coded by seniority
+- **Optimized Spacing**: Reduced margins and compact layout for better information density
+- **Filter Integration**: Role-based filtering integrated with existing filter system
+
+### 🔧 Technical Implementation
+
+#### Seniority Role System
+```python
+# Seniority hierarchy implementation
+SENIORITY_ORDER = {
+    'owner': 1,
+    'manager': 2, 
+    'senior_stylist': 3,
+    'stylist': 4,
+    'junior_stylist': 5
+}
+
+# Role-based color coding
+ROLE_COLORS = {
+    'owner': '#dc3545',      # Red
+    'manager': '#fd7e14',    # Orange  
+    'senior_stylist': '#0d6efd',  # Dark Blue
+    'stylist': '#0dcaf0',    # Medium Blue
+    'junior_stylist': '#87ceeb'   # Light Blue
+}
+```
+
+#### Calendar Filter Persistence
+```python
+# Filter state preservation
+def admin_appointments():
+    view_type = request.args.get('view_type', 'month')
+    stylist_id = request.args.get('stylist_id', '')
+    status_filter = request.args.get('status', '')
+    role_filter = request.args.get('role_filter', '')
+    
+    # Populate form with current filter state
+    form.view_type.data = view_type
+    form.stylist_id.data = stylist_id
+    form.status.data = status_filter
+```
+
+#### Seniority-Based Ordering
+```python
+# SQLAlchemy case statement for seniority ordering
+from sqlalchemy import case
+
+stylists = User.query.join(User.roles).filter(
+    Role.name.in_(['stylist', 'manager', 'owner', 'senior_stylist', 'junior_stylist'])
+).order_by(
+    case(
+        (Role.name == 'owner', 1),
+        (Role.name == 'manager', 2),
+        (Role.name == 'senior_stylist', 3),
+        (Role.name == 'stylist', 4),
+        (Role.name == 'junior_stylist', 5),
+        else_=6
+    )
+).all()
+```
+
+### 🎨 User Interface Enhancements
+
+#### Calendar Week View
+- **Horizontal Scrolling**: Smooth horizontal scroll for unlimited stylists
+- **Compact Columns**: 80px minimum width for optimal space usage
+- **Color-Coded Headers**: Entire column headers color-coded by seniority
+- **Two-Line Names**: Stylist names displayed horizontally across two lines
+- **Role Filter**: Dropdown to filter by specific seniority roles
+
+#### Enhanced Filter System
+- **Persistent State**: All filter options maintain state across navigation
+- **Role Filter**: New filter option for seniority-based viewing
+- **URL Parameters**: All filters preserved in URL for bookmarking and sharing
+- **Form Integration**: Filter state automatically populates form fields
+
+#### Responsive Design
+- **Mobile Optimization**: Calendar adapts to smaller screens
+- **Touch-Friendly**: Optimized for touch devices
+- **Flexible Layout**: Adapts to different stylist counts and screen sizes
+
+### 📊 Test Data Structure
+
+#### Seniority Hierarchy
+- **Owner (1)**: Elizabeth Parker - High salary, full management access
+- **Manager (1)**: Sarah Mitchell - Good salary, management capabilities
+- **Senior Stylists (3)**: Emma Wilson, James Brown, Sophie Davis - High commission (75%), all services
+- **Regular Stylists (4)**: Michael Taylor, Olivia Anderson, David Martinez, Lisa Thompson - Medium commission (65%), most services
+- **Junior Stylists (3)**: Alex Johnson, Maya Garcia, Ryan Lee - Lower commission (50%) or hourly, basic services
+
+#### Employment Differentiation
+- **Senior Stylists**: Self-employed, 75% commission, 30 holiday days, all services
+- **Regular Stylists**: Self-employed, 65% commission, 25 holiday days, most services
+- **Junior Stylists**: Mix of employed (hourly) and self-employed, 20 holiday days, basic services
+
+#### Service Access Control
+- **Senior Stylists**: All services, 20% faster timing
+- **Regular Stylists**: Most services (excluding complex), standard timing
+- **Junior Stylists**: Basic services only, 20% slower timing
+
+### 🔑 Test Login Credentials
+```
+Owner: salon_owner / 12345678
+Manager: salon_manager / 12345678
+Senior Stylists: emma_wilson, james_brown, sophie_davis / 12345678
+Regular Stylists: michael_taylor, olivia_anderson, david_martinez, lisa_thompson / 12345678
+Junior Stylists: alex_johnson, maya_garcia, ryan_lee / 12345678
+Customers: alice_j, bob_smith, carol_w, dan_jones, eve_garcia / 12345678
+```
+
+---
+
+## 🆕 Previous Release: v2.2.0 - Complete Admin System
+
+### 🎯 Overview
+The previous release completed the core admin system with fully functional Work Patterns and Employment Details management. This major update provides comprehensive staff management capabilities with proper form validation, HR integration, and salon hours integration.
 
 ### ✨ New Features in v2.2.0
 
