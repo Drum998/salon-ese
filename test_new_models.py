@@ -157,7 +157,7 @@ def test_new_models():
                 print(f"✓ Approved by: {holiday_request.approved_by.username}")
                 
                 # Check updated quota
-                quota.refresh()
+                db.session.refresh(quota)
                 print(f"✓ Updated holiday days taken: {quota.holiday_days_taken}")
                 print(f"✓ Updated holiday days remaining: {quota.holiday_days_remaining}")
             else:

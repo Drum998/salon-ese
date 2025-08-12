@@ -6,6 +6,7 @@ Run this script to test the database setup without the full Flask application.
 
 import os
 import sys
+import uuid
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from app.models import User, Role, UserProfile, LoginAttempt
@@ -35,9 +36,15 @@ def test_database_connection():
         db.metadata.create_all(engine)
         print("✓ Tables created successfully")
         
+        # Generate unique test data to avoid conflicts
+        unique_suffix = str(uuid.uuid4())[:8]
+        test_role_name = f'test_role_{unique_suffix}'
+        test_username = f'testuser_{unique_suffix}'
+        test_email = f'test_{unique_suffix}@example.com'
+        
         # Test creating a role
         print("Testing role creation...")
-        test_role = Role(name='test_role', description='Test role')
+        test_role = Role(name=test_role_name, description='Test role')
         session.add(test_role)
         session.commit()
         print("✓ Role created successfully")
@@ -45,8 +52,8 @@ def test_database_connection():
         # Test creating a user
         print("Testing user creation...")
         test_user = User(
-            username='testuser',
-            email='test@example.com',
+            username=test_username,
+            email=test_email,
             first_name='Test',
             last_name='User'
         )
@@ -57,16 +64,16 @@ def test_database_connection():
         
         # Test querying
         print("Testing queries...")
-        user = session.query(User).filter_by(username='testuser').first()
-        role = session.query(Role).filter_by(name='test_role').first()
+        user = session.query(User).filter_by(username=test_username).first()
+        role = session.query(Role).filter_by(name=test_role_name).first()
         print(f"✓ Found user: {user.username}")
         print(f"✓ Found role: {role.name}")
         
         # Assert that we found the expected data
         assert user is not None, "User should be found"
         assert role is not None, "Role should be found"
-        assert user.username == 'testuser', "Username should match"
-        assert role.name == 'test_role', "Role name should match"
+        assert user.username == test_username, "Username should match"
+        assert role.name == test_role_name, "Role name should match"
         
         # Clean up
         session.delete(user)

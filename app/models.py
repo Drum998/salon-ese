@@ -66,6 +66,11 @@ class User(UserMixin, db.Model):
         required_level = Config.ROLES.get(required_role, 0)
         return user_level >= required_level
     
+    @property
+    def full_name(self):
+        """Return the user's full name."""
+        return f"{self.first_name} {self.last_name}"
+    
     def __repr__(self):
         return f'<User {self.username}>'
 

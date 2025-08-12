@@ -27,6 +27,11 @@ def test_timezone_functions():
     regular_utc = datetime.now(pytz.UTC)
     print(f"\nRegular UTC: {regular_utc}")
     
+    # Make sure uk_utc_time is timezone-aware for comparison
+    if uk_utc_time.tzinfo is None:
+        # If uk_utc_time is naive, assume it's UTC
+        uk_utc_time = pytz.UTC.localize(uk_utc_time)
+    
     # Show the difference (should be 0 or 1 hour depending on DST)
     time_diff = abs((uk_utc_time - regular_utc).total_seconds())
     print(f"\nTime difference between UK UTC and Regular UTC: {time_diff} seconds")
