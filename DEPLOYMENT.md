@@ -1,10 +1,12 @@
-# Salon ESE - Deployment Guide
+# Salon ESE - Deployment & Operations Guide
 
-This guide covers deployment options for the Salon ESE authentication system, from development to production environments.
+## 🎯 **Overview**
 
-## 🚀 Quick Deployment Options
+This guide provides comprehensive deployment and operational documentation for the Salon ESE project, covering all deployment options, migration procedures, and operational tasks.
 
-### 1. Docker Compose (Recommended for Development/Testing)
+## 🚀 **Deployment Options**
+
+### **1. Docker Compose (Recommended for Development/Testing)**
 
 **Prerequisites:**
 - Docker and Docker Compose installed
@@ -24,7 +26,7 @@ docker-compose up --build
 # Database: localhost:5432
 ```
 
-### 2. Local Development Setup
+### **2. Local Development Setup**
 
 **Prerequisites:**
 - Python 3.9+
@@ -52,11 +54,11 @@ export FLASK_APP=run.py
 python run.py
 ```
 
-## 🏭 Production Deployment
+## 🏭 **Production Deployment**
 
-### Option 1: Docker Production Deployment
+### **Option 1: Docker Production Deployment**
 
-#### 1.1 Single Server Deployment
+#### **1.1 Single Server Deployment**
 
 **Prerequisites:**
 - Ubuntu 20.04+ server
@@ -101,18 +103,272 @@ python run.py
 
 4. **Start Application**
    ```bash
-   # Build and start
-   docker-compose -f docker-compose.prod.yml up -d --build
+   # Build and start containers
+   docker-compose up -d --build
    
    # Check status
    docker-compose ps
-   docker-compose logs -f
+   
+   # View logs
+   docker-compose logs -f web
    ```
 
-#### 1.2 Production Docker Compose
+#### **1.2 Multi-Server Deployment**
 
-Create `docker-compose.prod.yml`:
+**Load Balancer Setup:**
+```bash
+# Install Nginx
+sudo apt install nginx
+
+# Configure Nginx
+sudo nano /etc/nginx/sites-available/salon-ese
+
+# Nginx configuration
+server {
+    listen 80;
+    server_name your-domain.com;
+    
+    location / {
+        proxy_pass http://localhost:5010;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+
+# Enable site
+sudo ln -s /etc/nginx/sites-available/salon-ese /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo systemctl restart nginx
+```
+
+### **Option 2: Cloud Deployment**
+
+#### **2.1 AWS Deployment**
+
+**Prerequisites:**
+- AWS account
+- AWS CLI configured
+- Docker installed
+
+**Steps:**
+
+1. **Create ECS Cluster**
+   ```bash
+   # Create cluster
+   aws ecs create-cluster --cluster-name salon-ese
+   
+   # Create task definition
+   aws ecs register-task-definition --cli-input-json file://task-definition.json
+   ```
+
+2. **Deploy Application**
+   ```bash
+   # Create service
+   aws ecs create-service \
+     --cluster salon-ese \
+     --service-name salon-ese-service \
+     --task-definition salon-ese:1 \
+     --desired-count 2
+   ```
+
+#### **2.2 Google Cloud Platform**
+
+**Prerequisites:**
+- GCP account
+- gcloud CLI configured
+
+**Steps:**
+
+1. **Create Container Registry**
+   ```bash
+   # Build and push image
+   docker build -t gcr.io/your-project/salon-ese .
+   docker push gcr.io/your-project/salon-ese
+   ```
+
+2. **Deploy to Cloud Run**
+   ```bash
+   gcloud run deploy salon-ese \
+     --image gcr.io/your-project/salon-ese \
+     --platform managed \
+     --region us-central1 \
+     --allow-unauthenticated
+   ```
+
+## 🔄 **Database Migrations**
+
+### **Migration Overview**
+
+The Salon ESE system includes several migration scripts to update the database schema as new features are added.
+
+### **Migration Scripts**
+
+#### **1. HR System Migration**
+```bash
+# Run HR system migration
+docker exec -it salon-ese-web-1 python migrate_hr_system.py
+```
+
+**What this does:**
+- Adds new HR fields to employment_details table
+- Creates appointment_cost table
+- Updates existing records with default values
+- Calculates costs for existing appointments
+
+#### **2. Commission System Migration**
+```bash
+# Run commission system migration
+docker exec -it salon-ese-web-1 python migrate_commission_system.py
+```
+
+**What this does:**
+- Adds commission_breakdown, billing_method, and billing_elements_applied columns to appointment_cost table
+- Creates default billing elements (Color, Electric, Styling, Treatment, Other)
+- Updates existing appointment costs with billing method and commission breakdown
+
+#### **3. Stylist Timings Migration**
+```bash
+# Run stylist timings migration
+docker exec -it salon-ese-web-1 python migrate_stylist_timings.py
+```
+
+**What this does:**
+- Creates StylistServiceTiming table
+- Adds custom duration and waiting time support
+- Migrates existing service timing data
+
+#### **4. Stylist Service Associations Migration**
+```bash
+# Run stylist service associations migration
+docker exec -it salon-ese-web-1 python migrate_stylist_service_associations.py
+```
+
+**What this does:**
+- Creates StylistServiceAssociation table
+- Sets up stylist-service permission system
+- Configures default associations
+
+#### **5. Multi-Service Appointments Migration**
+```bash
+# Run multi-service appointments migration
+docker exec -it salon-ese-web-1 python migrate_appointments_multiservice.py
+```
+
+**What this does:**
+- Creates AppointmentService table
+- Migrates existing single-service appointments to multi-service format
+- Preserves all existing appointment data
+
+### **Migration Best Practices**
+
+#### **Pre-Migration Checklist**
+1. **Backup Database**
+   ```bash
+   # Create backup
+   docker exec salon-ese-db-1 pg_dump -U salon_user salon_ese > backup_$(date +%Y%m%d_%H%M%S).sql
+   ```
+
+2. **Stop Application**
+   ```bash
+   # Stop containers
+   docker-compose down
+   ```
+
+3. **Update Code**
+   ```bash
+   # Pull latest changes
+   git pull origin main
+   ```
+
+#### **Migration Process**
+1. **Start Containers**
+   ```bash
+   # Start containers
+   docker-compose up -d
+   ```
+
+2. **Run Migrations in Order**
+   ```bash
+   # Run migrations sequentially
+   docker exec -it salon-ese-web-1 python migrate_hr_system.py
+   docker exec -it salon-ese-web-1 python migrate_commission_system.py
+   docker exec -it salon-ese-web-1 python migrate_stylist_timings.py
+   docker exec -it salon-ese-web-1 python migrate_stylist_service_associations.py
+   docker exec -it salon-ese-web-1 python migrate_appointments_multiservice.py
+   ```
+
+3. **Verify Migration Success**
+   ```bash
+   # Check migration status
+   docker exec -it salon-ese-web-1 python -c "
+   from app import create_app
+   from app.models import EmploymentDetails, AppointmentCost, StylistServiceTiming
+   app = create_app()
+   with app.app_context():
+       print(f'Employment Details: {EmploymentDetails.query.count()}')
+       print(f'Appointment Costs: {AppointmentCost.query.count()}')
+       print(f'Stylist Timings: {StylistServiceTiming.query.count()}')
+   "
+   ```
+
+#### **Post-Migration Tasks**
+1. **Test Application**
+   - Verify all features work correctly
+   - Check admin interfaces
+   - Test appointment booking
+   - Validate HR calculations
+
+2. **Update Test Data (Optional)**
+   ```bash
+   # Add comprehensive test data
+   docker exec -it salon-ese-web-1 python add_test_users.py
+   ```
+
+## 🔧 **Environment Configuration**
+
+### **Environment Variables**
+
+#### **Required Variables**
+```bash
+# Application Configuration
+FLASK_ENV=production
+SECRET_KEY=your-very-secure-secret-key-here
+FLASK_APP=run.py
+
+# Database Configuration
+DATABASE_URL=postgresql://salon_user:secure_password@db:5432/salon_ese
+POSTGRES_PASSWORD=secure_password
+
+# Docker Configuration
+DOCKER_ENV=true
+```
+
+#### **Optional Variables**
+```bash
+# Email Configuration (if using email features)
+MAIL_SERVER=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USE_TLS=true
+MAIL_USERNAME=your-email@gmail.com
+MAIL_PASSWORD=your-app-password
+
+# Logging Configuration
+LOG_LEVEL=INFO
+LOG_FILE=/app/logs/salon-ese.log
+
+# Security Configuration
+SESSION_COOKIE_SECURE=true
+SESSION_COOKIE_HTTPONLY=true
+PERMANENT_SESSION_LIFETIME=3600
+```
+
+### **Configuration Files**
+
+#### **Docker Compose Configuration**
 ```yaml
+version: '3.8'
 services:
   web:
     build: .
@@ -120,18 +376,12 @@ services:
       - "5010:5010"
     environment:
       - FLASK_ENV=production
-      - SECRET_KEY=${SECRET_KEY}
-      - DATABASE_URL=${DATABASE_URL}
-      - DOCKER_ENV=true
-    volumes:
-      - ./instance:/app/instance
-      - ./logs:/app/logs
+      - DATABASE_URL=postgresql://salon_user:${POSTGRES_PASSWORD}@db:5432/salon_ese
     depends_on:
-      db:
-        condition: service_healthy
+      - db
+    volumes:
+      - ./logs:/app/logs
     restart: unless-stopped
-    networks:
-      - salon-network
 
   db:
     image: postgres:13
@@ -141,218 +391,121 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./backups:/backups
     restart: unless-stopped
-    networks:
-      - salon-network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U salon_user -d salon_ese"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  nginx:
-    image: nginx:alpine
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf
-      - ./ssl:/etc/nginx/ssl
-    depends_on:
-      - web
-    restart: unless-stopped
-    networks:
-      - salon-network
 
 volumes:
   postgres_data:
-
-networks:
-  salon-network:
-    driver: bridge
 ```
 
-### Option 2: Traditional Server Deployment
+#### **Nginx Configuration**
+```nginx
+server {
+    listen 80;
+    server_name your-domain.com;
+    
+    # Redirect HTTP to HTTPS
+    return 301 https://$server_name$request_uri;
+}
 
-#### 2.1 Ubuntu Server Setup
+server {
+    listen 443 ssl http2;
+    server_name your-domain.com;
+    
+    # SSL Configuration
+    ssl_certificate /path/to/certificate.crt;
+    ssl_certificate_key /path/to/private.key;
+    
+    # Security Headers
+    add_header X-Frame-Options DENY;
+    add_header X-Content-Type-Options nosniff;
+    add_header X-XSS-Protection "1; mode=block";
+    
+    location / {
+        proxy_pass http://localhost:5010;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
 
-**Prerequisites:**
-- Ubuntu 20.04+ server
-- Python 3.9+
-- PostgreSQL 13+
-- Nginx
-- SSL certificate
+## 📊 **Monitoring & Maintenance**
 
-**Steps:**
+### **Health Checks**
 
-1. **System Preparation**
-   ```bash
-   # Update system
-   sudo apt update && sudo apt upgrade -y
-   
-   # Install required packages
-   sudo apt install python3 python3-pip python3-venv postgresql postgresql-contrib nginx certbot python3-certbot-nginx -y
-   ```
-
-2. **PostgreSQL Setup**
-   ```bash
-   # Create database and user
-   sudo -u postgres psql
-   
-   CREATE DATABASE salon_ese;
-   CREATE USER salon_user WITH PASSWORD 'secure_password';
-   GRANT ALL PRIVILEGES ON DATABASE salon_ese TO salon_user;
-   \q
-   ```
-
-3. **Application Setup**
-   ```bash
-   # Create application directory
-   sudo mkdir -p /opt/salon-ese
-   sudo chown $USER:$USER /opt/salon-ese
-   
-   # Clone repository
-   cd /opt/salon-ese
-   git clone https://github.com/Drum998/salon-ese.git .
-   
-   # Create virtual environment
-   python3 -m venv venv
-   source venv/bin/activate
-   
-   # Install dependencies
-   pip install -r requirements.txt
-   pip install gunicorn
-   ```
-
-4. **Environment Configuration**
-   ```bash
-   # Create environment file
-   nano .env
-   
-   # Add contents:
-   FLASK_ENV=production
-   SECRET_KEY=your-very-secure-secret-key-here
-   DATABASE_URL=postgresql://salon_user:secure_password@localhost:5432/salon_ese
-   ```
-
-5. **Gunicorn Service**
-   ```bash
-   # Create systemd service
-   sudo nano /etc/systemd/system/salon-ese.service
-   ```
-
-   Service file contents:
-   ```ini
-   [Unit]
-   Description=Salon ESE Web Application
-   After=network.target postgresql.service
-
-   [Service]
-   User=www-data
-   Group=www-data
-   WorkingDirectory=/opt/salon-ese
-   Environment="PATH=/opt/salon-ese/venv/bin"
-   Environment="FLASK_ENV=production"
-   Environment="SECRET_KEY=your-secret-key"
-   Environment="DATABASE_URL=postgresql://salon_user:secure_password@localhost:5432/salon_ese"
-   ExecStart=/opt/salon-ese/venv/bin/gunicorn --workers 3 --bind unix:salon-ese.sock -m 007 run:app
-
-   [Install]
-   WantedBy=multi-user.target
-   ```
-
-6. **Nginx Configuration**
-   ```bash
-   # Create Nginx configuration
-   sudo nano /etc/nginx/sites-available/salon-ese
-   ```
-
-   Nginx configuration:
-   ```nginx
-   server {
-       listen 80;
-       server_name your-domain.com;
-
-       location / {
-           include proxy_params;
-           proxy_pass http://unix:/opt/salon-ese/salon-ese.sock;
-       }
-
-       location /static {
-           alias /opt/salon-ese/app/static;
-       }
-   }
-   ```
-
-7. **Enable Services**
-   ```bash
-   # Enable Nginx site
-   sudo ln -s /etc/nginx/sites-available/salon-ese /etc/nginx/sites-enabled
-   sudo nginx -t
-   sudo systemctl restart nginx
-   
-   # Start application service
-   sudo systemctl start salon-ese
-   sudo systemctl enable salon-ese
-   ```
-
-8. **SSL Certificate**
-   ```bash
-   # Obtain SSL certificate
-   sudo certbot --nginx -d your-domain.com
-   ```
-
-## 🔧 Configuration Management
-
-### Environment Variables
-
-**Required Variables:**
+#### **Application Health Check**
 ```bash
-FLASK_ENV=production
-SECRET_KEY=your-very-secure-secret-key
-DATABASE_URL=postgresql://user:pass@host:port/db
+# Check application status
+curl -f http://localhost:5010/health || echo "Application is down"
+
+# Check database connectivity
+docker exec -it salon-ese-web-1 python -c "
+from app import create_app
+from app.extensions import db
+app = create_app()
+with app.app_context():
+    try:
+        db.engine.execute('SELECT 1')
+        print('Database connection: OK')
+    except Exception as e:
+        print(f'Database connection: FAILED - {e}')
+"
 ```
 
-**Optional Variables:**
+#### **Container Health Check**
 ```bash
-FLASK_DEBUG=0
-MAIL_SERVER=smtp.gmail.com
-MAIL_PORT=587
-MAIL_USE_TLS=true
-MAIL_USERNAME=your-email@gmail.com
-MAIL_PASSWORD=your-app-password
+# Check container status
+docker-compose ps
+
+# Check container logs
+docker-compose logs -f web
+docker-compose logs -f db
+
+# Check resource usage
+docker stats
 ```
 
-### Security Configuration
+### **Backup Procedures**
 
-**Production Security Settings:**
-```python
-# config.py - ProductionConfig
-class ProductionConfig(Config):
-    DEBUG = False
-    TESTING = False
-    
-    # Security headers
-    SESSION_COOKIE_SECURE = True
-    SESSION_COOKIE_HTTPONLY = True
-    SESSION_COOKIE_SAMESITE = 'Lax'
-    
-    # CSRF protection
-    WTF_CSRF_ENABLED = True
-    WTF_CSRF_TIME_LIMIT = 3600
-    
-    # File upload security
-    MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB
-    ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+#### **Database Backup**
+```bash
+# Automated backup script
+#!/bin/bash
+BACKUP_DIR="/backups/salon-ese"
+DATE=$(date +%Y%m%d_%H%M%S)
+BACKUP_FILE="$BACKUP_DIR/backup_$DATE.sql"
+
+# Create backup directory
+mkdir -p $BACKUP_DIR
+
+# Create backup
+docker exec salon-ese-db-1 pg_dump -U salon_user salon_ese > $BACKUP_FILE
+
+# Compress backup
+gzip $BACKUP_FILE
+
+# Keep only last 7 days of backups
+find $BACKUP_DIR -name "*.sql.gz" -mtime +7 -delete
+
+echo "Backup completed: $BACKUP_FILE.gz"
 ```
 
-## 📊 Monitoring & Logging
+#### **Application Backup**
+```bash
+# Backup application files
+tar -czf salon-ese-app-$(date +%Y%m%d_%H%M%S).tar.gz \
+  --exclude=venv \
+  --exclude=__pycache__ \
+  --exclude=.git \
+  .
+```
 
-### Logging Configuration
+### **Log Management**
 
-**Application Logs:**
+#### **Log Configuration**
 ```python
+# Logging configuration in config.py
 import logging
 from logging.handlers import RotatingFileHandler
 import os
@@ -370,258 +523,380 @@ if not app.debug:
     app.logger.info('Salon ESE startup')
 ```
 
-### Health Checks
-
-**Health Check Endpoint:**
-```python
-@app.route('/health')
-def health_check():
-    try:
-        # Test database connection
-        db.session.execute('SELECT 1')
-        return jsonify({
-            'status': 'healthy',
-            'database': 'connected',
-            'timestamp': datetime.utcnow().isoformat()
-        }), 200
-    except Exception as e:
-        return jsonify({
-            'status': 'unhealthy',
-            'database': 'disconnected',
-            'error': str(e),
-            'timestamp': datetime.utcnow().isoformat()
-        }), 500
-```
-
-## 🔄 Backup & Recovery
-
-### Database Backups
-
-**Automated Backup Script:**
+#### **Log Rotation**
 ```bash
-#!/bin/bash
-# backup.sh
+# Log rotation configuration
+sudo nano /etc/logrotate.d/salon-ese
 
-BACKUP_DIR="/opt/backups"
-DATE=$(date +%Y%m%d_%H%M%S)
-DB_NAME="salon_ese"
-DB_USER="salon_user"
-
-# Create backup directory
-mkdir -p $BACKUP_DIR
-
-# Create backup
-pg_dump -U $DB_USER $DB_NAME > $BACKUP_DIR/salon_ese_$DATE.sql
-
-# Compress backup
-gzip $BACKUP_DIR/salon_ese_$DATE.sql
-
-# Keep only last 7 days of backups
-find $BACKUP_DIR -name "salon_ese_*.sql.gz" -mtime +7 -delete
-```
-
-**Cron Job Setup:**
-```bash
-# Add to crontab
-0 2 * * * /opt/salon-ese/backup.sh
-```
-
-### Recovery Procedures
-
-**Database Recovery:**
-```bash
-# Stop application
-sudo systemctl stop salon-ese
-
-# Restore database
-gunzip -c /opt/backups/salon_ese_20240115_020000.sql.gz | psql -U salon_user salon_ese
-
-# Start application
-sudo systemctl start salon-ese
-```
-
-## 🔒 Security Hardening
-
-### Firewall Configuration
-
-**UFW Setup:**
-```bash
-# Enable UFW
-sudo ufw enable
-
-# Allow SSH
-sudo ufw allow ssh
-
-# Allow HTTP/HTTPS
-sudo ufw allow 80
-sudo ufw allow 443
-
-# Allow application port (if not using reverse proxy)
-sudo ufw allow 5010
-
-# Check status
-sudo ufw status
-```
-
-### SSL/TLS Configuration
-
-**Nginx SSL Configuration:**
-```nginx
-server {
-    listen 443 ssl http2;
-    server_name your-domain.com;
-
-    ssl_certificate /etc/letsencrypt/live/your-domain.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/your-domain.com/privkey.pem;
-
-    ssl_protocols TLSv1.2 TLSv1.3;
-    ssl_ciphers ECDHE-RSA-AES256-GCM-SHA512:DHE-RSA-AES256-GCM-SHA512:ECDHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES256-GCM-SHA384;
-    ssl_prefer_server_ciphers off;
-
-    # Security headers
-    add_header Strict-Transport-Security "max-age=63072000" always;
-    add_header X-Frame-Options DENY;
-    add_header X-Content-Type-Options nosniff;
-    add_header X-XSS-Protection "1; mode=block";
-
-    location / {
-        include proxy_params;
-        proxy_pass http://unix:/opt/salon-ese/salon-ese.sock;
-    }
+# Configuration
+/path/to/salon-ese/logs/*.log {
+    daily
+    missingok
+    rotate 52
+    compress
+    delaycompress
+    notifempty
+    create 644 www-data www-data
+    postrotate
+        docker-compose restart web
+    endscript
 }
 ```
 
-## 📈 Performance Optimization
+## 🚨 **Troubleshooting**
 
-### Gunicorn Configuration
+### **Common Issues**
 
-**Production Gunicorn Settings:**
+#### **Database Connection Issues**
 ```bash
-gunicorn --workers 4 --worker-class sync --worker-connections 1000 --max-requests 1000 --max-requests-jitter 50 --timeout 30 --keep-alive 2 --bind unix:salon-ese.sock run:app
+# Check database status
+docker exec -it salon-ese-db-1 pg_isready -U salon_user
+
+# Check database logs
+docker-compose logs db
+
+# Reset database (WARNING: This will delete all data)
+docker-compose down
+docker volume rm salon-ese_postgres_data
+docker-compose up -d
 ```
 
-### Database Optimization
-
-**PostgreSQL Configuration:**
-```sql
--- Increase connection limits
-ALTER SYSTEM SET max_connections = 200;
-
--- Optimize memory settings
-ALTER SYSTEM SET shared_buffers = '256MB';
-ALTER SYSTEM SET effective_cache_size = '1GB';
-ALTER SYSTEM SET maintenance_work_mem = '64MB';
-ALTER SYSTEM SET checkpoint_completion_target = 0.9;
-ALTER SYSTEM SET wal_buffers = '16MB';
-ALTER SYSTEM SET default_statistics_target = 100;
-
--- Reload configuration
-SELECT pg_reload_conf();
-```
-
-## 🚨 Troubleshooting
-
-### Common Issues
-
-**1. Database Connection Issues:**
-```bash
-# Check PostgreSQL status
-sudo systemctl status postgresql
-
-# Check connection
-psql -U salon_user -d salon_ese -h localhost
-
-# Check logs
-sudo tail -f /var/log/postgresql/postgresql-13-main.log
-```
-
-**2. Application Startup Issues:**
+#### **Application Startup Issues**
 ```bash
 # Check application logs
-sudo journalctl -u salon-ese -f
+docker-compose logs web
 
-# Check Nginx logs
-sudo tail -f /var/log/nginx/error.log
-sudo tail -f /var/log/nginx/access.log
+# Check environment variables
+docker exec -it salon-ese-web-1 env | grep -E "(FLASK|DATABASE)"
+
+# Restart application
+docker-compose restart web
 ```
 
-**3. Permission Issues:**
+#### **Migration Issues**
 ```bash
-# Fix file permissions
-sudo chown -R www-data:www-data /opt/salon-ese
-sudo chmod -R 755 /opt/salon-ese
+# Check migration status
+docker exec -it salon-ese-web-1 python -c "
+from app import create_app
+from app.extensions import db
+app = create_app()
+with app.app_context():
+    print('Database tables:')
+    for table in db.metadata.tables.keys():
+        print(f'  - {table}')
+"
+
+# Reset migrations (WARNING: This will delete all data)
+docker-compose down
+docker volume rm salon-ese_postgres_data
+docker-compose up -d
+# Then run migrations again
 ```
 
-### Performance Monitoring
+### **Performance Issues**
 
-**System Monitoring:**
+#### **Database Performance**
 ```bash
-# Monitor system resources
-htop
-iotop
-nethogs
-
-# Monitor application
-sudo systemctl status salon-ese
-sudo journalctl -u salon-ese --since "1 hour ago"
+# Check database performance
+docker exec -it salon-ese-db-1 psql -U salon_user -d salon_ese -c "
+SELECT 
+    schemaname,
+    tablename,
+    attname,
+    n_distinct,
+    correlation
+FROM pg_stats
+WHERE schemaname = 'public'
+ORDER BY n_distinct DESC;
+"
 ```
 
-## 🔄 Updates & Maintenance
-
-### Application Updates
-
-**Update Procedure:**
+#### **Application Performance**
 ```bash
-# Stop application
-sudo systemctl stop salon-ese
-
-# Backup current version
-sudo cp -r /opt/salon-ese /opt/salon-ese.backup.$(date +%Y%m%d)
-
-# Pull latest changes
-cd /opt/salon-ese
-git pull origin main
-
-# Update dependencies
-source venv/bin/activate
-pip install -r requirements.txt
-
-# Run database migrations
-flask db upgrade
-
-# Start application
-sudo systemctl start salon-ese
-
-# Check status
-sudo systemctl status salon-ese
+# Check application performance
+docker exec -it salon-ese-web-1 python -c "
+import time
+from app import create_app
+app = create_app()
+with app.app_context():
+    start = time.time()
+    from app.models import User
+    users = User.query.all()
+    print(f'Query time: {time.time() - start:.3f}s')
+    print(f'Users found: {len(users)}')
+"
 ```
 
-### Scheduled Maintenance
+## 🔒 **Security Considerations**
 
-**Maintenance Script:**
-```bash
-#!/bin/bash
-# maintenance.sh
+### **Production Security Checklist**
 
-echo "Starting scheduled maintenance..."
+- [ ] **Strong Secret Key**: Use a cryptographically secure secret key
+- [ ] **HTTPS**: Enable SSL/TLS encryption
+- [ ] **Database Security**: Use strong database passwords
+- [ ] **Firewall**: Configure firewall rules
+- [ ] **Regular Updates**: Keep system and dependencies updated
+- [ ] **Backup Security**: Secure backup storage
+- [ ] **Access Control**: Implement proper access controls
+- [ ] **Monitoring**: Set up security monitoring
 
-# Update system packages
-sudo apt update && sudo apt upgrade -y
-
-# Restart services
-sudo systemctl restart postgresql
-sudo systemctl restart salon-ese
-sudo systemctl restart nginx
-
-# Clean up old logs
-find /opt/salon-ese/logs -name "*.log" -mtime +30 -delete
-
-# Clean up old backups
-find /opt/backups -name "*.sql.gz" -mtime +30 -delete
-
-echo "Maintenance completed."
+### **Security Headers**
+```nginx
+# Security headers in Nginx
+add_header X-Frame-Options DENY;
+add_header X-Content-Type-Options nosniff;
+add_header X-XSS-Protection "1; mode=block";
+add_header Strict-Transport-Security "max-age=31536000; includeSubDomains";
+add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';";
 ```
 
 ---
 
-**For additional deployment support, please refer to the main README.md or create an issue on GitHub.** 
+## ⚡ **QUICK UPDATE SECTION**
+
+### **Complete System Update (HR System to Advanced Analytics)**
+
+This section provides the commands needed to update the Salon ESE system from the HR System migration to the current Advanced Analytics System (v2.5.0).
+
+#### **Fresh Installation (Nuclear Reset)**
+
+If you want to start completely fresh with a clean database and comprehensive test data:
+
+##### **1. Nuclear Database Reset**
+```bash
+# Stop containers
+docker-compose down
+
+# Remove the database volume (this deletes ALL data)
+docker volume rm salon-ese_postgres_data
+
+# Start containers fresh
+docker-compose up -d
+
+# Wait for database to be ready
+docker-compose logs -f db
+# (Wait until you see "database system is ready to accept connections")
+```
+
+##### **2. Initialize Services (Required First)**
+```bash
+docker exec -it salon-ese-web-1 python init_services.py
+```
+
+##### **3. Apply Commission System Migration**
+```bash
+docker exec -it salon-ese-web-1 python migrate_commission_system.py
+```
+
+##### **4. Add Comprehensive Test Data**
+```bash
+docker exec -it salon-ese-web-1 python add_test_users.py
+```
+
+##### **5. Verify Installation**
+```bash
+# Check that test data was created
+docker exec -it salon-ese-web-1 python -c "
+from app import create_app
+from app.models import User, Service, EmploymentDetails, Appointment
+app = create_app()
+with app.app_context():
+    print(f'Users: {User.query.count()}')
+    print(f'Services: {Service.query.count()}')
+    print(f'Employment Details: {EmploymentDetails.query.count()}')
+    print(f'Appointments: {Appointment.query.count()}')
+"
+```
+
+**Test Login Credentials:**
+- **Manager**: `manager_1` / `12345678`
+- **Stylists**: `stylist_1`, `stylist_2`, `stylist_3` / `12345678`
+- **Customers**: `cust_1`, `cust_2`, `cust_3`, `cust_4`, `cust_5` / `12345678`
+
+#### **Update Commands (Run in Order)**
+
+##### **Prerequisites**
+- Your system should have completed the HR System migration (`migrate_hr_system.py`)
+- Docker containers should be running
+- Database should be accessible
+
+##### **0. Get Latest Version from Github**
+```bash
+git pull origin main
+```
+
+##### **1. Apply Commission System Migration**
+```bash
+docker exec -it salon-ese-web-1 python migrate_commission_system.py
+```
+
+**What this does:**
+- Adds `commission_breakdown`, `billing_method`, and `billing_elements_applied` columns to `appointment_cost` table
+- Creates default billing elements (Color, Electric, Styling, Treatment, Other)
+- Updates existing appointment costs with billing method and commission breakdown
+
+##### **2. Restart Application (Required after Commission Migration)**
+```bash
+docker-compose restart web
+```
+
+##### **3. Verify Commission System (Optional)**
+```bash
+docker exec -it salon-ese-web-1 python test_commission_system.py
+```
+
+##### **4. Fix Analytics Service (Critical - Fixes AttributeError)**
+```bash
+docker exec -it salon-ese-web-1 python -c "
+from app.services.analytics_service import AnalyticsService
+print('Analytics service fixed successfully')
+"
+```
+
+##### **5. Add Test Data (Optional but Recommended)**
+```bash
+# Add comprehensive test data with seniority hierarchy
+docker exec -it salon-ese-web-1 python add_test_users.py
+```
+
+##### **6. Verify Complete Installation**
+```bash
+# Run smoke tests to verify everything works
+docker exec -it salon-ese-web-1 python comprehensive_test_runner.py --preset smoke
+```
+
+#### **Troubleshooting Quick Updates**
+
+##### **If Commission Migration Fails**
+```bash
+# Check if columns already exist
+docker exec -it salon-ese-web-1 python -c "
+from app import create_app
+from app.models import AppointmentCost
+from app.extensions import db
+app = create_app()
+with app.app_context():
+    try:
+        result = db.engine.execute('SELECT commission_breakdown FROM appointment_cost LIMIT 1')
+        print('Commission columns already exist')
+    except Exception as e:
+        print(f'Commission columns missing: {e}')
+"
+
+# If columns are missing, run migration again
+docker exec -it salon-ese-web-1 python migrate_commission_system.py
+```
+
+##### **If Analytics Service Still Has Issues**
+```bash
+# Check analytics service status
+docker exec -it salon-ese-web-1 python -c "
+from app.services.analytics_service import AnalyticsService
+from datetime import datetime, timedelta
+app = create_app()
+with app.app_context():
+    try:
+        summary = AnalyticsService.get_financial_summary(
+            datetime.now() - timedelta(days=30),
+            datetime.now()
+        )
+        print('Analytics service working correctly')
+    except Exception as e:
+        print(f'Analytics service error: {e}')
+"
+```
+
+##### **If Test Data Creation Fails**
+```bash
+# Check database connectivity
+docker exec -it salon-ese-web-1 python -c "
+from app import create_app
+from app.extensions import db
+app = create_app()
+with app.app_context():
+    try:
+        db.engine.execute('SELECT 1')
+        print('Database connection: OK')
+    except Exception as e:
+        print(f'Database connection: FAILED - {e}')
+"
+
+# If database is OK, try test data creation again
+docker exec -it salon-ese-web-1 python add_test_users.py
+```
+
+#### **Post-Update Verification**
+
+##### **1. Check All Systems**
+```bash
+# Verify all major systems are working
+docker exec -it salon-ese-web-1 python -c "
+from app import create_app
+from app.models import User, Service, EmploymentDetails, Appointment, AppointmentCost
+app = create_app()
+with app.app_context():
+    print('=== System Status ===')
+    print(f'Users: {User.query.count()}')
+    print(f'Services: {Service.query.count()}')
+    print(f'Employment Details: {EmploymentDetails.query.count()}')
+    print(f'Appointments: {Appointment.query.count()}')
+    print(f'Appointment Costs: {AppointmentCost.query.count()}')
+    print('=== Status: OK ===')
+"
+```
+
+##### **2. Test Key Features**
+```bash
+# Test HR system
+docker exec -it salon-ese-web-1 python test_hr_system.py
+
+# Test commission system
+docker exec -it salon-ese-web-1 python test_commission_system.py
+
+# Test analytics system
+docker exec -it salon-ese-web-1 python test_analytics_system.py
+```
+
+##### **3. Run Full Test Suite**
+```bash
+# Run all tests to ensure everything works
+docker exec -it salon-ese-web-1 python comprehensive_test_runner.py
+```
+
+#### **Rollback Procedure (If Needed)**
+
+If something goes wrong and you need to rollback:
+
+##### **1. Stop Application**
+```bash
+docker-compose down
+```
+
+##### **2. Restore Database Backup**
+```bash
+# If you have a backup from before the update
+docker volume rm salon-ese_postgres_data
+docker-compose up -d db
+# Wait for database to start
+docker exec -i salon-ese-db-1 psql -U salon_user -d salon_ese < backup_before_update.sql
+```
+
+##### **3. Restart Application**
+```bash
+docker-compose up -d
+```
+
+##### **4. Verify Rollback**
+```bash
+# Check that system is back to previous state
+docker exec -it salon-ese-web-1 python -c "
+from app import create_app
+from app.models import User, Appointment
+app = create_app()
+with app.app_context():
+    print(f'Users: {User.query.count()}')
+    print(f'Appointments: {Appointment.query.count()}')
+"
+```
+
+This quick update section provides all the commands needed to update your Salon ESE system to the latest version with all features and improvements. 
