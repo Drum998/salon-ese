@@ -1749,6 +1749,10 @@ This comprehensive update significantly improves the reliability, user experienc
 - **Stylist Timing Management**: Set custom durations for stylist-service combinations
 - **Status Management**: Update appointment statuses with notes
 - **Advanced Booking**: Book appointments with multiple services and custom timing
+- **Advanced Analytics Dashboard**: Comprehensive business intelligence and reporting
+  - **Holiday Trends Analytics**: Monthly holiday request patterns, staff utilization, and conflict detection
+  - **Commission Trends Analytics**: Revenue performance, stylist rankings, and billing element analysis
+  - **Staff Utilization Analytics**: Utilization rates, capacity planning, and revenue per hour metrics
 
 ### Database Models
 
@@ -1938,6 +1942,42 @@ The main admin dashboard provides an overview of system statistics and quick acc
 - **Quick Actions**: Direct links to user management, role management, and system settings
 - **Recent Users**: Table showing the 5 most recently registered users with their details
 - **System Information**: Current user details, system time, database type, and timezone
+
+### Analytics Dashboard (`/admin/analytics`)
+
+The analytics dashboard provides comprehensive business intelligence and reporting capabilities for salon management.
+
+#### Features:
+- **Executive Dashboard**: High-level KPIs including revenue, commission, staff utilization, and holiday metrics
+- **Date Range Filtering**: Customizable date ranges for all analytics reports
+- **Interactive Charts**: Chart.js-powered visualizations for data analysis
+- **Export Capabilities**: Data export functionality for external reporting
+
+#### Analytics Modules:
+
+##### Holiday Trends Analytics (`/admin/analytics/holiday-trends`)
+- **Monthly Trends**: Holiday request patterns with approval/rejection rates
+- **Staff Utilization**: Individual staff holiday request statistics and approval rates
+- **Conflict Detection**: Automated detection of overlapping holiday requests
+- **Visual Charts**: Bar charts showing monthly trends and staff utilization patterns
+
+##### Commission Trends Analytics (`/admin/analytics/commission-trends`)
+- **Monthly Performance**: Revenue and commission trends over time
+- **Stylist Rankings**: Performance-based stylist rankings with efficiency metrics
+- **Billing Elements**: Commission breakdown by billing element type
+- **Summary Statistics**: Total revenue, commission, and efficiency metrics
+
+##### Staff Utilization Analytics (`/admin/analytics/staff-utilization`)
+- **Utilization Rates**: Staff utilization percentages with color-coded progress bars
+- **Capacity Planning**: Automated capacity recommendations based on demand analysis
+- **Revenue Metrics**: Revenue per hour and appointment duration analysis
+- **Work Pattern Integration**: Scheduled vs actual hours comparison
+
+#### Technical Features:
+- **Database Compatibility**: Works with both PostgreSQL and SQLite databases
+- **Real-time Data**: Live data updates from appointment and holiday systems
+- **Responsive Design**: Mobile-friendly layouts with Bootstrap components
+- **Performance Optimized**: Efficient database queries with proper indexing
 
 #### Dashboard Statistics:
 ```python

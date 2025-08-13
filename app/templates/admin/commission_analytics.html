@@ -1,0 +1,245 @@
+{% extends "base.html" %}
+
+{% block title %}Commission Trends Analytics{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">Commission Trends Analytics</h1>
+                <div class="btn-group" role="group">
+                    <a href="{{ url_for('admin.analytics_dashboard') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> Back to Analytics
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Date Range Filter -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <form method="GET" class="row g-3">
+                        <div class="col-md-4">
+                            <label for="start_date" class="form-label">Start Date</label>
+                            <input type="date" class="form-control" id="start_date" name="start_date" 
+                                   value="{{ start_date.strftime('%Y-%m-%d') if start_date else '' }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="end_date" class="form-label">End Date</label>
+                            <input type="date" class="form-control" id="end_date" name="end_date" 
+                                   value="{{ end_date.strftime('%Y-%m-%d') if end_date else '' }}">
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary me-2">Filter</button>
+                            <a href="{{ url_for('admin.commission_analytics') }}" class="btn btn-outline-secondary">Reset</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Monthly Commission Trends Chart -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Monthly Commission Trends</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="monthlyCommissionChart" width="400" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stylist Performance Rankings -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Stylist Performance Rankings</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Rank</th>
+                                    <th>Stylist</th>
+                                    <th>Total Revenue</th>
+                                    <th>Total Commission</th>
+                                    <th>Commission Rate</th>
+                                    <th>Appointments</th>
+                                    <th>Avg Commission</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for ranking in commission_data.stylist_rankings %}
+                                <tr>
+                                    <td>{{ loop.index }}</td>
+                                    <td>{{ ranking.username }}</td>
+                                    <td>£{{ "%.2f"|format(ranking.total_revenue) }}</td>
+                                    <td>£{{ "%.2f"|format(ranking.total_commission) }}</td>
+                                    <td>
+                                        <div class="progress" style="height: 20px;">
+                                            <div class="progress-bar bg-success" role="progressbar" 
+                                                 style="width: {{ ranking.commission_efficiency }}%">
+                                                {{ "%.1f"|format(ranking.commission_efficiency) }}%
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>{{ ranking.appointment_count }}</td>
+                                    <td>£{{ "%.2f"|format(ranking.avg_commission) }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Billing Elements Performance -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Billing Elements Performance</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for element_name, element_data in commission_data.billing_elements.items() %}
+                        <div class="col-md-4 mb-3">
+                            <div class="card border-primary">
+                                <div class="card-body text-center">
+                                    <h6 class="card-title">{{ element_name|title }}</h6>
+                                    <div class="display-6 text-primary">{{ "%.1f"|format(element_data.percentage) }}%</div>
+                                    <p class="card-text">Commission Rate</p>
+                                    <small class="text-muted">
+                                        Revenue: £{{ "%.2f"|format(element_data.total_revenue) }}<br>
+                                        Commission: £{{ "%.2f"|format(element_data.commission_generated) }}
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Statistics -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center">
+                    <h4 class="card-title">Total Revenue</h4>
+                    <div class="display-6">£{{ "%.2f"|format(commission_data.stylist_rankings|sum(attribute='total_revenue')) }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                    <h4 class="card-title">Total Commission</h4>
+                    <div class="display-6">£{{ "%.2f"|format(commission_data.stylist_rankings|sum(attribute='total_commission')) }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body text-center">
+                    <h4 class="card-title">Avg Commission Rate</h4>
+                    <div class="display-6">{{ "%.1f"|format((commission_data.stylist_rankings|sum(attribute='total_commission') / commission_data.stylist_rankings|sum(attribute='total_revenue') * 100) if commission_data.stylist_rankings|sum(attribute='total_revenue') > 0 else 0) }}%</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body text-center">
+                    <h4 class="card-title">Total Appointments</h4>
+                    <div class="display-6">{{ commission_data.stylist_rankings|sum(attribute='appointment_count') }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Monthly Commission Trends Chart
+    const monthlyData = {{ commission_data.monthly_trends|tojson }};
+    
+    const ctx = document.getElementById('monthlyCommissionChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: monthlyData.map(item => item.month),
+            datasets: [{
+                label: 'Total Revenue',
+                data: monthlyData.map(item => item.total_revenue),
+                borderColor: 'rgba(54, 162, 235, 1)',
+                backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                yAxisID: 'y'
+            }, {
+                label: 'Total Commission',
+                data: monthlyData.map(item => item.total_commission),
+                borderColor: 'rgba(75, 192, 192, 1)',
+                backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                yAxisID: 'y'
+            }, {
+                label: 'Commission Rate (%)',
+                data: monthlyData.map(item => item.commission_rate),
+                borderColor: 'rgba(255, 99, 132, 1)',
+                backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                yAxisID: 'y1'
+            }]
+        },
+        options: {
+            responsive: true,
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
+            scales: {
+                y: {
+                    type: 'linear',
+                    display: true,
+                    position: 'left',
+                    title: {
+                        display: true,
+                        text: 'Amount (£)'
+                    }
+                },
+                y1: {
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    title: {
+                        display: true,
+                        text: 'Rate (%)'
+                    },
+                    grid: {
+                        drawOnChartArea: false,
+                    },
+                }
+            },
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Monthly Commission Trends'
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

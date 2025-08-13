@@ -1,0 +1,276 @@
+{% extends "base.html" %}
+
+{% block title %}Staff Utilization Analytics{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">Staff Utilization Analytics</h1>
+                <div class="btn-group" role="group">
+                    <a href="{{ url_for('admin.analytics_dashboard') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> Back to Analytics
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Date Range Filter -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <form method="GET" class="row g-3">
+                        <div class="col-md-4">
+                            <label for="start_date" class="form-label">Start Date</label>
+                            <input type="date" class="form-control" id="start_date" name="start_date" 
+                                   value="{{ start_date.strftime('%Y-%m-%d') if start_date else '' }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="end_date" class="form-label">End Date</label>
+                            <input type="date" class="form-control" id="end_date" name="end_date" 
+                                   value="{{ end_date.strftime('%Y-%m-%d') if end_date else '' }}">
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary me-2">Filter</button>
+                            <a href="{{ url_for('admin.staff_utilization_analytics') }}" class="btn btn-outline-secondary">Reset</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Statistics -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center">
+                    <h4 class="card-title">Avg Utilization Rate</h4>
+                    <div class="display-6">{{ "%.1f"|format(utilization_data.avg_utilization_rate) }}%</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                    <h4 class="card-title">Total Scheduled Hours</h4>
+                    <div class="display-6">{{ "%.0f"|format(utilization_data.total_scheduled_hours) }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body text-center">
+                    <h4 class="card-title">Total Actual Hours</h4>
+                    <div class="display-6">{{ "%.0f"|format(utilization_data.total_actual_hours) }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body text-center">
+                    <h4 class="card-title">Total Revenue</h4>
+                    <div class="display-6">£{{ "%.2f"|format(utilization_data.total_revenue) }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Staff Utilization Table -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Staff Utilization Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Staff Member</th>
+                                    <th>Scheduled Hours</th>
+                                    <th>Actual Hours</th>
+                                    <th>Utilization Rate</th>
+                                    <th>Appointments</th>
+                                    <th>Total Revenue</th>
+                                    <th>Revenue/Hour</th>
+                                    <th>Avg Duration</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for staff in utilization_data.staff_utilization %}
+                                <tr>
+                                    <td>{{ staff.username }}</td>
+                                    <td>{{ "%.0f"|format(staff.scheduled_hours) }}</td>
+                                    <td>{{ "%.1f"|format(staff.actual_hours) }}</td>
+                                    <td>
+                                        <div class="progress" style="height: 20px;">
+                                            {% if staff.utilization_rate >= 80 %}
+                                                {% set bar_class = "bg-success" %}
+                                            {% elif staff.utilization_rate >= 60 %}
+                                                {% set bar_class = "bg-warning" %}
+                                            {% else %}
+                                                {% set bar_class = "bg-danger" %}
+                                            {% endif %}
+                                            <div class="progress-bar {{ bar_class }}" role="progressbar" 
+                                                 style="width: {{ staff.utilization_rate }}%">
+                                                {{ "%.1f"|format(staff.utilization_rate) }}%
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>{{ staff.appointment_count }}</td>
+                                    <td>£{{ "%.2f"|format(staff.total_revenue) }}</td>
+                                    <td>£{{ "%.2f"|format(staff.revenue_per_hour) }}</td>
+                                    <td>{{ "%.1f"|format(staff.avg_appointment_duration) }}h</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Utilization Chart -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Staff Utilization Comparison</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="utilizationChart" width="400" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Capacity Recommendations -->
+    {% if capacity_data.recommendations %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-info">
+                <div class="card-header bg-info text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-lightbulb"></i> Capacity Planning Recommendations
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for recommendation in capacity_data.recommendations %}
+                        <div class="col-md-6 mb-3">
+                            <div class="card {% if recommendation.type == 'over_capacity' %}border-danger{% else %}border-warning{% endif %}">
+                                <div class="card-body">
+                                    <h6 class="card-title">
+                                        {% if recommendation.type == 'over_capacity' %}
+                                            <i class="fas fa-exclamation-triangle text-danger"></i>
+                                        {% else %}
+                                            <i class="fas fa-info-circle text-warning"></i>
+                                        {% endif %}
+                                        {{ recommendation.type|replace('_', ' ')|title }}
+                                    </h6>
+                                    <p class="card-text">{{ recommendation.description }}</p>
+                                    <small class="text-muted">
+                                        <strong>Date:</strong> {{ recommendation.date }}<br>
+                                        <strong>Suggestion:</strong> {{ recommendation.suggestion }}
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Capacity Analysis Summary -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Capacity Analysis Summary</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-4">
+                            <div class="border rounded p-3">
+                                <h4 class="text-primary">{{ capacity_data.capacity_analysis.total_days_analyzed }}</h4>
+                                <p class="mb-0">Days Analyzed</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="border rounded p-3">
+                                <h4 class="text-danger">{{ capacity_data.capacity_analysis.over_capacity_days }}</h4>
+                                <p class="mb-0">Over Capacity Days</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="border rounded p-3">
+                                <h4 class="text-warning">{{ capacity_data.capacity_analysis.under_capacity_days }}</h4>
+                                <p class="mb-0">Under Capacity Days</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Staff Utilization Chart
+    const staffData = {{ utilization_data.staff_utilization|tojson }};
+    
+    const ctx = document.getElementById('utilizationChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: staffData.map(item => item.username),
+            datasets: [{
+                label: 'Utilization Rate (%)',
+                data: staffData.map(item => item.utilization_rate),
+                backgroundColor: staffData.map(item => {
+                    if (item.utilization_rate >= 80) return 'rgba(75, 192, 192, 0.5)';
+                    if (item.utilization_rate >= 60) return 'rgba(255, 205, 86, 0.5)';
+                    return 'rgba(255, 99, 132, 0.5)';
+                }),
+                borderColor: staffData.map(item => {
+                    if (item.utilization_rate >= 80) return 'rgba(75, 192, 192, 1)';
+                    if (item.utilization_rate >= 60) return 'rgba(255, 205, 86, 1)';
+                    return 'rgba(255, 99, 132, 1)';
+                }),
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    title: {
+                        display: true,
+                        text: 'Utilization Rate (%)'
+                    }
+                }
+            },
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Staff Utilization Rates'
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

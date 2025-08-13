@@ -1,5 +1,132 @@
 # Salon ESE Changelog
 
+## [2.3.1] - Analytics System Fixes & Improvements - 2025-01-28
+
+### 🔧 **Analytics System Bug Fixes & Database Compatibility**
+
+#### Fixed Analytics Dashboard Routes
+- **✅ FIXED**: All analytics routes now working properly with comprehensive error resolution
+- **Routes Fixed**:
+  - `/admin/analytics/holiday-trends` - Holiday trends and conflict analysis
+  - `/admin/analytics/commission-trends` - Commission performance analytics  
+  - `/admin/analytics/staff-utilization` - Staff utilization and capacity planning
+
+#### Database Compatibility Improvements
+- **PostgreSQL Support**: Fixed `func.date_trunc()` compatibility issues by replacing with `func.to_char()`
+- **SQLite Compatibility**: Maintained support for both SQLite and PostgreSQL databases
+- **Date Formatting**: Standardized month formatting across all analytics queries
+
+#### Model Attribute Fixes
+- **HolidayRequest Model**: Fixed `duration_days` attribute error by using correct `days_requested` field
+- **Appointment Model**: Fixed `duration` attribute error by using `duration_minutes` property
+- **Decimal Type Handling**: Resolved Decimal/float division errors in revenue calculations
+
+#### Foreign Key Relationship Fixes
+- **Ambiguous Joins**: Fixed `AmbiguousForeignKeysError` by explicitly specifying join conditions
+- **HolidayRequest Joins**: Properly specified `User.id == HolidayRequest.user_id` for requesting user relationships
+- **Multi-relationship Models**: Resolved conflicts between `user_id` and `approved_by_id` foreign keys
+
+#### Template System Completion
+- **Missing Templates**: Created comprehensive analytics templates with modern UI/UX
+- **Chart.js Integration**: Added interactive charts for data visualization
+- **Responsive Design**: Mobile-friendly layouts with Bootstrap components
+- **Date Filtering**: Consistent date range filtering across all analytics pages
+
+### 📊 **Analytics Features Implemented**
+
+#### Holiday Trends Analytics
+- **Monthly Trends**: Holiday request patterns with approval/rejection rates
+- **Staff Utilization**: Individual staff holiday request statistics
+- **Conflict Detection**: Automated detection of overlapping holiday requests
+- **Visual Charts**: Bar charts showing monthly trends and staff utilization
+
+#### Commission Trends Analytics
+- **Monthly Performance**: Revenue and commission trends over time
+- **Stylist Rankings**: Performance-based stylist rankings with efficiency metrics
+- **Billing Elements**: Commission breakdown by billing element type
+- **Summary Statistics**: Total revenue, commission, and efficiency metrics
+
+#### Staff Utilization Analytics
+- **Utilization Rates**: Staff utilization percentages with color-coded progress bars
+- **Capacity Planning**: Automated capacity recommendations based on demand analysis
+- **Revenue Metrics**: Revenue per hour and appointment duration analysis
+- **Work Pattern Integration**: Scheduled vs actual hours comparison
+
+### 🛠 **Technical Implementation Details**
+
+#### Database Query Fixes
+```python
+# Fixed PostgreSQL compatibility
+monthly_trends = db.session.query(
+    func.to_char(HolidayRequest.start_date, 'YYYY-MM').label('month'),
+    # ... other fields
+).group_by(
+    func.to_char(HolidayRequest.start_date, 'YYYY-MM')
+).order_by('month').all()
+
+# Fixed foreign key joins
+staff_utilization = db.session.query(
+    User.username,
+    # ... other fields
+).join(
+    HolidayRequest, User.id == HolidayRequest.user_id
+).filter(
+    # ... filters
+).group_by(User.id, User.username).all()
+```
+
+#### Decimal Type Handling
+```python
+# Fixed Decimal/float division errors
+total_revenue = sum(
+    float(AppointmentCost.query.filter_by(appointment_id=appointment.id).first().service_revenue)
+    for appointment in appointments
+    if AppointmentCost.query.filter_by(appointment_id=appointment.id).first()
+)
+
+revenue_per_hour = (total_revenue / actual_hours) if actual_hours > 0 else 0
+```
+
+#### Template Structure
+```html
+<!-- Modern analytics template structure -->
+<div class="container-fluid">
+    <!-- Date Range Filter -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <form method="GET" class="row g-3">
+                <!-- Date inputs and filter buttons -->
+            </form>
+        </div>
+    </div>
+    
+    <!-- Analytics Charts -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <canvas id="analyticsChart"></canvas>
+        </div>
+    </div>
+    
+    <!-- Data Tables -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <table class="table table-striped">
+                <!-- Analytics data -->
+            </table>
+        </div>
+    </div>
+</div>
+```
+
+### 🎯 **Quality Assurance**
+- **Error Resolution**: Fixed all AttributeError, ProgrammingError, and AmbiguousForeignKeysError issues
+- **Database Testing**: Verified compatibility with both PostgreSQL and SQLite
+- **Template Testing**: All analytics templates render correctly with proper data display
+- **Chart Integration**: Interactive charts working with real-time data
+- **Navigation Flow**: Seamless navigation between analytics dashboard and individual analytics pages
+
+---
+
 ## [2.3.0] - Advanced Calendar & Seniority System - 2025-01-28
 ### 🎯 **Advanced Calendar & Seniority System - Major Release**
 

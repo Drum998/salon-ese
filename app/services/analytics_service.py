@@ -82,7 +82,7 @@ class AnalyticsService:
 
         # Monthly holiday request trends
         monthly_trends = db.session.query(
-            func.date_trunc('month', HolidayRequest.start_date).label('month'),
+            func.to_char(HolidayRequest.start_date, 'YYYY-MM').label('month'),
             func.count(HolidayRequest.id).label('total_requests'),
             func.count(case([(HolidayRequest.status == 'approved', 1)])).label('approved'),
             func.count(case([(HolidayRequest.status == 'rejected', 1)])).label('rejected'),
@@ -91,7 +91,7 @@ class AnalyticsService:
             HolidayRequest.start_date >= start_date,
             HolidayRequest.start_date <= end_date
         ).group_by(
-            func.date_trunc('month', HolidayRequest.start_date)
+            func.to_char(HolidayRequest.start_date, 'YYYY-MM')
         ).order_by('month').all()
 
         # Staff holiday utilization
@@ -99,7 +99,7 @@ class AnalyticsService:
             User.username,
             func.count(HolidayRequest.id).label('total_requests'),
             func.count(case([(HolidayRequest.status == 'approved', 1)])).label('approved_requests'),
-            func.avg(HolidayRequest.duration_days).label('avg_duration')
+            func.avg(HolidayRequest.days_requested).label('avg_duration')
         ).join(
             HolidayRequest, User.id == HolidayRequest.user_id
         ).filter(
@@ -113,7 +113,7 @@ class AnalyticsService:
         return {
             'monthly_trends': [
                 {
-                    'month': trend.month.strftime('%Y-%m'),
+                    'month': trend.month,
                     'total_requests': trend.total_requests,
                     'approved': trend.approved,
                     'rejected': trend.rejected,
@@ -147,7 +147,7 @@ class AnalyticsService:
             HolidayRequest.start_date,
             HolidayRequest.end_date,
             User.username
-        ).join(User).filter(
+        ).join(User, User.id == HolidayRequest.user_id).filter(
             HolidayRequest.start_date <= end_date,
             HolidayRequest.end_date >= start_date,
             HolidayRequest.status == 'approved'
@@ -181,7 +181,7 @@ class AnalyticsService:
 
         # Monthly commission trends
         monthly_commission = db.session.query(
-            func.date_trunc('month', Appointment.appointment_date).label('month'),
+            func.to_char(Appointment.appointment_date, 'YYYY-MM').label('month'),
             func.sum(AppointmentCost.service_revenue).label('total_revenue'),
             func.sum(AppointmentCost.commission_amount).label('total_commission'),
             func.avg(AppointmentCost.commission_amount).label('avg_commission')
@@ -192,7 +192,7 @@ class AnalyticsService:
             Appointment.appointment_date <= end_date,
             AppointmentCost.commission_amount > 0
         ).group_by(
-            func.date_trunc('month', Appointment.appointment_date)
+            func.to_char(Appointment.appointment_date, 'YYYY-MM')
         ).order_by('month').all()
 
         # Stylist performance rankings
@@ -230,7 +230,7 @@ class AnalyticsService:
         return {
             'monthly_trends': [
                 {
-                    'month': trend.month.strftime('%Y-%m'),
+                    'month': trend.month,
                     'total_revenue': float(trend.total_revenue) if trend.total_revenue else 0,
                     'total_commission': float(trend.total_commission) if trend.total_commission else 0,
                     'avg_commission': float(trend.avg_commission) if trend.avg_commission else 0,
@@ -284,14 +284,14 @@ class AnalyticsService:
                 scheduled_hours = 40  # Placeholder
             
             # Calculate actual hours (from appointments)
-            actual_hours = sum(appointment.duration for appointment in appointments)
+            actual_hours = sum(appointment.duration_minutes / 60.0 for appointment in appointments)
             
             # Calculate utilization rate
             utilization_rate = (actual_hours / scheduled_hours * 100) if scheduled_hours > 0 else 0
             
             # Calculate revenue per hour
             total_revenue = sum(
-                AppointmentCost.query.filter_by(appointment_id=appointment.id).first().service_revenue
+                float(AppointmentCost.query.filter_by(appointment_id=appointment.id).first().service_revenue)
                 for appointment in appointments
                 if AppointmentCost.query.filter_by(appointment_id=appointment.id).first()
             )
@@ -337,7 +337,7 @@ class AnalyticsService:
             if stylist_id not in daily_capacity[date_key]:
                 daily_capacity[date_key][stylist_id] = 0
             
-            daily_capacity[date_key][stylist_id] += appointment.duration
+            daily_capacity[date_key][stylist_id] += appointment.duration_minutes / 60.0
         
         recommendations = []
         

@@ -774,76 +774,150 @@ The Analytics System provides comprehensive reporting and analytics for salon op
 ```python
 class AnalyticsService:
     @staticmethod
-    def get_financial_summary(start_date, end_date):
-        """Get financial summary for date range"""
-        appointments = Appointment.query.filter(
+    def get_executive_dashboard_data(start_date=None, end_date=None):
+        """Get high-level KPIs for executive dashboard"""
+        # Revenue and commission metrics
+        revenue_data = HRService.calculate_salon_commission_summary(start_date, end_date)
+        
+        # Staff metrics
+        total_stylists = User.query.join(User.roles).filter(Role.name == 'stylist').count()
+        active_stylists = Appointment.query.filter(
             Appointment.appointment_date >= start_date,
             Appointment.appointment_date <= end_date
-        ).all()
+        ).with_entities(Appointment.stylist_id).distinct().count()
         
-        total_revenue = 0
-        total_cost = 0
-        total_appointments = len(appointments)
-        
-        for appointment in appointments:
-            cost = AppointmentCost.query.filter_by(appointment_id=appointment.id).first()
-            if cost:
-                total_revenue += float(cost.service_revenue)
-                total_cost += float(cost.stylist_cost)
+        # Holiday metrics
+        holiday_requests = HolidayRequest.query.filter(
+            HolidayRequest.start_date >= start_date,
+            HolidayRequest.start_date <= end_date
+        ).count()
         
         return {
-            'total_appointments': total_appointments,
-            'total_revenue': total_revenue,
-            'total_cost': total_cost,
-            'total_profit': total_revenue - total_cost,
-            'profit_margin': ((total_revenue - total_cost) / total_revenue * 100) if total_revenue > 0 else 0,
-            'average_revenue_per_appointment': total_revenue / total_appointments if total_appointments > 0 else 0
+            'revenue': revenue_data.get('total_revenue', 0),
+            'commission': revenue_data.get('total_commission', 0),
+            'total_stylists': total_stylists,
+            'active_stylists': active_stylists,
+            'staff_utilization': (active_stylists / total_stylists * 100) if total_stylists > 0 else 0,
+            'holiday_requests': holiday_requests,
+            'total_appointments': total_appointments
         }
     
     @staticmethod
-    def get_stylist_performance_ranking(start_date, end_date):
-        """Get stylist performance ranking"""
-        stylists = User.query.join(User.roles).filter(Role.name.in_(['stylist', 'senior_stylist', 'junior_stylist'])).all()
+    def analyze_holiday_trends(start_date=None, end_date=None):
+        """Analyze holiday request patterns and trends"""
+        # Monthly holiday request trends with PostgreSQL compatibility
+        monthly_trends = db.session.query(
+            func.to_char(HolidayRequest.start_date, 'YYYY-MM').label('month'),
+            func.count(HolidayRequest.id).label('total_requests'),
+            func.count(case([(HolidayRequest.status == 'approved', 1)])).label('approved'),
+            func.count(case([(HolidayRequest.status == 'rejected', 1)])).label('rejected')
+        ).filter(
+            HolidayRequest.start_date >= start_date,
+            HolidayRequest.start_date <= end_date
+        ).group_by(
+            func.to_char(HolidayRequest.start_date, 'YYYY-MM')
+        ).order_by('month').all()
         
-        rankings = []
+        # Staff holiday utilization with proper foreign key joins
+        staff_utilization = db.session.query(
+            User.username,
+            func.count(HolidayRequest.id).label('total_requests'),
+            func.count(case([(HolidayRequest.status == 'approved', 1)])).label('approved_requests'),
+            func.avg(HolidayRequest.days_requested).label('avg_duration')
+        ).join(
+            HolidayRequest, User.id == HolidayRequest.user_id
+        ).filter(
+            HolidayRequest.start_date >= start_date,
+            HolidayRequest.start_date <= end_date
+        ).group_by(User.id, User.username).all()
+        
+        return {
+            'monthly_trends': [...],
+            'staff_utilization': [...],
+            'conflicts': conflicts
+        }
+    
+    @staticmethod
+    def analyze_commission_trends(start_date=None, end_date=None):
+        """Analyze commission performance trends"""
+        # Monthly commission trends with proper Decimal handling
+        monthly_commission = db.session.query(
+            func.to_char(Appointment.appointment_date, 'YYYY-MM').label('month'),
+            func.sum(AppointmentCost.service_revenue).label('total_revenue'),
+            func.sum(AppointmentCost.commission_amount).label('total_commission')
+        ).join(
+            AppointmentCost, Appointment.id == AppointmentCost.appointment_id
+        ).filter(
+            Appointment.appointment_date >= start_date,
+            Appointment.appointment_date <= end_date,
+            AppointmentCost.commission_amount > 0
+        ).group_by(
+            func.to_char(Appointment.appointment_date, 'YYYY-MM')
+        ).order_by('month').all()
+        
+        return {
+            'monthly_trends': [...],
+            'stylist_rankings': [...],
+            'billing_elements': element_performance
+        }
+    
+    @staticmethod
+    def calculate_staff_utilization(start_date=None, end_date=None):
+        """Calculate comprehensive staff utilization metrics"""
+        # Staff utilization with proper Decimal to float conversion
         for stylist in stylists:
-            performance = HRService.get_stylist_performance_report(stylist.id, start_date, end_date)
-            rankings.append({
-                'stylist': stylist,
-                'performance': performance
-            })
-        
-        # Sort by total revenue
-        rankings.sort(key=lambda x: x['performance']['total_revenue'], reverse=True)
-        
-        return rankings
+            total_revenue = sum(
+                float(AppointmentCost.query.filter_by(appointment_id=appointment.id).first().service_revenue)
+                for appointment in appointments
+                if AppointmentCost.query.filter_by(appointment_id=appointment.id).first()
+            )
+            
+            revenue_per_hour = (total_revenue / actual_hours) if actual_hours > 0 else 0
+            
+        return {
+            'staff_utilization': utilization_data,
+            'avg_utilization_rate': avg_rate,
+            'total_revenue': total_revenue
+        }
 ```
 
 ### **Admin Interfaces**
 
 #### **Analytics Dashboard**
-- **Route**: `/admin/analytics-dashboard`
+- **Route**: `/admin/analytics/dashboard`
 - **Features**:
-  - Financial overview with charts
-  - Staff performance metrics
-  - Trend analysis
-  - Key performance indicators
+  - Executive dashboard with high-level KPIs
+  - Revenue, commission, and staff utilization metrics
+  - Date range filtering for all analytics
+  - Interactive charts and visualizations
+  - Navigation to detailed analytics modules
 
-#### **Commission Analytics**
-- **Route**: `/admin/commission-analytics`
+#### **Holiday Trends Analytics**
+- **Route**: `/admin/analytics/holiday-trends`
 - **Features**:
-  - Commission trends
-  - Performance rankings
-  - Billing element analysis
-  - Export functionality
+  - Monthly holiday request trends with approval/rejection rates
+  - Staff holiday utilization statistics
+  - Automated conflict detection for overlapping holidays
+  - Interactive bar charts for data visualization
+  - Date range filtering and export capabilities
 
-#### **Holiday Analytics**
-- **Route**: `/admin/holiday-analytics`
+#### **Commission Trends Analytics**
+- **Route**: `/admin/analytics/commission-trends`
 - **Features**:
-  - Holiday usage trends
-  - Conflict detection
-  - Quota utilization
-  - Seasonal patterns
+  - Monthly revenue and commission performance trends
+  - Stylist performance rankings with efficiency metrics
+  - Billing element performance analysis
+  - Summary statistics with total revenue and commission rates
+  - Interactive line charts with dual-axis support
+
+#### **Staff Utilization Analytics**
+- **Route**: `/admin/analytics/staff-utilization`
+- **Features**:
+  - Staff utilization rates with color-coded progress bars
+  - Capacity planning recommendations based on demand analysis
+  - Revenue per hour and appointment duration metrics
+  - Work pattern integration for scheduled vs actual hours
+  - Capacity analysis with over/under capacity alerts
 
 ## 🔗 **Integration Features**
 
